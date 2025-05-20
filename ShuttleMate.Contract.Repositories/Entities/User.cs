@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using ShuttleMate.Contract.Repositories.Base;
 using ShuttleMate.Core.Utils;
 
 namespace ShuttleMate.Contract.Repositories.Entities
 {
-    public class ApplicationUser : IdentityUser<Guid>
+    public class User : BaseEntity
     {
         public string FullName { get; set; } = string.Empty;
         public bool Gender { get; set; } = true;
@@ -14,14 +15,9 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public int? EmailCode { get; set; }
         public DateTime? CodeGeneratedTime { get; set; }
         public bool? Violate { get; set; } = false;
-        public string? CreatedBy { get; set; }
-        public string? LastUpdatedBy { get; set; }
-        public string? DeletedBy { get; set; }
-        public DateTimeOffset CreatedTime { get; set; }
-        public DateTimeOffset LastUpdatedTime { get; set; }
-        public DateTimeOffset? DeletedTime { get; set; }
-        public virtual ICollection<ApplicationUserRole> UserRoles { get; set; } = new List<ApplicationUserRole>();
-        public ApplicationUser()
+
+        public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+        public User()
         {
             CreatedTime = CoreHelper.SystemTimeNow;
             LastUpdatedTime = CreatedTime;

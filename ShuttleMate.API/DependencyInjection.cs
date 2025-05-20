@@ -20,7 +20,7 @@ namespace WanviBE.API
         {
             services.ConfigRoute();
             services.AddMemoryCache();
-            services.AddIdentity();
+            //services.AddIdentity();
             services.AddInfrastructure(configuration);
             //services.AddEmailConfig(configuration);
             services.AddAutoMapper();
@@ -237,14 +237,14 @@ namespace WanviBE.API
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
         }
 
-        public static void AddIdentity(this IServiceCollection services)
-        {
-            services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
-            {
-            })
-             .AddEntityFrameworkStores<DatabaseContext>()
-             .AddDefaultTokenProviders();
-        }
+        //public static void AddIdentity(this IServiceCollection services)
+        //{
+        //    services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+        //    {
+        //    })
+        //     .AddEntityFrameworkStores<DatabaseContext>()
+        //     .AddDefaultTokenProviders();
+        //}
 
         public static void AddServices(this IServiceCollection services)
         {

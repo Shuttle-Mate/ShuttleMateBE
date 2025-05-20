@@ -4,34 +4,34 @@ using ShuttleMate.Contract.Repositories.Entities;
 
 namespace ShuttleMate.Repositories.Context
 {
-    public class DatabaseContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>
+    public class DatabaseContext : DbContext
     {
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
         #region Entity
-        public virtual DbSet<ApplicationUser> ApplicationUsers => Set<ApplicationUser>();
-        public virtual DbSet<ApplicationRole> ApplicationRoles => Set<ApplicationRole>();
-        public virtual DbSet<ApplicationUserRole> ApplicationUserRoles => Set<ApplicationUserRole>();
+        public virtual DbSet<User> Users => Set<User>();
+        public virtual DbSet<Role> Roles => Set<Role>();
+        public virtual DbSet<UserRole> UserRoles => Set<UserRole>();
         #endregion
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<ApplicationUser>(entity =>
+            modelBuilder.Entity<User>(entity =>
             {
                 entity.ToTable("Users");
             });
 
-            modelBuilder.Entity<ApplicationRole>(entity =>
+            modelBuilder.Entity<Role>(entity =>
             {
                 entity.ToTable("Roles");
             });
 
-            modelBuilder.Entity<ApplicationUserRole>(entity =>
+            modelBuilder.Entity<UserRole>(entity =>
             {
                 entity.ToTable("UserRoles");
             });
 
-            modelBuilder.Entity<ApplicationUserRole>()
+            modelBuilder.Entity<UserRole>()
                 .HasKey(ur => new { ur.UserId, ur.RoleId });
         }
     }

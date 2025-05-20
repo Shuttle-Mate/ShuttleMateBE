@@ -61,10 +61,10 @@ namespace Wanvi.API.Middleware
                 // Get user ID from the authenticated context
                 string idUser = Authentication.GetUserIdFromHttpContext(context);
 
-                if (Guid.TryParse(idUser, out Guid guidId))
+                if (!string.IsNullOrWhiteSpace(idUser))
                 {
-                    ApplicationUser? user = unitOfWork.GetRepository<ApplicationUser>().Entities
-                        .FirstOrDefault(x => x.Id == guidId && !x.DeletedTime.HasValue);
+                    User? user = unitOfWork.GetRepository<User>().Entities
+                        .FirstOrDefault(x => x.Id == idUser && !x.DeletedTime.HasValue);
 
                     if (user == null)
                     {
