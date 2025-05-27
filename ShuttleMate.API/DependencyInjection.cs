@@ -12,7 +12,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Wanvi.Repositories.SeedData;
 
-namespace WanviBE.API
+namespace ShuttleMate.API
 {
     public static class DependencyInjection
     {
@@ -22,7 +22,7 @@ namespace WanviBE.API
             services.AddMemoryCache();
             //services.AddIdentity();
             services.AddInfrastructure(configuration);
-            //services.AddEmailConfig(configuration);
+            services.AddEmailConfig(configuration);
             services.AddAutoMapper();
             services.ConfigSwagger();
             services.AddAuthenJwt(configuration);
@@ -250,12 +250,14 @@ namespace WanviBE.API
         {
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IEmailService, EmailService>();
+            services.AddScoped<ITokenService, TokenService>();
         }
 
-        //public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)
-        //{
-        //    services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
-        //}
+        public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
+        }
 
         public static void IntSeedData(this IServiceCollection services)
         {

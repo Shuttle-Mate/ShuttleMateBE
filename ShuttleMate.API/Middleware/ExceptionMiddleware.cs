@@ -2,7 +2,7 @@
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Core.Bases;
 
-namespace WanviBE.API.Middleware
+namespace ShuttleMate.API.Middleware
 {
     public class ExceptionMiddleware
     {

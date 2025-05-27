@@ -108,13 +108,11 @@ namespace Wanvi.API.Middleware
 
         private static async Task HandleForbiddenRequest(HttpContext context)
         {
-            int code = (int)HttpStatusCode.Forbidden;
-            var error = new ErrorException(code, ResponseCodeConstants.FORBIDDEN, "Không tìm thấy tài khoản");
+            var error = new ErrorException(StatusCodes.Status403Forbidden, ErrorCode.Forbidden, "Token đã hết hạn!");
             string result = JsonSerializer.Serialize(error);
 
             context.Response.ContentType = "application/json";
             context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
-            context.Response.StatusCode = code;
 
             await context.Response.WriteAsync(result);
         }
