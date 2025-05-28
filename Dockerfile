@@ -4,7 +4,7 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 WORKDIR /source
 
 # Copy solution và project tương ứng với ShuttleMate
-COPY ShuttleMate.sln .
+COPY ShuttleMateBE.sln .
 COPY ./ShuttleMate.Contract.Repositories ./ShuttleMate.Contract.Repositories
 COPY ./ShuttleMate.ModelViews ./ShuttleMate.ModelViews
 COPY ./ShuttleMate.Repositories ./ShuttleMate.Repositories
