@@ -6,7 +6,7 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Services.Services.Infrastructure;
 
-namespace Wanvi.API.Middleware
+namespace ShuttleMate.API.Middleware
 {
     public class PermissionMiddleware
     {

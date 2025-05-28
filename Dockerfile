@@ -5,13 +5,13 @@ WORKDIR /source
 
 # Copy solution và project tương ứng với ShuttleMate
 COPY ShuttleMate.sln .
-COPY ./3.REPOSITORY/ShuttleMate.Contract.Repositories ./ShuttleMate.Contract.Repositories
-COPY ./3.REPOSITORY/ShuttleMate.ModelViews ./ShuttleMate.ModelViews
-COPY ./3.REPOSITORY/ShuttleMate.Repositories ./ShuttleMate.Repositories
-COPY ./4.CORE/ShuttleMate.Core ./ShuttleMate.Core
-COPY ./2.SERVICE/ShuttleMate.Contract.Services ./ShuttleMate.Contract.Services
-COPY ./2.SERVICE/ShuttleMate.Services ./ShuttleMate.Services
-COPY ./1.SERVER/ShuttleMate.API ./ShuttleMate.API
+COPY ./ShuttleMate.Contract.Repositories ./ShuttleMate.Contract.Repositories
+COPY ./ShuttleMate.ModelViews ./ShuttleMate.ModelViews
+COPY ./ShuttleMate.Repositories ./ShuttleMate.Repositories
+COPY ./ShuttleMate.Core ./ShuttleMate.Core
+COPY ./ShuttleMate.Contract.Services ./ShuttleMate.Contract.Services
+COPY ./ShuttleMate.Services ./ShuttleMate.Services
+COPY ./ShuttleMate.API ./ShuttleMate.API
 
 # Restore dependencies
 RUN dotnet restore
