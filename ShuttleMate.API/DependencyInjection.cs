@@ -20,7 +20,6 @@ namespace ShuttleMate.API
         {
             services.ConfigRoute();
             services.AddMemoryCache();
-            //services.AddIdentity();
             services.AddInfrastructure(configuration);
             services.AddEmailConfig(configuration);
             services.AddAutoMapper();
@@ -31,8 +30,6 @@ namespace ShuttleMate.API
             services.AddDatabase(configuration);
             services.AddServices();
             services.ConfigCors();
-            //services.ConfigCorsSignalR();
-            //services.RabbitMQConfig(configuration);
             services.JwtSettingsConfig(configuration);
             //services.IntSeedData();
         }
@@ -79,9 +76,9 @@ namespace ShuttleMate.API
             {
                 options.AddPolicy("AllowAllOrigins",
             builder => builder
-                .AllowAnyOrigin()  // Cho phép tất cả nguồn
-                .AllowAnyMethod()  // Cho phép tất cả phương thức (GET, POST, PUT, DELETE,...)
-                .AllowAnyHeader()); // Cho phép tất cả headers
+                .AllowAnyOrigin()  
+                .AllowAnyMethod()  
+                .AllowAnyHeader());
             });
         }
         public static void ConfigCorsSignalR(this IServiceCollection services)
@@ -123,7 +120,7 @@ namespace ShuttleMate.API
                     ValidIssuer = jwtSettings1["Issuer"],
                     ValidAudience = jwtSettings1["Audience"],
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings1["SecretKey"])),
-                    ClockSkew = TimeSpan.Zero  // ✅ Không cho phép gia hạn 5 phút
+                    ClockSkew = TimeSpan.Zero  // Không cho phép gia hạn 5 phút
 
                 };
                 e.SaveToken = true;
@@ -131,41 +128,6 @@ namespace ShuttleMate.API
                 e.Events = new JwtBearerEvents();
             });
         }
-
-        //public static void AddGoogleAuthentication(this IServiceCollection services, IConfiguration configuration)
-        //{
-        //    var googleSettings = configuration.GetSection("GoogleOAuth");
-
-        //    services.AddAuthentication(options =>
-        //    {
-        //        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        //        options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
-        //    })
-        //    .AddCookie()
-        //    .AddGoogle(options =>
-        //    {
-        //        options.ClientId = googleSettings["ClientId"];
-        //        options.ClientSecret = googleSettings["ClientSecret"];
-        //        options.CallbackPath = googleSettings["CallbackPath"];
-        //    });
-        //}
-
-        //public static void AddFacebookAuthentication(this IServiceCollection services, IConfiguration configuration)
-        //{
-        //    var facebookSettings = configuration.GetSection("FacebookOAuth");
-
-        //    services.AddAuthentication(options =>
-        //    {
-        //        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        //        options.DefaultChallengeScheme = FacebookDefaults.AuthenticationScheme;
-        //    })
-        //    .AddFacebook(options =>
-        //    {
-        //        options.AppId = facebookSettings["AppId"];
-        //        options.AppSecret = facebookSettings["AppSecret"];
-        //        options.CallbackPath = facebookSettings["CallbackPath"];
-        //    });
-        //}
 
         public static void ConfigSwagger(this IServiceCollection services)
         {
@@ -236,15 +198,6 @@ namespace ShuttleMate.API
         {
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
         }
-
-        //public static void AddIdentity(this IServiceCollection services)
-        //{
-        //    services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
-        //    {
-        //    })
-        //     .AddEntityFrameworkStores<DatabaseContext>()
-        //     .AddDefaultTokenProviders();
-        //}
 
         public static void AddServices(this IServiceCollection services)
         {
