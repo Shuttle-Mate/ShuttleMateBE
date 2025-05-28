@@ -1,0 +1,61 @@
+name: Deploy ShuttleMate on self-hosted runner
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  docker-compose:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Dọn dẹp tài nguyên Docker để giải phóng RAM
+        run: |
+          echo "Dọn dẹp container không dùng..."
+          docker container prune -f
+          echo "Dọn dẹp image không dùng..."
+          docker image prune -f
+          echo "Dọn dẹp cache build cũ..."
+          docker builder prune --force
+
+      - name: Kiểm tra & tạo Swap 2GB (nếu chưa có)
+        run: |
+          if [ ! -f /swapfile ]; then
+            echo "Tạo Swap 2GB để hỗ trợ RAM..."
+            sudo fallocate -l 2G /swapfile
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile
+            echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+          else
+            echo "Swap đã tồn tại, bỏ qua."
+          fi
+
+      - name: Dừng và xóa container cũ (nếu có)
+        run: |
+          CONTAINER_NAME="shuttlemate-be-server-1"
+          if docker ps -a --format "{{.Names}}" | grep -q "$CONTAINER_NAME"; then
+            echo "Stopping and removing container: $CONTAINER_NAME"
+            docker stop $CONTAINER_NAME
+            docker rm $CONTAINER_NAME
+          else
+            echo "Container $CONTAINER_NAME không tồn tại, bỏ qua..."
+          fi
+
+      - name: Build container
+        run: |
+          echo "Building container..."
+          docker compose build
+
+      - name: Chạy container
+        run: |
+          echo "Khởi động container..."
+          docker compose up -d
+
+      - name: Kiểm tra container có chạy không
+        run: |
+          sleep 5
+          docker ps
