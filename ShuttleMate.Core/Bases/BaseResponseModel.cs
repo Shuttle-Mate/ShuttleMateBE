@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using ShuttleMate.Core.Constants;
 
-namespace ShuttleMate.Contract.Repositories.Base
+namespace ShuttleMate.Core.Bases
 {
     public class BaseResponseModel<T>
     {
