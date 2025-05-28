@@ -37,9 +37,8 @@ ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 COPY --from=build /app .
 
 # Chạy bằng user không phải root
-RUN adduser -D app \
-    && chown -R app:app /app \
-    && chmod -R 755 /app
+RUN chown -R app:app /app && chmod -R 755 /app
+
 
 USER app
 
