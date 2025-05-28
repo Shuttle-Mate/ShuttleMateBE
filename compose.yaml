@@ -4,5 +4,7 @@ services:
       context: .
       target: final
     ports:
-      - "4000:8080"
+      - 4000:8080
+    environment:
+      - CLIENT_DOMAIN=http://localhost:4000  # Hoặc thay bằng domain thực tế
 

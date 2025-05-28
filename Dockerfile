@@ -1,48 +1,46 @@
-# Use .NET SDK for building the application
+# Sử dụng .NET SDK để build
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 
 WORKDIR /source
 
-# Copy solution file and project files
-COPY WanviBE.sln .
-COPY ./Wanvi.Contract.Repositories ./Wanvi.Contract.Repositories
-COPY ./Wanvi.Core ./Wanvi.Core
-COPY ./Wanvi.ModelViews ./Wanvi.ModelViews
-COPY ./Wanvi.Repositories ./Wanvi.Repositories
-COPY ./Wanvi.Contract.Services ./Wanvi.Contract.Services
-COPY ./Wanvi.Services ./Wanvi.Services
-COPY ./Wanvi.API ./Wanvi.API
+# Copy solution và project tương ứng với ShuttleMate
+COPY ShuttleMate.sln .
+COPY ./3.REPOSITORY/ShuttleMate.Contract.Repositories ./ShuttleMate.Contract.Repositories
+COPY ./3.REPOSITORY/ShuttleMate.ModelViews ./ShuttleMate.ModelViews
+COPY ./3.REPOSITORY/ShuttleMate.Repositories ./ShuttleMate.Repositories
+COPY ./4.CORE/ShuttleMate.Core ./ShuttleMate.Core
+COPY ./2.SERVICE/ShuttleMate.Contract.Services ./ShuttleMate.Contract.Services
+COPY ./2.SERVICE/ShuttleMate.Services ./ShuttleMate.Services
+COPY ./1.SERVER/ShuttleMate.API ./ShuttleMate.API
 
 # Restore dependencies
 RUN dotnet restore
 
-# Build the application
-WORKDIR /source/Wanvi.API
+# Build và publish
+WORKDIR /source/ShuttleMate.API
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
-    dotnet publish ./Wanvi.API.csproj --use-current-runtime --self-contained false -o /app
+    dotnet publish ./ShuttleMate.API.csproj --use-current-runtime --self-contained false -o /app
 
-# Use minimal runtime for final image
+# Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
 WORKDIR /app
 
-# Enable globalization and time zones
+# Thêm globalization và timezone
 RUN apk add --no-cache icu-libs tzdata \
     && ln -s /usr/lib/libicudata.so.73 /usr/lib/libicudata.so.66 \
     && ln -s /usr/lib/libicui18n.so.73 /usr/lib/libicui18n.so.66 \
     && ln -s /usr/lib/libicuuc.so.73 /usr/lib/libicuuc.so.66
 
-# Bật hỗ trợ globalization
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 
-# Tạo thư mục wwwroot và cấp quyền cho user `app`
-RUN mkdir -p /app/wwwroot \
+# Copy app đã publish
+COPY --from=build /app .
+
+# Chạy bằng user không phải root
+RUN adduser -D app \
     && chown -R app:app /app \
     && chmod -R 755 /app
 
-# Copy published app
-COPY --from=build /app .
-
-# Switch to non-root user
 USER app
 
-ENTRYPOINT ["dotnet", "Wanvi.API.dll"]
+ENTRYPOINT ["dotnet", "ShuttleMate.API.dll"]
