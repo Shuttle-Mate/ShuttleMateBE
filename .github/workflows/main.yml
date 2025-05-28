@@ -3,7 +3,7 @@ name: Deploy ShuttleMate on self-hosted runner
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   docker-compose:
