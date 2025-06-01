@@ -16,5 +16,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<string> VerifyOtp(ConfirmOTPModelView model);
         Task<string> ChangePasswordFromForgetPassword(ChangePasswordFromForgetPasswordModel model);
         Task<LoginResponse> RefreshToken(RefreshTokenModel refreshTokenModel);
+        Task LogoutAsync(RefreshTokenModel model);
     }
 }

@@ -29,7 +29,7 @@ namespace ShuttleMate.API.Controllers
         }
 
 
-        [HttpPost("Register_User")]
+        [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterModel model)
         {
             await _authService.Register(model);
@@ -40,7 +40,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
 
-        [HttpPatch("Confirm_OTP_Email")]
+        [HttpPatch("confirm-otp-email")]
         public async Task<IActionResult> ConfirmOTPEmailVerification(ConfirmEmailModel model)
         {
             string res = await _authService.ConfirmEmail(model);
@@ -51,7 +51,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
 
-        [HttpPatch("Resend_Confirmation_Email")]
+        [HttpPatch("resend-confirm-email")]
         public async Task<IActionResult> ResendConfirmationEmail(EmailModelView model)
         {
             await _authService.ResendConfirmationEmail(model);
@@ -63,7 +63,7 @@ namespace ShuttleMate.API.Controllers
         }
 
 
-        [HttpPost("Login")]
+        [HttpPost("login")]
         public async Task<IActionResult> Login(LoginRequestModel request)
         {
             LoginResponse res = await _authService.LoginAsync(request);
@@ -73,18 +73,8 @@ namespace ShuttleMate.API.Controllers
                  data: res
              ));
         }
-        [HttpPost("Check_Email")]
-        public async Task<IActionResult> CheckEmail(ConfirmEmailModel model)
-        {
-            var res = await _authService.ConfirmEmail(model);
-            return Ok(new BaseResponseModel<string>(
-                 statusCode: StatusCodes.Status200OK,
-                 code: ResponseCodeConstants.SUCCESS,
-                 data: res
-             ));
-        }
 
-        [HttpPost("RefreshToken")]
+        [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken(RefreshTokenModel model)
         {
             LoginResponse? res = await _authService.RefreshToken(model);
@@ -95,7 +85,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
 
-        [HttpPost("Forgot_Password")]
+        [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword(EmailModelView model)
         {
             await _authService.ForgotPassword(model);
@@ -106,7 +96,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
 
-        [HttpPatch("Confirm_OTP_Forget_Password")]
+        [HttpPatch("forget-password/confirm-otp")]
         public async Task<IActionResult> ConfirmOTPResetPassword(ConfirmOTPModelView model)
         {
             string res = await _authService.VerifyOtp(model);
@@ -117,7 +107,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
 
-        [HttpPatch("Reset_Password")]
+        [HttpPatch("change-password")]
         public async Task<IActionResult> ResetPassword(ResetPasswordModelView model)
         {
             await _authService.ResetPassword(model);
@@ -125,6 +115,17 @@ namespace ShuttleMate.API.Controllers
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: "Đã đặt lại mật khẩu thành công!"
+            ));
+        }
+
+        [HttpPatch("logout")]
+        public async Task<IActionResult> Logout(RefreshTokenModel model)
+        {
+            await _authService.LogoutAsync(model);
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Đăng xuất thành công!"
             ));
         }
 

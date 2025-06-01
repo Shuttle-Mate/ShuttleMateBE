@@ -276,7 +276,6 @@ namespace ShuttleMate.Services.Services
                 Role = roleName
             };
         }
-
         private async Task<User> CheckRefreshToken(string refreshToken)
         {
 
@@ -284,6 +283,14 @@ namespace ShuttleMate.Services.Services
                 .FirstOrDefaultAsync(x => x.RefeshToken == refreshToken)
                 ?? throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không tìm thấy tài khoản");
             return users;
+        }
+        public async Task LogoutAsync(RefreshTokenModel model)
+        {
+            // Tải toàn bộ user (hoặc tối ưu hơn nếu bạn có userId từ JWT)
+            var users = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x=>x.RefeshToken == model.RefreshToken && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Token không hợp lệ");
+            users.RefeshToken = null;
+            await _unitOfWork.GetRepository<User>().UpdateAsync(users);
+            await _unitOfWork.SaveAsync();
         }
     }
 }
