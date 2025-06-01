@@ -27,5 +27,35 @@ namespace ShuttleMate.API.Controllers
                 data: "Tạo vai trò thành công!"
             ));
         }
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var res = await _roleService.GetAll();
+            return Ok(new BaseResponseModel<List<ResponseRoleModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: res
+            ));
+        }
+        [HttpPatch]
+        public async Task<IActionResult> UpdateRole(UpdateRoleModel model)
+        {
+            await _roleService.UpdateRole(model);
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Cập nhật vai trò thành công"
+            ));
+        }
+        [HttpDelete]
+        public async Task<IActionResult> DeleteRole(DeleteRoleModel model)
+        {
+            await _roleService.DeleteRole(model);
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Xóa vai trò thành công"
+            ));
+        }
     }
 }
