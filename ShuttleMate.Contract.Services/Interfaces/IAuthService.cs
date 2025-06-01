@@ -9,7 +9,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task ForgotPassword(EmailModelView model);
         Task Register(RegisterModel model);
         Task ResendConfirmationEmail(EmailModelView emailModelView);
-        Task CreateRole(RoleModel model);
         Task<string> ConfirmEmail(ConfirmEmailModel model);
         Task<LoginResponse> LoginAsync(LoginRequestModel request);
         Task ResetPassword(ResetPasswordModelView model);

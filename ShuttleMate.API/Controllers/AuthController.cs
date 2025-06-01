@@ -17,17 +17,6 @@ namespace ShuttleMate.API.Controllers
         {
             _authService = authService;
         }
-        [HttpPost("Create_Role")]
-        public async Task<IActionResult> CreateRole(RoleModel model)
-        {
-            await _authService.CreateRole(model);
-            return Ok(new BaseResponseModel<string>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                data: "Tạo vai trò thành công!"
-            ));
-        }
-
 
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterModel model)

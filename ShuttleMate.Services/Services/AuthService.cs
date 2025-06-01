@@ -123,18 +123,6 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
 
         }
-        public async Task CreateRole(RoleModel model)
-        {
-            Role role = await _unitOfWork.GetRepository<Role>().Entities.FirstOrDefaultAsync(x => x.Name == model.RoleName);
-            if (role != null)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò đã tồn tại!");
-            }
-            Role newRole = new Role();
-            newRole.Name = model.RoleName;
-            await _unitOfWork.GetRepository<Role>().InsertAsync(newRole);
-            await _unitOfWork.SaveAsync();
-        }
         public async Task<string> ConfirmEmail(ConfirmEmailModel model)
         {
             if (string.IsNullOrWhiteSpace(model.Email))
