@@ -12,10 +12,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
     {
         public string Type { get; set; }
         public string Template {  get; set; }
-        public NotificationTemplate()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
     }
 }

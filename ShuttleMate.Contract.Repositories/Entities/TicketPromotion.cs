@@ -14,10 +14,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public string TicketId { get; set; }
         public virtual Promotion Promotion { get; set; }
         public virtual TicketType TicketType { get; set; }
-        public TicketPromotion()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
     }
 }

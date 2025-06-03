@@ -15,12 +15,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual ICollection<TicketPromotion> TicketPromotions { get; set; } = new List<TicketPromotion>();
         public virtual ICollection<TicketSchedule> TicketSchedules { get; set; } = new List<TicketSchedule>();
         public virtual ICollection<HistoryTicket> HistoryTickets { get; set; } = new List<HistoryTicket>();
-
-
-        public TicketType()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
     }
 }

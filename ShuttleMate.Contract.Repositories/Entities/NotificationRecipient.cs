@@ -16,10 +16,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         //public enum Status { get; set; }
         public virtual User Recipient { get; set; }
         public virtual Notification Notification { get; set; }
-        public NotificationRecipient()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
+
     }
 }

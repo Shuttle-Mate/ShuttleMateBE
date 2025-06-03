@@ -22,10 +22,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual User User { get; set; }
         public virtual Transaction Transaction { get; set; }
         public virtual TicketType TicketType { get; set; }
-        public HistoryTicket()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
+
     }
 }

@@ -15,10 +15,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public string ModelUsed { get; set; }
         public string UserId { get; set; }
         public virtual User User { get; set; }
-        public ChatBotLog()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
     }
 }

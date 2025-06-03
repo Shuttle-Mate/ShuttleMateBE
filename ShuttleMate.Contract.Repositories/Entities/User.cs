@@ -31,13 +31,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual ICollection<HistoryTicket> HistoryTickets { get; set; } = new List<HistoryTicket>();
         public virtual ICollection<NotificationRecipient> NotificationRecipients { get; set; } = new List<NotificationRecipient>();
         public virtual ICollection<SystemLogs> SystemLogs { get; set; } = new List<SystemLogs>();
-
-
-
-        public User()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
     }
 }

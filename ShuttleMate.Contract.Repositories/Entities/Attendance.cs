@@ -16,10 +16,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public string CheckOutLocation { get; set; }
         //public enum status { get; set; }
         public string Notes { get; set; }
-        public Attendance()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
     }
 }

@@ -17,12 +17,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual ICollection<Stop> Stops { get; set; } = new List<Stop>();
         public virtual ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
         public virtual ICollection<ShuttleLocationRecord> ShuttleLocationRecords { get; set; } = new List<ShuttleLocationRecord>();
-
-
-        public Route()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
     }
 }

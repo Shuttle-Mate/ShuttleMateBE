@@ -13,11 +13,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         //public enum PaymentMethod { get; set; }
         public decimal Amount { get; set; }
         public virtual ICollection<HistoryTicket> HistoryTickets { get; set; } = new List<HistoryTicket>();
-
-        public Transaction()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
     }
 }

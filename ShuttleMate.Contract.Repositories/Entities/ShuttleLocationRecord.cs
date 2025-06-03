@@ -18,10 +18,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public decimal Accuracy { get; set; }
         public virtual Shuttle Shuttle { get; set; }
         public virtual Route Route { get; set; }
-        public ShuttleLocationRecord()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
     }
 }

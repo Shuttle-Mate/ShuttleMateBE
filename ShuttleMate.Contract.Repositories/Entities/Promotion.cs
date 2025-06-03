@@ -23,11 +23,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         //public enum type { get; set; }
         public string UserId { get; set; }
         public virtual ICollection<TicketPromotion> TicketPromotions { get; set; } = new List<TicketPromotion>();
-
-        public Promotion()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
     }
 }

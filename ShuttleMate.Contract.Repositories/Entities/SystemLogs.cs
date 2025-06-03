@@ -13,11 +13,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public string ActorId { get; set; }
         public string Action { get; set; }
         public virtual User Actor { get; set; }
-        public SystemLogs()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
-
     }
 }

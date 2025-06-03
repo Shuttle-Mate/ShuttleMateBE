@@ -14,10 +14,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public string TicketId { get; set; }
         public virtual Schedule Schedule { get; set; }
         public virtual TicketType TicketType { get; set; }
-        public TicketSchedule()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
     }
 }
