@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ShuttleMate.Contract.Repositories.Base;
 using ShuttleMate.Core.Utils;
+using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Contract.Repositories.Entities
 {
@@ -13,7 +14,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public string RecipientId { get; set; }
         public string NotificationId { get; set; }
         public string RecipientType { get; set; }
-        //public enum Status { get; set; }
+        public NotificationStatusEnum Status { get; set; }
         public virtual User Recipient { get; set; }
         public virtual Notification Notification { get; set; }
 

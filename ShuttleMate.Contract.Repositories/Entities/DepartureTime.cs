@@ -7,15 +7,11 @@ using ShuttleMate.Contract.Repositories.Base;
 
 namespace ShuttleMate.Contract.Repositories.Entities
 {
-    public class Stop : BaseEntity
+    public class DepartureTime : BaseEntity
     {
         public Guid RouteId { get; set; }
-        public string Name { get; set; }
-        public string Ward {  get; set; }
-        public decimal Lat {  get; set; }
-        public decimal Lng { get; set; }
-        public int StopOrder {  get; set; }
-
+        public TimeOnly Departure { get; set; }
+        public string DayOfWeek { get; set; }
         public virtual Route Route { get; set; }
         public virtual ICollection<StopEstimate> StopEstimates { get; set; } = new List<StopEstimate>();
 

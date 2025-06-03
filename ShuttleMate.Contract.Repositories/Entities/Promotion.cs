@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ShuttleMate.Contract.Repositories.Base;
 using ShuttleMate.Core.Utils;
+using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Contract.Repositories.Entities
 {
@@ -20,7 +21,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public int UsedCount { get; set; }
         public bool IsExpiredOrReachLimit { get; set; }
         public string Name { get; set; }
-        //public enum type { get; set; }
+        public TypePromotionEnum Type { get; set; }
         public string UserId { get; set; }
         public virtual ICollection<TicketPromotion> TicketPromotions { get; set; } = new List<TicketPromotion>();
     }

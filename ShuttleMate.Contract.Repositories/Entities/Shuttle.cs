@@ -14,7 +14,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public Guid OperatorId { get; set; }
         //public enum status { get; set; }
         public virtual User User { get; set; }
-        public virtual ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
-        public virtual ICollection<ShuttleLocationRecord> ShuttleLocationRecords { get; set; } = new List<ShuttleLocationRecord>();
+        public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
     }
 }

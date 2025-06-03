@@ -10,13 +10,11 @@ namespace ShuttleMate.Contract.Repositories.Entities
 {
     public class ShuttleLocationRecord : BaseEntity
     {
-        public string ShuttleId { get; set; }
-        public string RouteId { get; set; }
+        public Guid TripId { get; set; }
         public decimal Lat {  get; set; }
         public decimal Lng { get; set; }
         public DateTime TimeStamp { get; set; }
         public decimal Accuracy { get; set; }
-        public virtual Shuttle Shuttle { get; set; }
-        public virtual Route Route { get; set; }
+        public virtual Trip Trip { get; set; }
     }
 }
