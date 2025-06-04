@@ -63,8 +63,9 @@ namespace ShuttleMate.API.Middleware
 
                 if (!string.IsNullOrWhiteSpace(idUser))
                 {
+                    Guid.TryParse(idUser, out Guid guidId);
                     User? user = unitOfWork.GetRepository<User>().Entities
-                        .FirstOrDefault(x => x.Id == idUser && !x.DeletedTime.HasValue);
+                        .FirstOrDefault(x => x.Id == guidId && !x.DeletedTime.HasValue);
 
                     if (user == null)
                     {

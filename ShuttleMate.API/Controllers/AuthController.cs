@@ -32,8 +32,8 @@ namespace ShuttleMate.API.Controllers
         [HttpPatch("confirm-otp-email")]
         public async Task<IActionResult> ConfirmOTPEmailVerification(ConfirmEmailModel model)
         {
-            string res = await _authService.ConfirmEmail(model);
-            return Ok(new BaseResponseModel<string>(
+            Guid res = await _authService.ConfirmEmail(model);
+            return Ok(new BaseResponseModel<Guid>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: res
@@ -88,8 +88,8 @@ namespace ShuttleMate.API.Controllers
         [HttpPatch("forget-password/confirm-otp")]
         public async Task<IActionResult> ConfirmOTPResetPassword(ConfirmOTPModelView model)
         {
-            string res = await _authService.VerifyOtp(model);
-            return Ok(new BaseResponseModel<string>(
+            Guid res = await _authService.VerifyOtp(model);
+            return Ok(new BaseResponseModel<Guid>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: res

@@ -9,13 +9,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
 
         public virtual User User { get; set; }
         public virtual Role Role { get; set; }
-        public string UserId { get; set; }
-        public string RoleId { get; set; }
-
-        public UserRole()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
+        public Guid UserId { get; set; }
+        public Guid RoleId { get; set; }
     }
 }

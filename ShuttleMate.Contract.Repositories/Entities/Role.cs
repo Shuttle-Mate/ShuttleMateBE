@@ -8,10 +8,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
     {
         public string Name { get; set; }
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-        public Role()
-        {
-            CreatedTime = CoreHelper.SystemTimeNow;
-            LastUpdatedTime = CreatedTime;
-        }
     }
 }

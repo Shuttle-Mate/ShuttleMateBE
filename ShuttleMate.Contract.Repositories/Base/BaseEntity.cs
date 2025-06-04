@@ -9,12 +9,12 @@ namespace ShuttleMate.Contract.Repositories.Base
 
         protected BaseEntity()
         {
-            Id = Guid.NewGuid().ToString("N");
+            //Id = Guid.NewGuid().ToString("N");
             CreatedTime = LastUpdatedTime = CoreHelper.SystemTimeNow;
         }
 
         [Key]
-        public string Id { get; set; }
+        public Guid Id { get; set; }
         public string? CreatedBy { get; set; }
         public string? LastUpdatedBy { get; set; }
         public string? DeletedBy { get; set; }

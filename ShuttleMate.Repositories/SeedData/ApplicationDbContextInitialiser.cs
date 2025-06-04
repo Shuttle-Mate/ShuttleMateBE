@@ -66,12 +66,12 @@ namespace Wanvi.Repositories.SeedData
               [
                   new Role
             {
-                Id = Guid.NewGuid().ToString("N"),
+                Id = Guid.NewGuid(),
                 Name = "Admin",
             },
               new Role
             {
-                Id = Guid.NewGuid().ToString("N"),
+                Id = Guid.NewGuid(),
                 Name = "Customer",
             },
             ];

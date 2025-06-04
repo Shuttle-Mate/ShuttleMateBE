@@ -8,7 +8,7 @@ namespace ShuttleMate.ModelViews.AuthModelViews
 {
     public class ChangePasswordFromForgetPasswordModel
     {
-        public string Id { get; set; }
+        public Guid Id { get; set; }
         public string Password { get; set; }
         public string ConfirmPassword { get; set; }
     }
