@@ -48,12 +48,12 @@ namespace ShuttleMate.Repositories.Context
                 entity.HasOne(t => t.School)
                     .WithMany(r => r.Users)
                     .HasForeignKey(t => t.SchoolId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.NoAction);
                 // Khóa ngoại Parent
                 entity.HasOne(t => t.Parent)
                     .WithMany()
                     .HasForeignKey(t => t.ParentId)
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .OnDelete(DeleteBehavior.NoAction);
             });
 
             modelBuilder.Entity<Role>(entity =>
@@ -116,7 +116,7 @@ namespace ShuttleMate.Repositories.Context
                 entity.HasOne(t => t.Stop)
                     .WithMany(r => r.StopEstimates)
                     .HasForeignKey(t => t.StopId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.NoAction);
             });
 
             modelBuilder.Entity<Attendance>(entity =>

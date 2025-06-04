@@ -10,7 +10,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
 {
     public class SystemLogs : BaseEntity
     {
-        public string ActorId { get; set; }
+        public Guid ActorId { get; set; }
         public string Action { get; set; }
         public virtual User Actor { get; set; }
     }

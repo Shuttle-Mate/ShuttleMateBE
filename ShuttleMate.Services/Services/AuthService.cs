@@ -78,7 +78,7 @@ namespace ShuttleMate.Services.Services
             // Sử dụng PasswordHasher để băm mật khẩu
             var passwordHasher = new FixedSaltPasswordHasher<User>(Options.Create(new PasswordHasherOptions()));
             User newUser = new User();
-            newUser.Id = Guid.NewGuid().ToString("N");
+            newUser.Id = Guid.NewGuid();
             newUser.FullName = model.Name;
             newUser.Email = model.Email;
             newUser.UserName = model.Email;
@@ -123,7 +123,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
 
         }
-        public async Task<string> ConfirmEmail(ConfirmEmailModel model)
+        public async Task<Guid> ConfirmEmail(ConfirmEmailModel model)
         {
             if (string.IsNullOrWhiteSpace(model.Email))
             {
@@ -204,7 +204,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
         }
-        public async Task<string> VerifyOtp(ConfirmOTPModelView model)
+        public async Task<Guid> VerifyOtp(ConfirmOTPModelView model)
         {
             User? user = await _unitOfWork.GetRepository<User>().Entities
                 .FirstOrDefaultAsync(x => x.Email == model.Email && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không tìm thấy tài khoản!");
