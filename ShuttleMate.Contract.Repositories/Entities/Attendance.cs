@@ -13,11 +13,11 @@ namespace ShuttleMate.Contract.Repositories.Entities
     {
         public Guid TicketId { get; set; }
         public DateTime CheckInTime { get; set; }
-        public string CheckInLocation { get; set; }
+        public string? CheckInLocation { get; set; }
         public DateTime CheckOutTime { get; set; }
-        public string CheckOutLocation { get; set; }
+        public string? CheckOutLocation { get; set; }
         public AttendanceStatusEnum Status { get; set; }
-        public string Notes { get; set; }
+        public string? Notes { get; set; }
         public virtual HistoryTicket HistoryTicket { get; set; }
     }
 }

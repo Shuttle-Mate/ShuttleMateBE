@@ -14,7 +14,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public ChatBotRoleEnum Role { get; set; }
         public string Content { get; set; }
         public string ModelUsed { get; set; }
-        public string UserId { get; set; }
+        public Guid UserId { get; set; }
         public virtual User User { get; set; }
     }
 }

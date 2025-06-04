@@ -11,8 +11,10 @@ namespace ShuttleMate.Contract.Repositories.Entities
 {
     public class TicketType : BaseEntity
     {
+        public Guid RouteId { get; set; }
         public TicketTypeEnum Type { get; set; }
         public decimal Price { get; set; }
+        public virtual Route Route { get; set; }
         public virtual ICollection<TicketPromotion> TicketPromotions { get; set; } = new List<TicketPromotion>();
         public virtual ICollection<HistoryTicket> HistoryTickets { get; set; } = new List<HistoryTicket>();
     }

@@ -22,6 +22,8 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public DateTime? CodeGeneratedTime { get; set; }
         public bool? Violate { get; set; } = false;
         public Guid? SchoolId { get; set; }
+        public Guid? ParentId { get; set; }
+        public virtual User Parent { get; set; }
         public virtual School School { get; set; }
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public virtual ICollection<Shuttle> Shuttles { get; set; } = new List<Shuttle>();

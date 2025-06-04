@@ -11,8 +11,8 @@ namespace ShuttleMate.Contract.Repositories.Entities
 {
     public class NotificationRecipient : BaseEntity
     {
-        public string RecipientId { get; set; }
-        public string NotificationId { get; set; }
+        public Guid RecipientId { get; set; }
+        public Guid NotificationId { get; set; }
         public string RecipientType { get; set; }
         public NotificationStatusEnum Status { get; set; }
         public virtual User Recipient { get; set; }

@@ -22,7 +22,8 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public bool IsExpiredOrReachLimit { get; set; }
         public string Name { get; set; }
         public TypePromotionEnum Type { get; set; }
-        public string UserId { get; set; }
+        public Guid UserId { get; set; }
+        public virtual User User { get; set; }
         public virtual ICollection<TicketPromotion> TicketPromotions { get; set; } = new List<TicketPromotion>();
     }
 }

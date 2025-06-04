@@ -17,5 +17,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public string Message { get; set; }
         public string UserId { get; set; }
         public virtual User User { get; set; }
+        public virtual ICollection<ResponseSupport> ResponseSupports { get; set; } = new List<ResponseSupport>();
+
     }
 }

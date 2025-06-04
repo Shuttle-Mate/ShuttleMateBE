@@ -13,6 +13,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
     {
         public PaymentMethodEnum PaymentMethod { get; set; }
         public decimal Amount { get; set; }
-        public virtual ICollection<HistoryTicket> HistoryTickets { get; set; } = new List<HistoryTicket>();
+        public virtual HistoryTicket HistoryTicket { get; set; }
     }
 }

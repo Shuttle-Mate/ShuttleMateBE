@@ -11,9 +11,9 @@ namespace ShuttleMate.Contract.Repositories.Entities
 {
     public class HistoryTicket : BaseEntity
     {
-        public string UserId { get; set; }
-        public string TransactionId { get; set; }
-        public string TicketId { get; set; }
+        public Guid UserId { get; set; }
+        public Guid TransactionId { get; set; }
+        public Guid TicketId { get; set; }
         //public enum TicketStatus { get; set; }
         //public enum TripStatus { get; set; }
         public DateTime PurchaseAt { get; set; }
