@@ -8,6 +8,6 @@ namespace ShuttleMate.ModelViews.RoleModelViews
 {
     public class DeleteRoleModel
     {
-        public string Id { get; set; }
+        public Guid Id { get; set; }
     }
 }
