@@ -30,7 +30,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAllRoute()
         {
             var res = await _routeService.GetAll();
             return Ok(new BaseResponseModel<List<ResponseRouteModel>>(
@@ -39,14 +39,34 @@ namespace ShuttleMate.API.Controllers
                 data: res
             ));
         }
+        [HttpGet("{routeId}")]
+        public async Task<IActionResult> GetRouteById(Guid routeId)
+        {
+            var res = await _routeService.GetById(routeId);
+            return Ok(new BaseResponseModel<ResponseRouteModel>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: res
+            ));
+        }
         [HttpPatch]
-        public async Task<IActionResult> UpdateRole(UpdateRouteModel model)
+        public async Task<IActionResult> UpdateRoute(UpdateRouteModel model)
         {
             await _routeService.UpdateRoute(model);
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: "Cập nhật tuyến thành công"
+            ));
+        }
+        [HttpDelete]
+        public async Task<IActionResult> DeleteRoute(Guid routeId)
+        {
+            await _routeService.DeleteRoute(routeId);
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Xóa tuyến thành công"
             ));
         }
     }

@@ -40,14 +40,17 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public Task DeleteRoute(Guid routeId)
+        public async Task DeleteRoute(Guid routeId)
         {
-            throw new NotImplementedException();
+            var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == routeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
+            route.DeletedTime = DateTime.Now;
+            await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
+            await _unitOfWork.SaveAsync();
         }
 
         public async Task<List<ResponseRouteModel>> GetAll()
         {
-            var routes = await _unitOfWork.GetRepository<Route>().Entities.Where(x => !x.DeletedTime.HasValue).OrderBy(x => x.RouteName).ToListAsync();
+            var routes = await _unitOfWork.GetRepository<Route>().Entities.Where(x => !x.DeletedTime.HasValue).OrderBy(x => x.RouteCode).ToListAsync();
             if (!routes.Any())
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có tuyến nào tồn tại!");
@@ -55,9 +58,11 @@ namespace ShuttleMate.Services.Services
             return _mapper.Map<List<ResponseRouteModel>>(routes);
         }
 
-        public Task<ResponseRouteModel> GetById(Guid routeId)
+        public async Task<ResponseRouteModel> GetById(Guid routeId)
         {
-            throw new NotImplementedException();
+            var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == routeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
+
+            return  _mapper.Map<ResponseRouteModel>(route);
         }
 
         public async Task UpdateRoute(UpdateRouteModel model)
