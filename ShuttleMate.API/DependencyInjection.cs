@@ -206,6 +206,7 @@ namespace ShuttleMate.API
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IRoleService, RoleService>();
+            services.AddScoped<IRouteService, RouteService>();
         }
 
         public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)
