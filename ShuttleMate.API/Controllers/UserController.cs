@@ -42,6 +42,16 @@ namespace ShuttleMate.API.Controllers
                  data: res
              ));
         }
+        [HttpPost("assign_role")]
+        public async Task<IActionResult> AssignRole([FromBody] AssignUserRoleModel model)
+        {
+            await _userService.AssignUserToRoleAsync(model.UserId, model.RoleId);
 
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Gán vai trò cho người dùng thành công!"
+            ));
+        }
     }
 }
