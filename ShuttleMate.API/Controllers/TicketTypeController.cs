@@ -45,5 +45,16 @@ namespace ShuttleMate.API.Controllers
                 data: ticket
             ));
         }
+        [HttpPost]
+        public async Task<IActionResult> CreateTicketType(CreateTicketTypeModel model)
+        {
+             await _ticketTypeService.CreateTicketType(model);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Tạo loại vé thành công!"
+            ));
+        }
     }
 }
