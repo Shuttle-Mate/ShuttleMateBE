@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ShuttleMate.Contract.Repositories.Base;
-using ShuttleMate.Core.Utils;
+﻿using ShuttleMate.Contract.Repositories.Base;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Contract.Repositories.Entities

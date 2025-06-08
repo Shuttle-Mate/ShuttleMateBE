@@ -72,7 +72,7 @@ namespace Wanvi.Repositories.SeedData
               new Role
             {
                 Id = Guid.NewGuid(),
-                Name = "Customer",
+                Name = "Visitor",
             },
             ];
             return roles;
