@@ -96,6 +96,36 @@ namespace ShuttleMate.Services.Services
             await userRoleRepo.InsertAsync(newUserRole);
             await _unitOfWork.SaveAsync();
         }
+        public async Task RemoveUserToRoleAsync(Guid userId)
+        {
+            var user = await _unitOfWork.GetRepository<User>()
+                .Entities.FirstOrDefaultAsync(x => x.Id == userId && !x.DeletedTime.HasValue)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại!");
+
+            var userRoleRepo = _unitOfWork.GetRepository<UserRole>();
+
+            var existingUserRole = await userRoleRepo.Entities
+                .FirstOrDefaultAsync(ur => ur.UserId == userId);
+
+            if (existingUserRole != null)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Người dùng đã được gán vai trò này!");
+            }
+
+            var rolesToDelete = await userRoleRepo.Entities
+                .Where(ur => ur.UserId == userId)
+                .ToListAsync();
+
+            if (rolesToDelete.Any())
+            {
+                foreach (var roleToDelete in rolesToDelete)
+                {
+                    userRoleRepo.Delete(roleToDelete);
+                }
+            }
+
+            await _unitOfWork.SaveAsync();
+        }
         public async Task<string> BlockUserForAdmin(BlockUserForAdminModel model)
         {
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.UserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không tìm thấy người dùng!");

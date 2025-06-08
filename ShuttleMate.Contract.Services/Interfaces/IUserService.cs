@@ -8,5 +8,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<string> UnBlockUserForAdmin(UnBlockUserForAdminModel model);
         Task AssignUserToRoleAsync(Guid userId, Guid roleId);
         Task<UserInforModel> GetInfor();
+        Task RemoveUserToRoleAsync(Guid userId);
     }
 }

@@ -19,7 +19,7 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Admin khóa tài khoản của người dùng
         /// </summary>
-        [HttpPatch("Block-User-For-Admin")]
+        [HttpDelete]
         public async Task<IActionResult> BlockUserForAdmin(BlockUserForAdminModel model)
         {
             var res = await _userService.BlockUserForAdmin(model);
@@ -42,7 +42,7 @@ namespace ShuttleMate.API.Controllers
                  data: res
              ));
         }
-        [HttpPost("assign_role")]
+        [HttpPost("assign-role")]
         public async Task<IActionResult> AssignRole([FromBody] AssignUserRoleModel model)
         {
             await _userService.AssignUserToRoleAsync(model.UserId, model.RoleId);
@@ -53,7 +53,18 @@ namespace ShuttleMate.API.Controllers
                 data: "Gán vai trò cho người dùng thành công!"
             ));
         }
-        [HttpGet("Get_Infor")]
+        [HttpPost("remove-role")]
+        public async Task<IActionResult> RemoveRole([FromBody] RemoveUserRoleModel model)
+        {
+            await _userService.RemoveUserToRoleAsync(model.UserId);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Xóa vai trò cho người dùng thành công!"
+            ));
+        }
+        [HttpGet("Get-Infor")]
         public async Task<IActionResult> GetInfor()
         {
             UserInforModel res = await _userService.GetInfor();
