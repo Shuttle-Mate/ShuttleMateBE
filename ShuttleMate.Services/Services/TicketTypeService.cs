@@ -136,11 +136,20 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Giá loại vé phải lớn hơn 0!");
             }
             var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == model.RouteId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
-            var ticketType = await _unitOfWork.GetRepository<TicketType>().Entities.FirstOrDefaultAsync(x => x.Id == model.TickettypeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+            var ticketType = await _unitOfWork.GetRepository<TicketType>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketTypeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
 
             ticketType.Price = model.Price;
             ticketType.RouteId = model.RouteId;
             ticketType.Type = model.Type;
+
+            await _unitOfWork.GetRepository<TicketType>().UpdateAsync(ticketType);
+            await _unitOfWork.SaveAsync();
+        }
+        public async Task DeleteTickettype(DeleteTicketTypeModel model)
+        {
+            var ticketType = await _unitOfWork.GetRepository<TicketType>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+
+            ticketType.DeletedTime = DateTime.Now;
 
             await _unitOfWork.GetRepository<TicketType>().UpdateAsync(ticketType);
             await _unitOfWork.SaveAsync();

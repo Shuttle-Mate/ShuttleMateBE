@@ -67,5 +67,16 @@ namespace ShuttleMate.API.Controllers
                 data: "Cập nhật loại vé thành công!"
             ));
         }
+        [HttpDelete]
+        public async Task<IActionResult> DeleteTickettype(DeleteTicketTypeModel model)
+        {
+            await _ticketTypeService.DeleteTickettype(model);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Xóa loại vé thành công!"
+            ));
+        }
     }
 }

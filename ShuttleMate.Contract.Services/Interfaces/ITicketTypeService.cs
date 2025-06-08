@@ -14,5 +14,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<TicketTypeResponseModel> GetById(Guid Id);
         Task CreateTicketType(CreateTicketTypeModel model);
         Task UpdateTicketType(UpdateTicketTypeModel model);
+        Task DeleteTickettype(DeleteTicketTypeModel model);
     }
 }
