@@ -210,6 +210,7 @@ namespace ShuttleMate.API
             services.AddScoped<IDepartureTimeService, DepartureTimeService>();
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<ITicketTypeService, TicketTypeService>();
+            services.AddScoped<IHistoryTicketService, HistoryTicketService>();
 
         }
 

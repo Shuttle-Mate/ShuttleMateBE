@@ -132,5 +132,18 @@ namespace ShuttleMate.Contract.Repositories.Enum
             PayOs,
             VNPay
         }
+        public enum PaymentStatus
+        {
+            Unpaid = 0,
+            Paid = 1,
+            Refunded = 2,
+            Canceled = 3,
+        }
+        public enum HistoryTicketStatus
+        {
+            Book = 0,
+            Paid = 1,
+            Cancelled = 2,
+        }
     }
 }
