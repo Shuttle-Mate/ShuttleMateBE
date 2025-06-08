@@ -9,5 +9,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task AssignUserToRoleAsync(Guid userId, Guid roleId);
         Task<UserInforModel> GetInfor();
         Task RemoveUserToRoleAsync(Guid userId);
+        Task UpdateProfiel(UpdateProfileModel model);
     }
 }

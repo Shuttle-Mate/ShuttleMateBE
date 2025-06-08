@@ -53,7 +53,7 @@ namespace ShuttleMate.API.Controllers
                 data: "Gán vai trò cho người dùng thành công!"
             ));
         }
-        [HttpPost("remove-role")]
+        [HttpDelete("remove-role")]
         public async Task<IActionResult> RemoveRole([FromBody] RemoveUserRoleModel model)
         {
             await _userService.RemoveUserToRoleAsync(model.UserId);
@@ -72,6 +72,16 @@ namespace ShuttleMate.API.Controllers
                  statusCode: StatusCodes.Status200OK,
                  code: ResponseCodeConstants.SUCCESS,
                  data: res
+             ));
+        }
+        [HttpPatch("Update_Profile")]
+        public async Task<IActionResult> UpdateProfile(UpdateProfileModel model)
+        {
+            await _userService.UpdateProfiel(model);
+            return Ok(new BaseResponseModel<string>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 data: "Cập nhật tài khoản thành công!"
              ));
         }
     }
