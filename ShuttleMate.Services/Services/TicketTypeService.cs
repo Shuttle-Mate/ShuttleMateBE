@@ -145,7 +145,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<TicketType>().UpdateAsync(ticketType);
             await _unitOfWork.SaveAsync();
         }
-        public async Task DeleteTickettype(DeleteTicketTypeModel model)
+        public async Task DeleteTicketType(DeleteTicketTypeModel model)
         {
             var ticketType = await _unitOfWork.GetRepository<TicketType>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
 

@@ -68,7 +68,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         [HttpDelete]
-        public async Task<IActionResult> DeleteTickettype(DeleteTicketTypeModel model)
+        public async Task<IActionResult> DeleteTicketType(DeleteTicketTypeModel model)
         {
             await _ticketTypeService.DeleteTickettype(model);
 
