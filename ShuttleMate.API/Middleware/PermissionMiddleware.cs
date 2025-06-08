@@ -21,6 +21,15 @@ namespace ShuttleMate.API.Middleware
             _logger = logger;
             _excludedUris = new List<string>
             {
+                "/api/auth/login",
+                "/api/auth/register",
+                "/auth/confirm-otp-email",
+                "/auth/resend-confirm-email",
+                "/api/auth/refresh-token",
+                "/auth/forgot-password",
+                "/auth/forget-password/confirm-otp",
+                "/auth/change-password",
+                "/api/auth/logout",
 
             };
             _rolePermissions = new Dictionary<string, List<string>>()

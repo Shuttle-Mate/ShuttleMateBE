@@ -1,5 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ShuttleMate.Contract.Services.Interfaces;
+using ShuttleMate.Core.Bases;
+using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.UserModelViews;
 
 namespace ShuttleMate.API.Controllers
 {
@@ -12,6 +15,96 @@ namespace ShuttleMate.API.Controllers
         public UserController(IUserService userService)
         {
             _userService = userService;
+        }
+        [HttpGet("get-all-users")]
+        public async Task<IActionResult> GetAllUsers([FromQuery] Guid? roleId, [FromQuery] string? cityId, string? name, bool? gender)
+        {
+            var users = await _userService.GetAllAsync(roleId, name, gender);
+
+            return Ok(new BaseResponseModel<IEnumerable<AdminResponseUserModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: users
+            ));
+        }
+        /// <summary>
+        /// Admin khóa tài khoản của người dùng
+        /// </summary>
+        [HttpDelete]
+        public async Task<IActionResult> BlockUserForAdmin(BlockUserForAdminModel model)
+        {
+            var res = await _userService.BlockUserForAdmin(model);
+            return Ok(new BaseResponseModel<string>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 data: res
+             ));
+        }
+        /// <summary>
+        /// Admin mở khóa tài khoản của người dùng
+        /// </summary>
+        [HttpPatch("UnBlock-User-For-Admin")]
+        public async Task<IActionResult> UnBlockUserForAdmin(UnBlockUserForAdminModel model)
+        {
+            var res = await _userService.UnBlockUserForAdmin(model);
+            return Ok(new BaseResponseModel<string>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 data: res
+             ));
+        }
+        [HttpPost("assign-role")]
+        public async Task<IActionResult> AssignRole([FromBody] AssignUserRoleModel model)
+        {
+            await _userService.AssignUserToRoleAsync(model.UserId, model.RoleId);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Gán vai trò cho người dùng thành công!"
+            ));
+        }
+        [HttpPost("assign-parent")]
+        public async Task<IActionResult> AssignParent([FromBody] AssignParentModel model)
+        {
+            await _userService.AssignParent(model);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Gán vai trò cho phụ huynh thành công!"
+            ));
+        }
+        [HttpDelete("remove-role")]
+        public async Task<IActionResult> RemoveRole([FromBody] RemoveUserRoleModel model)
+        {
+            await _userService.RemoveUserToRoleAsync(model.UserId);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Xóa vai trò cho người dùng thành công!"
+            ));
+        }
+        [HttpGet("Get-Infor")]
+        public async Task<IActionResult> GetInfor()
+        {
+            UserInforModel res = await _userService.GetInfor();
+            return Ok(new BaseResponseModel<UserInforModel>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 data: res
+             ));
+        }
+        [HttpPatch]
+        public async Task<IActionResult> UpdateProfile(UpdateProfileModel model)
+        {
+            await _userService.UpdateProfiel(model);
+            return Ok(new BaseResponseModel<string>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 data: "Cập nhật tài khoản thành công!"
+             ));
         }
     }
 }

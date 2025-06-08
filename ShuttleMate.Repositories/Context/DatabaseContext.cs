@@ -88,15 +88,29 @@ namespace ShuttleMate.Repositories.Context
             {
                 entity.ToTable("Routes");
             });
+            modelBuilder.Entity<RouteStop>(entity =>
+            {
+                entity.ToTable("RouteStops");
+                // Khóa ngoại Route
+                entity.HasOne(t => t.Route)
+                    .WithMany(r => r.RouteStops)
+                    .HasForeignKey(t => t.RouteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                // Khóa ngoại Stop
+                entity.HasOne(t => t.Stop)
+                    .WithMany(r => r.RouteStops)
+                    .HasForeignKey(t => t.StopId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
             modelBuilder.Entity<Stop>(entity =>
             {
                 entity.ToTable("Stops");
-                // Khóa ngoại Route
-                entity.HasOne(t => t.Route)
-                    .WithMany(r => r.Stops)
-                    .HasForeignKey(t => t.RouteId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                //// Khóa ngoại Route
+                //entity.HasOne(t => t.Route)
+                //    .WithMany(r => r.Stops)
+                //    .HasForeignKey(t => t.RouteId)
+                //    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<DepartureTime>(entity =>
@@ -215,11 +229,6 @@ namespace ShuttleMate.Repositories.Context
                     .WithMany(r => r.HistoryTickets)
                     .HasForeignKey(t => t.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
-                // Khóa ngoại Transaction
-                //entity.HasOne(t => t.Transaction)
-                //    .WithOne(r => r.HistoryTicket)
-                //    .HasForeignKey<Transaction>(t => t.TransactionId)
-                //    .OnDelete(DeleteBehavior.Cascade);
                 // Khóa ngoại Ticket
                 entity.HasOne(t => t.TicketType)
                     .WithMany(r => r.HistoryTickets)
@@ -230,14 +239,11 @@ namespace ShuttleMate.Repositories.Context
             modelBuilder.Entity<Transaction>(entity =>
             {
                 entity.ToTable("Transactions");
-            });
-
-            modelBuilder.Entity<Transaction>()
-                .HasOne(u => u.HistoryTicket)  // Một Transaction có một HistoryTick
-                .WithOne(p => p.Transaction)     // Một Tick thuộc về một Tran
-                .HasForeignKey<HistoryTicket>(p => p.TransactionId) // Khóa ngoại ở Tick
+                entity.HasOne(u => u.HistoryTicket)
+                .WithOne(p => p.Transaction)
+                .HasForeignKey<Transaction>(p => p.HistoryTicketId) // Khóa ngoại ở Transaction
                 .OnDelete(DeleteBehavior.Cascade);
-
+            });
 
             modelBuilder.Entity<Notification>(entity =>
             {

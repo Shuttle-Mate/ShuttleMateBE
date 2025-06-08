@@ -207,6 +207,11 @@ namespace ShuttleMate.API
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IRouteService, RouteService>();
+            services.AddScoped<IDepartureTimeService, DepartureTimeService>();
+            services.AddScoped<IFeedbackService, FeedbackService>();
+            services.AddScoped<ITicketTypeService, TicketTypeService>();
+            services.AddScoped<IHistoryTicketService, HistoryTicketService>();
+
         }
 
         public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)

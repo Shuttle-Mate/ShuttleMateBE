@@ -47,7 +47,7 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 app.UseMiddleware<ExceptionMiddleware>();
-//app.UseMiddleware<PermissionMiddleware>();
+app.UseMiddleware<PermissionMiddleware>();
 app.MapControllers();
 
 app.Run();
