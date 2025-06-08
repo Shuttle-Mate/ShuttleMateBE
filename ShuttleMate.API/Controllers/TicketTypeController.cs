@@ -56,5 +56,16 @@ namespace ShuttleMate.API.Controllers
                 data: "Tạo loại vé thành công!"
             ));
         }
+        [HttpPatch]
+        public async Task<IActionResult> UpdateTicketType(UpdateTicketTypeModel model)
+        {
+            await _ticketTypeService.UpdateTicketType(model);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Cập nhật loại vé thành công!"
+            ));
+        }
     }
 }

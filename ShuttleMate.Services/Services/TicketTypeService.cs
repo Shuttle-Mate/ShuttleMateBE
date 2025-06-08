@@ -128,5 +128,22 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketType);
             await _unitOfWork.SaveAsync();
         }
+        public async Task UpdateTicketType(UpdateTicketTypeModel model)
+        {
+
+            if (model.Price <= 0)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Giá loại vé phải lớn hơn 0!");
+            }
+            var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == model.RouteId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
+            var ticketType = await _unitOfWork.GetRepository<TicketType>().Entities.FirstOrDefaultAsync(x => x.Id == model.TickettypeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+
+            ticketType.Price = model.Price;
+            ticketType.RouteId = model.RouteId;
+            ticketType.Type = model.Type;
+
+            await _unitOfWork.GetRepository<TicketType>().UpdateAsync(ticketType);
+            await _unitOfWork.SaveAsync();
+        }
     }
 }
