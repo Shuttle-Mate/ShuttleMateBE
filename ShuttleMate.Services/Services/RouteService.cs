@@ -30,7 +30,7 @@ namespace ShuttleMate.Services.Services
 
         public async Task CreateRoute(RouteModel model)
         {
-            Route route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.RouteName == model.RouteName);
+            Route route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.RouteName == model.RouteName || x.RouteCode == model.RouteCode);
             if (route != null)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trùng tên hoặc tuyến này đã tồn tại!!");

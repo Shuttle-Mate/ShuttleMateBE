@@ -8,7 +8,6 @@ namespace ShuttleMate.ModelViews.StopModelViews
 {
     public class StopModel
     {
-        public Guid RouteId { get; set; }
         public string Name { get; set; }
         public string Ward { get; set; }
         public decimal Lat { get; set; }
