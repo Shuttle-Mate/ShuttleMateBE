@@ -28,7 +28,7 @@ namespace ShuttleMate.Services.Services
 
         public async Task CreateStop(StopModel model)
         {
-            Stop stop = await _unitOfWork.GetRepository<Stop>().Entities.FirstOrDefaultAsync(x => x.Name == model.Name && x.Ward == model.Ward);
+            Stop stop = await _unitOfWork.GetRepository<Stop>().Entities.FirstOrDefaultAsync(x => x.Name == model.Name);
             if (stop != null)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trùng tên/quận hoặc trạm dừng này đã tồn tại!!");
