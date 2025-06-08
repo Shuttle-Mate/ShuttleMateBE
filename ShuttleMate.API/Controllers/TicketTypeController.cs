@@ -70,7 +70,7 @@ namespace ShuttleMate.API.Controllers
         [HttpDelete]
         public async Task<IActionResult> DeleteTicketType(DeleteTicketTypeModel model)
         {
-            await _ticketTypeService.DeleteTickettype(model);
+            await _ticketTypeService.DeleteTicketType(model);
 
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
