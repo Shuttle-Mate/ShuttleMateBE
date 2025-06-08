@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
+using ShuttleMate.Core.Bases;
+using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.TicketTypeModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
 using System;
@@ -13,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -88,12 +91,24 @@ namespace ShuttleMate.Services.Services
         {
             return status switch
             {
-                TicketTypeEnum.DayPass => "",
-                TicketTypeEnum.Monthly => "",
-                TicketTypeEnum.Weekly => "",
-                TicketTypeEnum.SingleRide => "",
+                TicketTypeEnum.DayPass => "Vé ngày",
+                TicketTypeEnum.Monthly => "Vé tháng",
+                TicketTypeEnum.Weekly => "Vé tuần",
+                TicketTypeEnum.SingleRide => "Vé 1 chiều",
                 _ => "Không xác định"
             };
+        }
+        public async Task<TicketTypeResponseModel> GetById(Guid Id)
+        {
+            var ticketType = await _unitOfWork.GetRepository<TicketType>().Entities.FirstOrDefaultAsync(x=>x.Id == Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+            var response =  new TicketTypeResponseModel
+                {
+                    Id = ticketType.Id,
+                    Price = ticketType.Price,
+                    RouteName = ticketType.Route.RouteName,
+                    Type = ConvertStatusToString(ticketType.Type)
+                };
+            return response;
         }
     }
 }

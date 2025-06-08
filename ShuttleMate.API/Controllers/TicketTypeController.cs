@@ -23,8 +23,8 @@ namespace ShuttleMate.API.Controllers
         /// <param name="price">true là tăng dần, false là giảm dần</param>
         /// <param name="lowerBound">Cận dưới: khi 1 cận thì >= nó, khi 2 cận thì >= nó và <= cận trên</param>
         /// <param name="upperBound">Cận trên: khi 1 cận thì >= cận dưới, khi 2 cận thì >= nó và <= nó</param>
-        [HttpGet] 
-        public async Task<IActionResult> GetAllUsers(TicketTypeEnum? type, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null)
+        [HttpGet]
+        public async Task<IActionResult> GetAllTicketTypes(TicketTypeEnum? type, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null)
         {
             var tickets = await _ticketTypeService.GetAllAsync(type, routeName, price, lowerBound, upperBound);
 
@@ -32,6 +32,17 @@ namespace ShuttleMate.API.Controllers
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: tickets
+            ));
+        }
+        [HttpGet("id")]
+        public async Task<IActionResult> GetTicketTypeById(Guid id)
+        {
+            var ticket = await _ticketTypeService.GetById(id);
+
+            return Ok(new BaseResponseModel<TicketTypeResponseModel>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: ticket
             ));
         }
     }
