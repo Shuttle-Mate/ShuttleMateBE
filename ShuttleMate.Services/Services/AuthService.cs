@@ -68,7 +68,7 @@ namespace ShuttleMate.Services.Services
 
             // Xác định vai trò
             var role = await _unitOfWork.GetRepository<Role>().Entities
-                .FirstOrDefaultAsync(x => x.Name == "Customer");
+                .FirstOrDefaultAsync(x => x.Name == "Visitor");
 
             if (role == null)
             {

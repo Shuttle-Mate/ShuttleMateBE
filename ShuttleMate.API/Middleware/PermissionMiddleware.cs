@@ -23,12 +23,12 @@ namespace ShuttleMate.API.Middleware
             {
                 "/api/auth/login",
                 "/api/auth/register",
-                "/auth/confirm-otp-email",
-                "/auth/resend-confirm-email",
+                "/api/auth/confirm-otp-email",
+                "/api/auth/resend-confirm-email",
                 "/api/auth/refresh-token",
-                "/auth/forgot-password",
-                "/auth/forget-password/confirm-otp",
-                "/auth/change-password",
+                "/api/auth/forgot-password",
+                "/api/auth/forget-password/confirm-otp",
+                "/api/auth/change-password",
                 "/api/auth/logout",
 
             };

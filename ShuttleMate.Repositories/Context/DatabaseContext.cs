@@ -88,15 +88,29 @@ namespace ShuttleMate.Repositories.Context
             {
                 entity.ToTable("Routes");
             });
+            modelBuilder.Entity<RouteStop>(entity =>
+            {
+                entity.ToTable("RouteStops");
+                // Khóa ngoại Route
+                entity.HasOne(t => t.Route)
+                    .WithMany(r => r.RouteStops)
+                    .HasForeignKey(t => t.RouteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                // Khóa ngoại Stop
+                entity.HasOne(t => t.Stop)
+                    .WithMany(r => r.RouteStops)
+                    .HasForeignKey(t => t.StopId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
             modelBuilder.Entity<Stop>(entity =>
             {
                 entity.ToTable("Stops");
-                // Khóa ngoại Route
-                entity.HasOne(t => t.Route)
-                    .WithMany(r => r.Stops)
-                    .HasForeignKey(t => t.RouteId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                //// Khóa ngoại Route
+                //entity.HasOne(t => t.Route)
+                //    .WithMany(r => r.Stops)
+                //    .HasForeignKey(t => t.RouteId)
+                //    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<DepartureTime>(entity =>
