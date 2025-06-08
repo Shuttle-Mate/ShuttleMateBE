@@ -30,6 +30,54 @@ namespace ShuttleMate.Services.Services
             _apiKey = configuration["VietMap:ApiKey"] ?? throw new Exception("API key is missing from configuration.");
             _emailService = emailService;
         }
+        public async Task<IEnumerable<AdminResponseUserModel>> GetAllAsync(Guid? roleId = null, string? name = null, bool? gender = null)
+        {
+            var userRepo = _unitOfWork.GetRepository<User>();
+
+            var query = userRepo.Entities
+        .Include(u => u.UserRoles)
+        .ThenInclude(ur => ur.Role)
+        .AsQueryable();
+
+            if (roleId.HasValue)
+            {
+                query = query.Where(u => u.UserRoles.Any(ur => ur.RoleId == roleId));
+            }
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                query = query.Where(u => u.FullName.Contains(name));
+            }
+            if (gender != null)
+            {
+                query = query.Where(u => u.Gender==gender);
+            }
+
+            var users = await query
+                .Select(u => new AdminResponseUserModel
+                {
+                    Id = u.Id,
+                    RoleName = u.UserRoles.Select(ur => ur.Role.Name).FirstOrDefault(),
+                    FullName = u.FullName,
+                    Gender = u.Gender,
+                    DateOfBirth = u.DateOfBirth,
+                    ProfileImageUrl = u.ProfileImageUrl,
+                    Address = u.Address,
+                    EmailVerified = u.EmailVerified,
+                    IdentificationNumber = u.IdentificationNumber,
+                    EmailCode = u.EmailCode,
+                    CodeGeneratedTime = u.CodeGeneratedTime,
+                    CreatedBy = u.CreatedBy,
+                    Violate = u.Violate,
+                    LastUpdatedBy = u.LastUpdatedBy,
+                    DeletedBy = u.DeletedBy,
+                    CreatedTime = u.CreatedTime,
+                    LastUpdatedTime = u.LastUpdatedTime,
+                    DeletedTime = u.DeletedTime
+                })
+                .ToListAsync();
+
+            return users;
+        }
         public async Task<UserInforModel> GetInfor()
         {
             // Lấy userId từ HttpContext

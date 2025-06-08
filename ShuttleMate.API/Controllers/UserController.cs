@@ -16,6 +16,17 @@ namespace ShuttleMate.API.Controllers
         {
             _userService = userService;
         }
+        [HttpGet("get_all_users")]
+        public async Task<IActionResult> GetAllUsers([FromQuery] Guid? roleId, [FromQuery] string? cityId, string? name, bool? gender)
+        {
+            var users = await _userService.GetAllAsync(roleId, name, gender);
+
+            return Ok(new BaseResponseModel<IEnumerable<AdminResponseUserModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: users
+            ));
+        }
         /// <summary>
         /// Admin khóa tài khoản của người dùng
         /// </summary>
@@ -74,7 +85,7 @@ namespace ShuttleMate.API.Controllers
                  data: res
              ));
         }
-        [HttpPatch("Update_Profile")]
+        [HttpPatch]
         public async Task<IActionResult> UpdateProfile(UpdateProfileModel model)
         {
             await _userService.UpdateProfiel(model);
