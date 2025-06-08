@@ -53,5 +53,15 @@ namespace ShuttleMate.API.Controllers
                 data: "Gán vai trò cho người dùng thành công!"
             ));
         }
+        [HttpGet("Get_Infor")]
+        public async Task<IActionResult> GetInfor()
+        {
+            UserInforModel res = await _userService.GetInfor();
+            return Ok(new BaseResponseModel<UserInforModel>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 data: res
+             ));
+        }
     }
 }

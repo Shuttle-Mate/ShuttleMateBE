@@ -8,6 +8,7 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.UserModelViews;
+using ShuttleMate.Services.Services.Infrastructure;
 
 namespace ShuttleMate.Services.Services
 {
@@ -28,6 +29,72 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _apiKey = configuration["VietMap:ApiKey"] ?? throw new Exception("API key is missing from configuration.");
             _emailService = emailService;
+        }
+        public async Task<UserInforModel> GetInfor()
+        {
+            // Lấy userId từ HttpContext
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            Guid.TryParse(userId, out Guid cb);
+
+
+            // Lấy thông tin người dùng
+            User user = await _unitOfWork.GetRepository<User>()
+                .Entities.FirstOrDefaultAsync(x => x.Id == cb);
+            UserInforModel inforModel = new UserInforModel
+            {
+                Id = user.Id,
+                Address = user.Address,
+                DateOfBirth = user.DateOfBirth,
+                Email = user.Email,
+                FullName = user.FullName,
+                Gender = user.Gender,
+                PhoneNumber = user.PhoneNumber,
+                ProfileImageUrl = user.ProfileImageUrl
+            };
+            return inforModel;
+        }
+        public async Task AssignUserToRoleAsync(Guid userId, Guid roleId)
+        {
+            var user = await _unitOfWork.GetRepository<User>()
+                .Entities.FirstOrDefaultAsync(x => x.Id == userId && !x.DeletedTime.HasValue)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại!");
+
+            var role = await _unitOfWork.GetRepository<Role>()
+                .Entities.FirstOrDefaultAsync(x => x.Id == roleId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vai trò không tồn tại!");
+
+            var userRoleRepo = _unitOfWork.GetRepository<UserRole>();
+
+            var existingUserRole = await userRoleRepo.Entities
+                .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
+
+            if (existingUserRole != null)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Người dùng đã được gán vai trò này!");
+            }
+
+            var rolesToDelete = await userRoleRepo.Entities
+                .Where(ur => ur.UserId == userId)
+                .ToListAsync();
+
+            if (rolesToDelete.Any())
+            {
+                foreach (var roleToDelete in rolesToDelete)
+                {
+                    userRoleRepo.Delete(roleToDelete);
+                }
+                await _unitOfWork.SaveAsync();
+            }
+
+            var newUserRole = new UserRole
+            {
+                UserId = userId,
+                RoleId = roleId
+            };
+
+            await userRoleRepo.InsertAsync(newUserRole);
+            await _unitOfWork.SaveAsync();
         }
         public async Task<string> BlockUserForAdmin(BlockUserForAdminModel model)
         {
