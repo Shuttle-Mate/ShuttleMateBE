@@ -16,7 +16,7 @@ namespace ShuttleMate.API.Controllers
         {
             _userService = userService;
         }
-        [HttpGet("get_all_users")]
+        [HttpGet("get-all-users")]
         public async Task<IActionResult> GetAllUsers([FromQuery] Guid? roleId, [FromQuery] string? cityId, string? name, bool? gender)
         {
             var users = await _userService.GetAllAsync(roleId, name, gender);
