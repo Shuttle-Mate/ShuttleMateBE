@@ -26,8 +26,7 @@ namespace ShuttleMate.Services.Services
 
         public async Task<IEnumerable<ResponseDepartureTimeModel>> GetAllAsync()
         {
-            var departureTimes = await _unitOfWork.GetRepository<DepartureTime>()
-                .FindAllAsync(a => !a.DeletedTime.HasValue);
+            var departureTimes = await _unitOfWork.GetRepository<DepartureTime>().FindAllAsync(a => !a.DeletedTime.HasValue);
 
             if (!departureTimes.Any())
             {
@@ -55,7 +54,6 @@ namespace ShuttleMate.Services.Services
 
             return result;
         }
-
 
         public async Task<ResponseDepartureTimeModel> GetByIdAsync(Guid id)
         {
