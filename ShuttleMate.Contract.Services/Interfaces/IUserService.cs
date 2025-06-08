@@ -1,6 +1,10 @@
-﻿namespace ShuttleMate.Contract.Services.Interfaces
+﻿using ShuttleMate.ModelViews.UserModelViews;
+
+namespace ShuttleMate.Contract.Services.Interfaces
 {
     public interface IUserService
     {
+        Task<string> BlockUserForAdmin(BlockUserForAdminModel model);
+        Task<string> UnBlockUserForAdmin(UnBlockUserForAdminModel model);
     }
 }

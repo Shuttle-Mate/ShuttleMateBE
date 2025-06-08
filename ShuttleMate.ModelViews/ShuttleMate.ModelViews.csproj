@@ -14,8 +14,4 @@
     <ProjectReference Include="..\ShuttleMate.Contract.Repositories\ShuttleMate.Contract.Repositories.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="UserModelViews\" />
-  </ItemGroup>
-
 </Project>

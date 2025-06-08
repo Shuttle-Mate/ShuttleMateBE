@@ -1,5 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ShuttleMate.Contract.Services.Interfaces;
+using ShuttleMate.Core.Bases;
+using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.UserModelViews;
 
 namespace ShuttleMate.API.Controllers
 {
@@ -13,5 +16,32 @@ namespace ShuttleMate.API.Controllers
         {
             _userService = userService;
         }
+        /// <summary>
+        /// Admin khóa tài khoản của người dùng
+        /// </summary>
+        [HttpPatch("Block-User-For-Admin")]
+        public async Task<IActionResult> BlockUserForAdmin(BlockUserForAdminModel model)
+        {
+            var res = await _userService.BlockUserForAdmin(model);
+            return Ok(new BaseResponseModel<string>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 data: res
+             ));
+        }
+        /// <summary>
+        /// Admin mở khóa tài khoản của người dùng
+        /// </summary>
+        [HttpPatch("UnBlock-User-For-Admin")]
+        public async Task<IActionResult> UnBlockUserForAdmin(UnBlockUserForAdminModel model)
+        {
+            var res = await _userService.UnBlockUserForAdmin(model);
+            return Ok(new BaseResponseModel<string>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 data: res
+             ));
+        }
+
     }
 }
