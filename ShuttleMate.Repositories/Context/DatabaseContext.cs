@@ -87,6 +87,11 @@ namespace ShuttleMate.Repositories.Context
             modelBuilder.Entity<Route>(entity =>
             {
                 entity.ToTable("Routes");
+                // Khóa ngoại School
+                entity.HasOne(t => t.School)
+                    .WithMany(r => r.Routes)
+                    .HasForeignKey(t => t.SchoolId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
             modelBuilder.Entity<RouteStop>(entity =>
             {
