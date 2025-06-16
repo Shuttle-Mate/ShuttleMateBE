@@ -15,6 +15,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public TimeOnly SchoolTime { get; set; }
         public virtual ICollection<User> Users { get; set; } = new List<User>();
         public virtual ICollection<Route> Routes { get; set; } = new List<Route>();
-
     }
 }

@@ -111,11 +111,6 @@ namespace ShuttleMate.Repositories.Context
             modelBuilder.Entity<Stop>(entity =>
             {
                 entity.ToTable("Stops");
-                //// Khóa ngoại Route
-                //entity.HasOne(t => t.Route)
-                //    .WithMany(r => r.Stops)
-                //    .HasForeignKey(t => t.RouteId)
-                //    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<DepartureTime>(entity =>
