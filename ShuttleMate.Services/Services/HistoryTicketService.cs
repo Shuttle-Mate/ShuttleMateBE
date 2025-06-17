@@ -208,6 +208,7 @@ namespace ShuttleMate.Services.Services
                 Status = HistoryTicketStatus.Book,
                 PurchaseAt = DateTime.Now,
                 UserId = cb,
+                LastUpdatedTime = DateTime.Now
             };
 
             await _unitOfWork.GetRepository<HistoryTicket>().InsertAsync(historyTicket);

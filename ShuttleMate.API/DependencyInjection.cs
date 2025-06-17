@@ -31,7 +31,7 @@ namespace ShuttleMate.API
             services.AddServices();
             services.ConfigCors();
             services.JwtSettingsConfig(configuration);
-            //services.IntSeedData();
+            services.IntSeedData();
         }
         public static void JwtSettingsConfig(this IServiceCollection services, IConfiguration configuration)
         {

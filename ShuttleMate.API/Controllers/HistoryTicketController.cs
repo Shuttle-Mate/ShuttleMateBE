@@ -15,6 +15,10 @@ namespace ShuttleMate.API.Controllers
     public class HistoryTicketController : ControllerBase
     {
         private IHistoryTicketService _historyTicketService;
+        public HistoryTicketController(IHistoryTicketService historyTicketService)
+        {
+            _historyTicketService = historyTicketService;
+        }
 
         /// <summary>
         /// Lấy tất cả các vé
