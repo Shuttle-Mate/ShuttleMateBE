@@ -626,10 +626,15 @@ namespace ShuttleMate.Repositories.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("SchoolId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("TotalDistance")
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SchoolId");
 
                     b.ToTable("Routes", (string)null);
                 });
@@ -846,9 +851,6 @@ namespace ShuttleMate.Repositories.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("RouteId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("StopOrder")
                         .HasColumnType("int");
 
@@ -857,8 +859,6 @@ namespace ShuttleMate.Repositories.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("RouteId");
 
                     b.ToTable("Stops", (string)null);
                 });
@@ -1451,6 +1451,17 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Navigation("SupportRequest");
                 });
 
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Route", b =>
+                {
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.School", "School")
+                        .WithMany("Routes")
+                        .HasForeignKey("SchoolId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("School");
+                });
+
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.RouteStop", b =>
                 {
                     b.HasOne("ShuttleMate.Contract.Repositories.Entities.Route", "Route")
@@ -1490,13 +1501,6 @@ namespace ShuttleMate.Repositories.Migrations
                         .IsRequired();
 
                     b.Navigation("Trip");
-                });
-
-            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Stop", b =>
-                {
-                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.Route", null)
-                        .WithMany("Stops")
-                        .HasForeignKey("RouteId");
                 });
 
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.StopEstimate", b =>
@@ -1678,6 +1682,8 @@ namespace ShuttleMate.Repositories.Migrations
 
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.School", b =>
                 {
+                    b.Navigation("Routes");
+
                     b.Navigation("Users");
                 });
 
