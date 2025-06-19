@@ -107,8 +107,10 @@ namespace ShuttleMate.Services.Services
                     Status = ConvertStatusToString(u.Status),
                     Price = u.TicketType.Price,
                     RouteName = u.TicketType.Route.RouteName,
-                    TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type)
-
+                    TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type),
+                    OrderCode = u.Transaction.OrderCode,
+                    
+                    
                 })
                 .ToListAsync();
 
@@ -168,13 +170,14 @@ namespace ShuttleMate.Services.Services
                     Price = u.TicketType.Price,
                     RouteName = u.TicketType.Route.RouteName,
                     TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type),
-                    FullNameOfUser = u.User.FullName
+                    FullNameOfUser = u.User.FullName,
+                    OrderCode = u.Transaction.OrderCode,
                 })
                 .ToListAsync();
 
             return historyTickets;
         }
-        private string ConvertStatusToString(HistoryTicketStatus status)
+        static string ConvertStatusToString(HistoryTicketStatus status)
         {
             return status switch
             {
@@ -184,7 +187,7 @@ namespace ShuttleMate.Services.Services
                 _ => "Không xác định"
             };
         }
-        private string ConvertStatusTicketTypeToString(TicketTypeEnum status)
+        static string ConvertStatusTicketTypeToString(TicketTypeEnum status)
         {
             return status switch
             {
