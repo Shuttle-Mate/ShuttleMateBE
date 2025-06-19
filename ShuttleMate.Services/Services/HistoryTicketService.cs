@@ -479,11 +479,11 @@ namespace ShuttleMate.Services.Services
                 <body>
                     <div class='container'>
                         <h2>XÁC NHẬN THANH TOÁN VÉ</h2>
-                        <p><strong>Công ty Cổ phần WANVI</strong></p>
+                        <p><strong>Công ty Cổ phần ShuttleMate</strong></p>
                         <p>Số ĐKKD: XXXXXXXX</p>
                         <p>Địa chỉ: [Địa chỉ công ty]</p>
                         <p>Hotline: [Số hotline]</p>
-                        <p>Email: wanvi.wandervietnam@gmail.com</p>
+                        <p>Email: shuttlemate.service@gmail.com</p>
 
                         <div class='section'>
                             <h3>THÔNG TIN THANH TOÁN</h3>
@@ -514,7 +514,7 @@ namespace ShuttleMate.Services.Services
                                 <tbody>
                                     <tr>
                                         <td>{historyTicket.TicketType.Route.RouteName}</td>
-                                        <td>{historyTicket.TicketType.Type}</td>
+                                        <td>{ConvertStatusTicketTypeToString(historyTicket.TicketType.Type)}</td>
                                         <td>{historyTicket.TicketType.Price:N0} đ</td>
                                     </tr>
                                 </tbody>
