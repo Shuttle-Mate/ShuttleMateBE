@@ -15,6 +15,11 @@ namespace ShuttleMate.API.Controllers
     public class TicketTypeController : ControllerBase
     {
         private readonly ITicketTypeService _ticketTypeService;
+        public TicketTypeController(ITicketTypeService ticketTypeService)
+        {
+            _ticketTypeService = ticketTypeService;
+        }
+
         /// <summary>
         /// Lấy tất cả các vé
         /// </summary>

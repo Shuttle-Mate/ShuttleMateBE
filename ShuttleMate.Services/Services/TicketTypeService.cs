@@ -120,10 +120,13 @@ namespace ShuttleMate.Services.Services
 
             var newTicketType = new TicketType
             {
+                Id = Guid.NewGuid(),
                 CreatedTime = DateTime.Now,
                 Price = model.Price,
                 RouteId = model.RouteId,
-                Type = model.Type
+                Type = model.Type,
+                LastUpdatedTime = DateTime.Now,
+                
             };
             await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketType);
             await _unitOfWork.SaveAsync();

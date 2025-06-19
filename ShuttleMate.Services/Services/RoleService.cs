@@ -35,6 +35,8 @@ namespace ShuttleMate.Services.Services
             }
             Role newRole = new Role();
             newRole.Name = model.RoleName;
+            newRole.CreatedTime = DateTime.Now;
+            newRole.LastUpdatedTime = DateTime.Now;
             await _unitOfWork.GetRepository<Role>().InsertAsync(newRole);
             await _unitOfWork.SaveAsync();
         }
