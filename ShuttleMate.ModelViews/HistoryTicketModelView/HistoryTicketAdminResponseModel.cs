@@ -11,6 +11,7 @@ namespace ShuttleMate.ModelViews.HistoryTicketModelView
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
+        public int OrderCode { get; set; }
         public string FullNameOfUser { get; set; }
         public Guid TicketId { get; set; }
         public string RouteName { get; set; }

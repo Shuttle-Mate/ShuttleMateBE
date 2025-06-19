@@ -107,8 +107,10 @@ namespace ShuttleMate.Services.Services
                     Status = ConvertStatusToString(u.Status),
                     Price = u.TicketType.Price,
                     RouteName = u.TicketType.Route.RouteName,
-                    TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type)
-
+                    TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type),
+                    OrderCode = u.Transaction.OrderCode,
+                    
+                    
                 })
                 .ToListAsync();
 
@@ -168,7 +170,8 @@ namespace ShuttleMate.Services.Services
                     Price = u.TicketType.Price,
                     RouteName = u.TicketType.Route.RouteName,
                     TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type),
-                    FullNameOfUser = u.User.FullName
+                    FullNameOfUser = u.User.FullName,
+                    OrderCode = u.Transaction.OrderCode,
                 })
                 .ToListAsync();
 
