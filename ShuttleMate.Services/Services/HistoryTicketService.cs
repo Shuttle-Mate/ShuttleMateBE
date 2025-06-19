@@ -177,7 +177,7 @@ namespace ShuttleMate.Services.Services
 
             return historyTickets;
         }
-        private string ConvertStatusToString(HistoryTicketStatus status)
+        static string ConvertStatusToString(HistoryTicketStatus status)
         {
             return status switch
             {
@@ -187,7 +187,7 @@ namespace ShuttleMate.Services.Services
                 _ => "Không xác định"
             };
         }
-        private string ConvertStatusTicketTypeToString(TicketTypeEnum status)
+        static string ConvertStatusTicketTypeToString(TicketTypeEnum status)
         {
             return status switch
             {
