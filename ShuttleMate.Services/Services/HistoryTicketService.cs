@@ -104,13 +104,17 @@ namespace ShuttleMate.Services.Services
                     ValidFrom = u.ValidFrom,
                     TicketId = u.TicketId,
                     UserId = u.UserId,
-                    Status = ConvertStatusToString(u.Status)
+                    Status = ConvertStatusToString(u.Status),
+                    Price = u.TicketType.Price,
+                    RouteName = u.TicketType.Route.RouteName,
+                    TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type)
+
                 })
                 .ToListAsync();
 
             return historyTickets;
         }
-        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForAdminAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null)
+        public async Task<IEnumerable<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null)
         {
             var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
 
@@ -152,7 +156,7 @@ namespace ShuttleMate.Services.Services
             }
 
             var historyTickets = await query
-                .Select(u => new HistoryTicketResponseModel
+                .Select(u => new HistoryTicketAdminResponseModel
                 {
                     Id = u.Id,
                     PurchaseAt = u.PurchaseAt,
@@ -160,7 +164,11 @@ namespace ShuttleMate.Services.Services
                     ValidFrom = u.ValidFrom,
                     TicketId = u.TicketId,
                     UserId = u.UserId,
-                    Status = ConvertStatusToString(u.Status)
+                    Status = ConvertStatusToString(u.Status),
+                    Price = u.TicketType.Price,
+                    RouteName = u.TicketType.Route.RouteName,
+                    TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type),
+                    FullNameOfUser = u.User.FullName
                 })
                 .ToListAsync();
 
@@ -173,6 +181,17 @@ namespace ShuttleMate.Services.Services
                 HistoryTicketStatus.Book => "Đặt vé",
                 HistoryTicketStatus.Paid => "Đã thanh toán",
                 HistoryTicketStatus.Cancelled => "Hủy",
+                _ => "Không xác định"
+            };
+        }
+        private string ConvertStatusTicketTypeToString(TicketTypeEnum status)
+        {
+            return status switch
+            {
+                TicketTypeEnum.SingleRide => "Chuyến 1 chiều",
+                TicketTypeEnum.DayPass => "Chuyến trong ngày",
+                TicketTypeEnum.Weekly => "Chuyến 1 tuần",
+                TicketTypeEnum.Semester => "Chuyến 1 học kì",
                 _ => "Không xác định"
             };
         }
@@ -208,7 +227,8 @@ namespace ShuttleMate.Services.Services
                 Status = HistoryTicketStatus.Book,
                 PurchaseAt = DateTime.Now,
                 UserId = cb,
-                LastUpdatedTime = DateTime.Now
+                LastUpdatedTime = DateTime.Now,
+                CreatedBy = userId
             };
 
             await _unitOfWork.GetRepository<HistoryTicket>().InsertAsync(historyTicket);
@@ -220,12 +240,12 @@ namespace ShuttleMate.Services.Services
                 orderCode = await GenerateUniqueOrderCodeAsync(),
                 amount = (long)ticketType.Price, // Chuyển đổi TotalPrice sang long
                 description = $"Thanh toán 100%!!!",
-                buyerName = user.FullName, 
-                buyerEmail = user.Email,   
+                buyerName = user.FullName,
+                buyerEmail = user.Email,
                 buyerPhone = user.PhoneNumber,
-                buyerAddress = user.Address,  
-                cancelUrl = "https://www.google.com/?hl=vi", 
-                returnUrl = "https://www.google.com/?hl=vi", 
+                buyerAddress = user.Address,
+                cancelUrl = "https://www.google.com/?hl=vi",
+                returnUrl = "https://www.google.com/?hl=vi",
                 expiredAt = DateTimeOffset.Now.ToUnixTimeSeconds() + 600,
 
                 // ... các trường khác 
@@ -238,7 +258,7 @@ namespace ShuttleMate.Services.Services
             var transaction = new Transaction
             {
                 Id = Guid.NewGuid(),
-                PaymentMethod = PaymentMethodEnum.PayOs, 
+                PaymentMethod = PaymentMethodEnum.PayOs,
                 Status = PaymentStatus.Unpaid,
                 Amount = ticketType.Price,
                 OrderCode = payOSRequest.orderCode,
@@ -253,6 +273,7 @@ namespace ShuttleMate.Services.Services
                 CreatedTime = DateTime.Now,
                 LastUpdatedTime = DateTime.Now,
                 HistoryTicketId = historyTicket.Id,
+                DeletedBy = userId,
                 //... các thông tin khác (nếu cần)...
             };
 
@@ -338,6 +359,177 @@ namespace ShuttleMate.Services.Services
                     throw new ErrorException(StatusCodes.Status500InternalServerError, ErrorCode.ServerError, $"Error calling PayOS API: {response.StatusCode} - {errorJson}");
                 }
             }
+        }
+        public async Task PayOSCallback(PayOSWebhookRequest request)
+        {
+            if (request?.data == null)
+            {
+                Console.WriteLine("Webhook request không có data, bỏ qua xử lý.");
+                return;
+            }
+
+            // Tìm Transaction theo orderCode
+            var transaction = await _unitOfWork.GetRepository<Transaction>().Entities
+                .FirstOrDefaultAsync(x => x.OrderCode == request.data.orderCode && !x.DeletedTime.HasValue);
+
+
+            if (transaction == null)
+            {
+                Console.WriteLine($"Không tìm thấy thanh toán với orderCode: {request.data.orderCode}. Bỏ qua xử lý.");
+                return;
+            }
+
+            switch (request.data.code)
+            {
+                case "00": // Thành công
+
+                    var user = await _unitOfWork.GetRepository<User>().Entities
+                        .FirstOrDefaultAsync(x => x.Id.ToString() == transaction.CreatedBy && !x.DeletedTime.HasValue);
+
+                    var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities
+                         .FirstOrDefaultAsync(x => x.Id == transaction.HistoryTicketId && !x.DeletedTime.HasValue);
+
+                    historyTicket.Status = HistoryTicketStatus.Paid;
+                    transaction.Status = PaymentStatus.Paid;
+
+                    await _unitOfWork.GetRepository<Transaction>().UpdateAsync(transaction);
+                    await _unitOfWork.GetRepository<HistoryTicket>().UpdateAsync(historyTicket);
+                    await _unitOfWork.SaveAsync();
+
+                    //Gửi mail hóa đơn thanh toán thành công 
+                    await SendTicketPaymentSuccessEmail(user, historyTicket);
+                    break;
+
+                case "01": // Giao dịch thất bại
+                    transaction.Status = PaymentStatus.Unpaid;
+                    break;
+
+                case "02": // Hủy giao dịch
+                    transaction.Status = PaymentStatus.Canceled;
+                    break;
+
+                default:
+                    Console.WriteLine($"Trạng thái không xác định: {request.data.code}, bỏ qua xử lý.");
+                    return;
+            }
+
+            await _unitOfWork.SaveAsync();
+        }
+        private async Task SendTicketPaymentSuccessEmail(User user, HistoryTicket historyTicket)
+        {
+
+            // Create email content
+            await _emailService.SendEmailAsync(
+                user.Email,
+                "Xác Nhận Thanh Toán Vé Thành Công",
+                $@"
+                <html>
+                <head>
+                    <style>
+                        body {{
+                            font-family: Arial, sans-serif;
+                            background-color: #f4f4f4;
+                            margin: 0;
+                            padding: 0;
+                        }}
+                        .container {{
+                            width: 100%;
+                            max-width: 600px;
+                            margin: 20px auto;
+                            background: #ffffff;
+                            padding: 20px;
+                            border-radius: 8px;
+                            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+                        }}
+                        h2, h3 {{
+                            color: #333;
+                        }}
+                        p {{
+                            font-size: 16px;
+                            line-height: 1.6;
+                            color: #555;
+                        }}
+                        .section {{
+                            margin-bottom: 20px;
+                            padding-bottom: 10px;
+                            border-bottom: 1px solid #ddd;
+                        }}
+                        .footer {{
+                            margin-top: 20px;
+                            font-size: 14px;
+                            color: #777;
+                            text-align: center;
+                        }}
+                        table {{
+                            width: 100%;
+                            border-collapse: collapse;
+                        }}
+                        table, th, td {{
+                            border: 1px solid #ddd;
+                        }}
+                        th, td {{
+                            padding: 10px;
+                            text-align: left;
+                        }}
+                        th {{
+                            background-color: #f8f8f8;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <h2>XÁC NHẬN THANH TOÁN VÉ</h2>
+                        <p><strong>Công ty Cổ phần WANVI</strong></p>
+                        <p>Số ĐKKD: XXXXXXXX</p>
+                        <p>Địa chỉ: [Địa chỉ công ty]</p>
+                        <p>Hotline: [Số hotline]</p>
+                        <p>Email: wanvi.wandervietnam@gmail.com</p>
+
+                        <div class='section'>
+                            <h3>THÔNG TIN THANH TOÁN</h3>
+                            <p><strong>Mã vé:</strong> {historyTicket.Transaction.OrderCode}</p>
+                            <p><strong>Ngày thanh toán:</strong> {historyTicket.PurchaseAt:dd/MM/yyyy}</p>
+                            <p><strong>Ngày áp dụng:</strong> {historyTicket.ValidFrom:dd/MM/yyyy}</p>
+                            <p><strong>Ngày hết hạn:</strong> {historyTicket.ValidUntil:dd/MM/yyyy}</p>
+                            <p><strong>Hình thức thanh toán:</strong> {historyTicket.Transaction.PaymentMethod}</p>
+                        </div>
+
+                        <div class='section'>
+                            <h3>THÔNG TIN KHÁCH HÀNG</h3>
+                            <p><strong>Họ và tên:</strong> {user.FullName}</p>
+                            <p><strong>Email:</strong> {user.Email}</p>
+                            <p><strong>Số điện thoại:</strong> {user.PhoneNumber}</p>
+                        </div>
+
+                        <div class='section'>
+                            <h3>CHI TIẾT VÉ</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Đường đi</th>
+                                        <th>Loại vé</th>
+                                        <th>Giá vé</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>{historyTicket.TicketType.Route.RouteName}</td>
+                                        <td>{historyTicket.TicketType.Type}</td>
+                                        <td>{historyTicket.TicketType.Price:N0} đ</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p><strong>Tổng tiền:</strong> {historyTicket.TicketType.Price:N0} đ</p>
+                        </div>
+
+                        <div class='footer'>
+                            <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+                        </div>
+                    </div>
+                </body>
+                </html>"
+            );
+
         }
 
 

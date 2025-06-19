@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
@@ -7,6 +8,8 @@ using ShuttleMate.ModelViews.HistoryTicketModelView;
 using ShuttleMate.ModelViews.TicketTypeModelViews;
 using ShuttleMate.Services.Services;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
+using System.Text.Json;
+
 
 namespace ShuttleMate.API.Controllers
 {
@@ -21,7 +24,7 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Lấy tất cả các vé
+        /// Lấy tất cả các vé của chính mình(người dùng)
         /// </summary>
         /// <param name="status">trạng thái vé lần lượt là book = 0, Paid = 1, Cancelled = 2</param>
         /// <param name="PurchaseAt">Thời gian đặt vé</param>
@@ -41,7 +44,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Lấy tất cả các vé
+        /// Lấy tất cả các vé(Admin)
         /// </summary>
         /// <param name="status">trạng thái vé lần lượt là book = 0, Paid = 1, Cancelled = 2</param>
         /// <param name="PurchaseAt">Thời gian đặt vé</param>
@@ -55,12 +58,16 @@ namespace ShuttleMate.API.Controllers
         {
             var tickets = await _historyTicketService.GetAllForAdminAsync(status, PurchaseAt, CreateTime, ValidFrom, ValidUntil, userId, ticketId);
 
-            return Ok(new BaseResponseModel<IEnumerable<HistoryTicketResponseModel>>(
+            return Ok(new BaseResponseModel<IEnumerable<HistoryTicketAdminResponseModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: tickets
             ));
         }
+        /// <summary>
+        /// Mua vé
+        /// </summary>
+
         [HttpPost]
         public async Task<IActionResult> CreateHistoryTicket(CreateHistoryTicketModel model)
         {
@@ -71,6 +78,42 @@ namespace ShuttleMate.API.Controllers
                 code: ResponseCodeConstants.SUCCESS,
                 data: linkPayOS
             ));
+        }
+        /// <summary>
+        /// Hàm xử lí sau khi thanh toán
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("payos_callback")]
+        public async Task<IActionResult> PayOSCallback([FromBody] PayOSWebhookRequest request)
+        {
+            try
+            {
+                string jsonRequest = JsonSerializer.Serialize(request);
+                Console.WriteLine($"📌 Received Webhook Data: {jsonRequest}");
+                //Console.WriteLine($"📌 Signature: {signature}");
+
+                // Nếu request null, trả về lỗi
+                if (request == null || request.data == null)
+                {
+                    return BadRequest(new { message = "Dữ liệu webhook không hợp lệ" });
+                }
+
+                // 🚀 Nếu request từ PayOS kiểm tra Webhook, bỏ qua xử lý nhưng vẫn trả về 200 OK
+                if (request.data.orderCode == null)
+                {
+                    Console.WriteLine("📌 PayOS Webhook Verification - Skipping Processing");
+                    return Ok(new { message = "Webhook verified successfully" });
+                }
+
+                // Xử lý khi có orderCode thật từ PayOS
+                await _historyTicketService.PayOSCallback(request);
+                return Ok(new { message = "Webhook processed successfully" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Webhook Error: {ex.Message}");
+                return StatusCode(500, new { message = "Internal Server Error", error = ex.Message });
+            }
         }
     }
 }

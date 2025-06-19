@@ -125,7 +125,8 @@ namespace ShuttleMate.Contract.Repositories.Enum
             SingleRide,
             DayPass,
             Weekly,
-            Monthly
+            Monthly,
+            Semester
         }
         public enum PaymentMethodEnum
         {
