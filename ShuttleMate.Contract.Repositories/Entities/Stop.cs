@@ -14,9 +14,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public decimal Lat {  get; set; }
         public decimal Lng { get; set; }
         public int StopOrder {  get; set; }
-
         public virtual ICollection<StopEstimate> StopEstimates { get; set; } = new List<StopEstimate>();
         public virtual ICollection<RouteStop> RouteStops { get; set; } = new List<RouteStop>();
-
     }
 }

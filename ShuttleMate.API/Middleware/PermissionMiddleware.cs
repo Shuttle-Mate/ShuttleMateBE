@@ -30,6 +30,7 @@ namespace ShuttleMate.API.Middleware
                 "/api/auth/forget-password/confirm-otp",
                 "/api/auth/change-password",
                 "/api/auth/logout",
+                "/api/historyticket/payos_callback",
 
             };
             _rolePermissions = new Dictionary<string, List<string>>()
@@ -118,13 +119,13 @@ namespace ShuttleMate.API.Middleware
 
         private static async Task HandleForbiddenRequest(HttpContext context)
         {
-            var error = new ErrorException(StatusCodes.Status403Forbidden, ErrorCode.Forbidden, "Token đã hết hạn!");
-            string result = JsonSerializer.Serialize(error);
+            throw new ErrorException(StatusCodes.Status403Forbidden, ErrorCode.Forbidden, "Token đã hết hạn!");
+            //string result = JsonSerializer.Serialize(error);
 
-            context.Response.ContentType = "application/json";
-            context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+            //context.Response.ContentType = "application/json";
+            //context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
 
-            await context.Response.WriteAsync(result);
+            //await context.Response.WriteAsync(result);
         }
     }
 }
