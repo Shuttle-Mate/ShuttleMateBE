@@ -181,7 +181,7 @@ namespace ShuttleMate.Services.Services
         {
             return status switch
             {
-                HistoryTicketStatus.Book => "Đặt vé",
+                HistoryTicketStatus.UnPaid => "Đặt vé",
                 HistoryTicketStatus.Paid => "Đã thanh toán",
                 HistoryTicketStatus.Cancelled => "Hủy",
                 _ => "Không xác định"
@@ -227,7 +227,7 @@ namespace ShuttleMate.Services.Services
                 ValidUntil = model.ValidUntil,
                 CreatedTime = DateTime.Now,
                 TicketId = model.TicketId,
-                Status = HistoryTicketStatus.Book,
+                Status = HistoryTicketStatus.UnPaid,
                 PurchaseAt = DateTime.Now,
                 UserId = cb,
                 LastUpdatedTime = DateTime.Now,

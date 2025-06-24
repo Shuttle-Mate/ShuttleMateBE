@@ -87,7 +87,7 @@ namespace ShuttleMate.Services.Services
 
             return tickets;
         }
-        private string ConvertStatusToString(TicketTypeEnum status)
+        static string ConvertStatusToString(TicketTypeEnum status)
         {
             return status switch
             {
