@@ -213,6 +213,8 @@ namespace ShuttleMate.API
             services.AddScoped<IHistoryTicketService, HistoryTicketService>();
             services.AddScoped<IShuttleService, ShuttleService>();
             services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<ISupportRequestService, SupportRequestService>();
+            services.AddScoped<IPromotionService, PromotionService>();
             services.AddScoped<IAttendanceService, AttendanceService>();
         }
 
