@@ -184,6 +184,7 @@ namespace ShuttleMate.Services.Services
                 HistoryTicketStatus.UnPaid => "Đặt vé",
                 HistoryTicketStatus.Paid => "Đã thanh toán",
                 HistoryTicketStatus.Cancelled => "Hủy",
+                HistoryTicketStatus.Used => "Đã sử dụng",
                 _ => "Không xác định"
             };
         }
@@ -195,6 +196,7 @@ namespace ShuttleMate.Services.Services
                 TicketTypeEnum.DayPass => "Chuyến trong ngày",
                 TicketTypeEnum.Weekly => "Chuyến 1 tuần",
                 TicketTypeEnum.Semester => "Chuyến 1 học kì",
+                TicketTypeEnum.Monthly => "Chuyến 1 tháng",
                 _ => "Không xác định"
             };
         }

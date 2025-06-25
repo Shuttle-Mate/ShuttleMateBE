@@ -95,6 +95,7 @@ namespace ShuttleMate.Services.Services
                 TicketTypeEnum.Monthly => "Vé tháng",
                 TicketTypeEnum.Weekly => "Vé tuần",
                 TicketTypeEnum.SingleRide => "Vé 1 chiều",
+                TicketTypeEnum.Semester => "Vé 1 học kì",
                 _ => "Không xác định"
             };
         }
