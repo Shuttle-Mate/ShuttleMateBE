@@ -65,7 +65,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Mua vé
+        /// Mua vé (PAYOS)
         /// </summary>
 
         [HttpPost]
@@ -80,7 +80,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Hàm xử lí sau khi thanh toán
+        /// Hàm xử lí sau khi thanh toán(PAYOS)
         /// </summary>
         [AllowAnonymous]
         [HttpPost("payos_callback")]
@@ -114,6 +114,22 @@ namespace ShuttleMate.API.Controllers
                 Console.WriteLine($"❌ Webhook Error: {ex.Message}");
                 return StatusCode(500, new { message = "Internal Server Error", error = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Mua vé (ZALOPAY)
+        /// </summary>
+
+        [HttpPost("create_payment_zalopay")]
+        public async Task<IActionResult> CreateHistoryTicketZaloPay(CreateZaloPayOrderModel model)
+        {
+            string linkPayOS = await _historyTicketService.CreateZaloPayOrder(model);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: linkPayOS
+            ));
         }
     }
 }
