@@ -32,6 +32,7 @@ namespace ShuttleMate.API
             services.AddServices();
             services.ConfigCors();
             services.JwtSettingsConfig(configuration);
+            services.AddZaloPayConfig(configuration);
             services.IntSeedData();
         }
         public static void JwtSettingsConfig(this IServiceCollection services, IConfiguration configuration)
@@ -223,12 +224,9 @@ namespace ShuttleMate.API
         {
             services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
         }
-        public static void AddConfigureServices(IServiceCollection services, IConfiguration configuration)
+        public static void AddZaloPayConfig(this IServiceCollection services, IConfiguration configuration)
         {
-            // Đọc cấu hình từ appsettings.json
             services.Configure<ZaloPaySettings>(configuration.GetSection("ZaloPay"));
-
-            // Các dịch vụ khác của bạn
         }
 
         public static void IntSeedData(this IServiceCollection services)
