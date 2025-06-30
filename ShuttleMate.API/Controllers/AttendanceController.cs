@@ -17,7 +17,23 @@ namespace ShuttleMate.API.Controllers
         {
             _attendanceService = attendanceService;
         }
+        /// <summary>
+        /// Lấy danh sách điểm danh của người dùng hiện tại (có thể lọc theo ngày).
+        /// </summary>
+        [HttpGet("my")]
+        public async Task<IActionResult> GetMyAttendance([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        {
+            var res = await _attendanceService.GetMyAttendance(fromDate, toDate);
 
+            return Ok(new BaseResponseModel<object>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: res
+            ));
+        }
+        /// <summary>
+        /// Checkin
+        /// </summary>
         [HttpPost]
         public async Task<IActionResult> CheckIn(CheckInModel model)
         {
@@ -28,6 +44,9 @@ namespace ShuttleMate.API.Controllers
                 data: "CheckIn thành công!"
             ));
         }
+        /// <summary>
+        /// Checkout
+        /// </summary>
         [HttpPatch]
         public async Task<IActionResult> CheckOut(CheckOutModel model)
         {
@@ -38,6 +57,9 @@ namespace ShuttleMate.API.Controllers
                 data: "CheckOut thành công"
             ));
         }
+        /// <summary>
+        /// Get All cho operator/admin
+        /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetAllAttendance()
         {
@@ -48,6 +70,9 @@ namespace ShuttleMate.API.Controllers
                 data: res
             ));
         }
+        /// <summary>
+        /// Get by id
+        /// </summary>
         [HttpGet("{attendanceId}")]
         public async Task<IActionResult> GetAttendanceById(Guid attendanceId)
         {
@@ -58,6 +83,9 @@ namespace ShuttleMate.API.Controllers
                 data: res
             ));
         }
+        /// <summary>
+        /// Xóa/Ẩn Attendance
+        /// </summary>
         [HttpDelete]
         public async Task<IActionResult> DeleteAttendance(Guid attendanceId)
         {
