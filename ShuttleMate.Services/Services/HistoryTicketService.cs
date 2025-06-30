@@ -602,8 +602,8 @@ namespace ShuttleMate.Services.Services
 
             // Tạo mã đơn hàng duy nhất từ hàm GenerateUniqueOrderCodeAsync
             var orderCode = await GenerateUniqueOrderCodeAsync();
+            var appTransId = DateTime.Now.ToString("yyMMdd") + "_" + orderCode.ToString();
 
-            // embeddata cần phải theo định dạng JSON hợp lệ
             var embeddata = "{\"promotioninfo\":\"\",\"merchantinfo\":\"" + userId + "\"}";
 
             var items = new[] {
@@ -611,21 +611,21 @@ namespace ShuttleMate.Services.Services
     };
 
             var param = new Dictionary<string, string>
-    {
-        { "appid", _zaloPaySettings.AppId.ToString() }, // appid từ cấu hình
-        { "appuser", _zaloPaySettings.AppUser }, // userId từ hệ thống của bạn
-        { "apptime", DateTimeExtensions.GetTimeStamp(DateTime.Now).ToString() }, // Thời gian hiện tại (Unix timestamp)
-        { "amount", ticketType.Price.ToString("0") }, // Số tiền thanh toán
-        { "apptransid", DateTime.Now.ToString("yyMMdd") + "_" + orderCode.ToString() }, // Mã giao dịch
-        { "embeddata", embeddata }, // Dữ liệu embed
-        { "item", JsonConvert.SerializeObject(items) }, // Dữ liệu sản phẩm
-        { "description", "ZaloPay demo" }, // Mô tả đơn hàng
-        { "bankcode", "zalopayapp" }, // Mã ngân hàng
-        { "phone", user.PhoneNumber }, // Số điện thoại người dùng
-        { "email", user.Email }, // Email người dùng
-        { "address", user.Address }, // Địa chỉ người dùng
-        { "subappid", "sub123" } // Địa chỉ của người dùng (ví dụ)
-    };
+            {
+                { "appid", _zaloPaySettings.AppId.ToString() },
+                { "appuser", _zaloPaySettings.AppUser },
+                { "apptime", DateTime.Now.GetTimeStamp().ToString() },
+                { "amount", ticketType.Price.ToString("0") },
+                { "apptransid", appTransId },
+                { "embeddata", embeddata },
+                { "item", JsonConvert.SerializeObject(items) },
+                { "description", "ZaloPay demo" },
+                { "bankcode", "zalopayapp" },
+                { "phone", user.PhoneNumber },
+                { "email", user.Email },
+                { "address", user.Address },
+                { "subappid", "sub123" }
+            };
 
             // Kiểm tra xem Key1 có null không
             if (string.IsNullOrEmpty(_zaloPaySettings.Key1))
@@ -633,29 +633,29 @@ namespace ShuttleMate.Services.Services
                 throw new InvalidOperationException("Key1 không được null hoặc rỗng.");
             }
 
-            // Tính toán HMAC (chứng thực) với HMACSHA256
+            // Tính toán HMAC
+            var itemsJson = JsonConvert.SerializeObject(items);
             var data = _zaloPaySettings.AppId.ToString() + "|"
-                       + DateTime.Now.ToString("yyMMdd") + "_" + orderCode.ToString() + "|"
+                       + appTransId + "|"
                        + _zaloPaySettings.AppUser + "|"
                        + ticketType.Price.ToString("0") + "|"
-                       + DateTimeExtensions.GetTimeStamp(DateTime.Now).ToString() + "|"
+                       + DateTime.Now.GetTimeStamp() + "|"
                        + embeddata + "|"
-                       + JsonConvert.SerializeObject(items);
+                       + itemsJson;
 
-            param["mac"] = ComputeHMACSHA256(data, _zaloPaySettings.Key1);  // Tính toán HMAC
+            param["mac"] = ComputeHMACSHA256(data, _zaloPaySettings.Key1);
 
             // Gửi yêu cầu POST đến ZaloPay
             using var client = new HttpClient();
-            var result = await client.PostAsync(_zaloPaySettings.PaymentUrl, new FormUrlEncodedContent(param));
+            var result =  client.PostAsync(_zaloPaySettings.PaymentUrl, new FormUrlEncodedContent(param)).Result;
+
             if (result.IsSuccessStatusCode)
             {
-                // Xử lý kết quả trả về
-                var responseString = await result.Content.ReadAsStringAsync();
+                var responseString =  result.Content.ReadAsStringAsync().Result;
                 var response = JsonConvert.DeserializeObject<ZaloPayResponse>(responseString);
 
                 if (response.returnCode == 1)
                 {
-                    // Cập nhật trạng thái của đơn hàng sau khi tạo
                     var transaction = new Transaction
                     {
                         Id = Guid.NewGuid(),
@@ -665,7 +665,7 @@ namespace ShuttleMate.Services.Services
                         OrderCode = orderCode,
                         BuyerAddress = user.Address,
                         Description = "Thanh toán ZaloPay",
-                        Signature = param["mac"], // Chữ ký
+                        Signature = param["mac"],
                         BuyerEmail = user.Email,
                         BuyerPhone = user.PhoneNumber,
                         BuyerName = user.FullName,
