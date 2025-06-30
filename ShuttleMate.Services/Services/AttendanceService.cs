@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
@@ -13,6 +14,7 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.AttendanceModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
+using ShuttleMate.Services.Services.Infrastructure;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -21,11 +23,13 @@ namespace ShuttleMate.Services.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IHttpContextAccessor _contextAccessor;
 
-        public AttendanceService(IUnitOfWork unitOfWork, IMapper mapper)
+        public AttendanceService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _contextAccessor = contextAccessor;
         }
 
         public async Task CheckIn(CheckInModel model)
@@ -88,6 +92,44 @@ namespace ShuttleMate.Services.Services
 
             return _mapper.Map<ResponseAttendanceModel>(attendance);
         }
+
+        public async Task<List<ResponseAttendanceModel>> GetMyAttendance(DateTime? fromDate, DateTime? toDate)
+        {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            //Guid.TryParse(userId, out Guid cb);
+
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out Guid ui))
+            {
+                throw new ErrorException(StatusCodes.Status401Unauthorized, ErrorCode.Unauthorized, "Người dùng chưa đăng nhập hoặc không hợp lệ");
+            }
+
+            var attendanceQuery = _unitOfWork.GetRepository<Attendance>().Entities
+                .Include(a => a.HistoryTicket) // Include HistoryTickets
+                .Where(a => !a.DeletedTime.HasValue && a.HistoryTicket.UserId.ToString() == userId);
+
+            if (fromDate.HasValue)
+            {
+                attendanceQuery = attendanceQuery.Where(a => a.CheckInTime >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                attendanceQuery = attendanceQuery.Where(a => a.CheckInTime <= toDate.Value);
+            }
+
+            var attendances = await attendanceQuery
+                .OrderByDescending(a => a.CheckInTime)
+                .ToListAsync();
+
+            if (!attendances.Any())
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy dữ liệu điểm danh nào.");
+            }
+
+            return _mapper.Map<List<ResponseAttendanceModel>>(attendances);
+        }
+
 
         //public Task UpdateAttendance(UpdateAttendanceModel model)
         //{
