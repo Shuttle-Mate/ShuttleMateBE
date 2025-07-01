@@ -87,7 +87,7 @@ namespace ShuttleMate.Services.Services
 
             return tickets;
         }
-        private string ConvertStatusToString(TicketTypeEnum status)
+        static string ConvertStatusToString(TicketTypeEnum status)
         {
             return status switch
             {
@@ -95,6 +95,7 @@ namespace ShuttleMate.Services.Services
                 TicketTypeEnum.Monthly => "Vé tháng",
                 TicketTypeEnum.Weekly => "Vé tuần",
                 TicketTypeEnum.SingleRide => "Vé 1 chiều",
+                TicketTypeEnum.Semester => "Vé 1 học kì",
                 _ => "Không xác định"
             };
         }
@@ -120,10 +121,13 @@ namespace ShuttleMate.Services.Services
 
             var newTicketType = new TicketType
             {
+                Id = Guid.NewGuid(),
                 CreatedTime = DateTime.Now,
                 Price = model.Price,
                 RouteId = model.RouteId,
-                Type = model.Type
+                Type = model.Type,
+                LastUpdatedTime = DateTime.Now,
+                
             };
             await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketType);
             await _unitOfWork.SaveAsync();

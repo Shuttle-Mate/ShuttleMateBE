@@ -146,7 +146,7 @@ namespace ShuttleMate.Services.Services
         public async Task<LoginResponse> LoginAsync(LoginRequestModel request)
         {
             var user = _unitOfWork.GetRepository<User>().Entities
-                .Where(u => !u.DeletedTime.HasValue && u.UserName == request.Username)
+                .Where(u => !u.DeletedTime.HasValue && u.Email == request.Email)
                 .FirstOrDefault()
                 ?? throw new ErrorException(StatusCodes.Status401Unauthorized, ResponseCodeConstants.BADREQUEST, "Không tìm thấy tài khoản");
             if (user.EmailVerified == false)

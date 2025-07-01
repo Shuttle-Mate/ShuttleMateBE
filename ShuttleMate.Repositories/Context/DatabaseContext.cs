@@ -24,19 +24,20 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<Attendance> Attendances => Set<Attendance>();
         public virtual DbSet<TicketType> TicketTypes => Set<TicketType>();
         public virtual DbSet<Trip> Trips => Set<Trip>();
-        public virtual DbSet<Promotion> Promotion => Set<Promotion>();
-        public virtual DbSet<TicketPromotion> TicketPromotion => Set<TicketPromotion>();
+        public virtual DbSet<Promotion> Promotions => Set<Promotion>();
+        public virtual DbSet<TicketPromotion> TicketPromotions => Set<TicketPromotion>();
         public virtual DbSet<Feedback> Feedbacks => Set<Feedback>();
         public virtual DbSet<SupportRequest> SupportRequests => Set<SupportRequest>();
         public virtual DbSet<ShuttleLocationRecord> ShuttleLocationRecords => Set<ShuttleLocationRecord>();
         public virtual DbSet<ChatBotLog> ChatBotLogs => Set<ChatBotLog>();
-        public virtual DbSet<HistoryTicket> HistoryTicket => Set<HistoryTicket>();
-        public virtual DbSet<Notification> Notification => Set<Notification>();
+        public virtual DbSet<HistoryTicket> HistoryTickets => Set<HistoryTicket>();
+        public virtual DbSet<Notification> Notifications => Set<Notification>();
         public virtual DbSet<Transaction> Transactions => Set<Transaction>();
         public virtual DbSet<SystemLogs> SystemLogs => Set<SystemLogs>();
-        public virtual DbSet<NotificationRecipient> NotificationRecipient => Set<NotificationRecipient>();
-        public virtual DbSet<ResponseSupport> ResponseSupport => Set<ResponseSupport>();
-        public virtual DbSet<NotificationTemplate> NotificationTemplate => Set<NotificationTemplate>();
+        public virtual DbSet<NotificationRecipient> NotificationRecipients => Set<NotificationRecipient>();
+        public virtual DbSet<ResponseSupport> ResponseSupports => Set<ResponseSupport>();
+        public virtual DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
+        public virtual DbSet<RouteStop> RouteStops => Set<RouteStop>();
         #endregion
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -87,7 +88,16 @@ namespace ShuttleMate.Repositories.Context
             modelBuilder.Entity<Route>(entity =>
             {
                 entity.ToTable("Routes");
+                // Khóa ngoại School
+                entity.HasOne(t => t.School)
+                    .WithMany(r => r.Routes)
+                    .HasForeignKey(t => t.SchoolId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
+
+            modelBuilder.Entity<RouteStop>()
+                    .HasKey(rs => new { rs.RouteId, rs.StopId });
+
             modelBuilder.Entity<RouteStop>(entity =>
             {
                 entity.ToTable("RouteStops");
@@ -140,7 +150,7 @@ namespace ShuttleMate.Repositories.Context
 
             modelBuilder.Entity<TicketType>(entity =>
             {
-                entity.ToTable("TicketType");
+                entity.ToTable("TicketTypes");
                 // Khóa ngoại Route
                 entity.HasOne(t => t.Route)
                     .WithMany(r => r.TicketTypes)
@@ -200,7 +210,7 @@ namespace ShuttleMate.Repositories.Context
 
             modelBuilder.Entity<TicketPromotion>(entity =>
             {
-                entity.ToTable("TicketPromotion");
+                entity.ToTable("TicketPromotions");
             });
 
             modelBuilder.Entity<TicketPromotion>()
@@ -282,7 +292,7 @@ namespace ShuttleMate.Repositories.Context
 
             modelBuilder.Entity<NotificationTemplate>(entity =>
             {
-                entity.ToTable("NotificationTemplate");
+                entity.ToTable("NotificationTemplates");
             });
         }
     }

@@ -125,7 +125,8 @@ namespace ShuttleMate.Contract.Repositories.Enum
             SingleRide,
             DayPass,
             Weekly,
-            Monthly
+            Monthly,
+            Semester
         }
         public enum PaymentMethodEnum
         {
@@ -141,9 +142,10 @@ namespace ShuttleMate.Contract.Repositories.Enum
         }
         public enum HistoryTicketStatus
         {
-            Book = 0,
+            UnPaid = 0,
             Paid = 1,
             Cancelled = 2,
+            Used = 3,
         }
     }
 }

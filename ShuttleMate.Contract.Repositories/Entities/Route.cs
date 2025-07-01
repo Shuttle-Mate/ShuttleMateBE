@@ -21,7 +21,9 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public int AmountOfTrip { get; set; }
         public string Description { get; set; }
         public bool IsActive { get; set; }
-        public virtual ICollection<Stop> Stops { get; set; } = new List<Stop>();
+        public Guid SchoolId { get; set; }
+        public virtual School School { get; set; }
+        //public virtual ICollection<Stop> Stops { get; set; } = new List<Stop>();
         public virtual ICollection<DepartureTime> DepartureTimes { get; set; } = new List<DepartureTime>();
         public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
         public virtual ICollection<TicketType> TicketTypes { get; set; } = new List<TicketType>();

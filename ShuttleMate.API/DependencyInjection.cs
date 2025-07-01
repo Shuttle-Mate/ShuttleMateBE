@@ -31,7 +31,7 @@ namespace ShuttleMate.API
             services.AddServices();
             services.ConfigCors();
             services.JwtSettingsConfig(configuration);
-            //services.IntSeedData();
+            services.IntSeedData();
         }
         public static void JwtSettingsConfig(this IServiceCollection services, IConfiguration configuration)
         {
@@ -212,7 +212,11 @@ namespace ShuttleMate.API
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<ITicketTypeService, TicketTypeService>();
             services.AddScoped<IHistoryTicketService, HistoryTicketService>();
-
+            services.AddScoped<IShuttleService, ShuttleService>();
+            services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<ISupportRequestService, SupportRequestService>();
+            services.AddScoped<IPromotionService, PromotionService>();
+            services.AddScoped<IAttendanceService, AttendanceService>();
         }
 
         public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)
