@@ -116,20 +116,20 @@ namespace ShuttleMate.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Mua vé (ZALOPAY)
-        /// </summary>
+        ///// <summary>
+        ///// Mua vé (ZALOPAY)
+        ///// </summary>
 
-        [HttpPost("create_payment_zalopay")]
-        public async Task<IActionResult> CreateHistoryTicketZaloPay(CreateZaloPayOrderModel model)
-        {
-            string linkPayOS = await _historyTicketService.CreateZaloPayOrder(model);
+        //[HttpPost("create_payment_zalopay")]
+        //public async Task<IActionResult> CreateHistoryTicketZaloPay(CreateZaloPayOrderModel model)
+        //{
+        //    string linkPayOS = await _historyTicketService.CreateZaloPayOrder(model);
 
-            return Ok(new BaseResponseModel<string>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                data: linkPayOS
-            ));
-        }
+        //    return Ok(new BaseResponseModel<string>(
+        //        statusCode: StatusCodes.Status200OK,
+        //        code: ResponseCodeConstants.SUCCESS,
+        //        data: linkPayOS
+        //    ));
+        //}
     }
 }
