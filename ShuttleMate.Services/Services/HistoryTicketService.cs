@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.HistoryTicketModelView;
 using ShuttleMate.ModelViews.TicketTypeModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
@@ -21,6 +23,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
+using static ShuttleMate.Services.Services.HistoryTicketService;
 
 namespace ShuttleMate.Services.Services
 {
@@ -37,8 +40,10 @@ namespace ShuttleMate.Services.Services
         private string _clientKey; // Thêm biến lưu ClientKey
         private readonly ILogger<HistoryTicketService> _logger;
         private readonly HttpClient _httpClient;
+        private readonly ZaloPaySettings _zaloPaySettings;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public HistoryTicketService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService, ILogger<HistoryTicketService> logger, HttpClient httpClient)
+        public HistoryTicketService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService, ILogger<HistoryTicketService> logger, HttpClient httpClient, IOptions<ZaloPaySettings> zaloPaySettings, IHttpClientFactory httpClientFactory)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -50,8 +55,12 @@ namespace ShuttleMate.Services.Services
             _apiKey = configuration["PayOS:ApiKey"];
             _checksumKey = configuration["PayOS:ChecksumKey"];
             _clientKey = configuration["PayOS:ClientKey"];
+            _zaloPaySettings = zaloPaySettings.Value;
+            _httpClientFactory = httpClientFactory;
+
         }
 
+        #region payment PAYOS
         public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForUserAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null)
         {
             // Lấy userId từ HttpContext
@@ -109,8 +118,8 @@ namespace ShuttleMate.Services.Services
                     RouteName = u.TicketType.Route.RouteName,
                     TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type),
                     OrderCode = u.Transaction.OrderCode,
-                    
-                    
+
+
                 })
                 .ToListAsync();
 
@@ -536,7 +545,163 @@ namespace ShuttleMate.Services.Services
             );
 
         }
+        #endregion
 
+        #region payment ZALOPAY
+        public class ZaloPaySettings
+        {
+            public string PaymentUrl { get; set; }
+            public int AppId { get; set; }
+            public string AppUser { get; set; }
+            public string Key1 { get; set; }
+            public string Key2 { get; set; }
+            public string RedirectUrl { get; set; }
+            public string IpnUrl { get; set; }
+        }
+
+        public async Task<string> CreateZaloPayOrder(CreateZaloPayOrderModel model)
+        {
+            // Kiểm tra các điều kiện nhập liệu
+            if (model.ValidFrom < DateTime.Now)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
+            }
+            if (model.ValidUntil < DateTime.Now)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
+            }
+            if (model.ValidFrom > model.ValidUntil)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Thời gian bắt đầu phải lớn hơn thời gian kết thúc");
+            }
+
+            // Lấy userId từ HttpContext
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+            Guid.TryParse(userId, out Guid cb);
+
+            var ticketType = await _unitOfWork.GetRepository<TicketType>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "User không tồn tại!");
+
+            // Tạo HistoryTicket
+            var historyTicket = new HistoryTicket
+            {
+                Id = Guid.NewGuid(),
+                ValidFrom = model.ValidFrom,
+                ValidUntil = model.ValidUntil,
+                CreatedTime = DateTime.Now,
+                TicketId = model.TicketId,
+                Status = HistoryTicketStatus.UnPaid,
+                PurchaseAt = DateTime.Now,
+                UserId = cb,
+                LastUpdatedTime = DateTime.Now,
+                CreatedBy = userId
+            };
+
+            await _unitOfWork.GetRepository<HistoryTicket>().InsertAsync(historyTicket);
+            await _unitOfWork.SaveAsync();
+
+            // Tạo mã đơn hàng duy nhất từ hàm GenerateUniqueOrderCodeAsync
+            var orderCode = await GenerateUniqueOrderCodeAsync();
+            var appTransId = DateTime.Now.ToString("yyMMdd") + "_" + orderCode.ToString();
+
+            var embeddata = "{\"promotioninfo\":\"\",\"merchantinfo\":\"" + userId + "\"}";
+
+            var items = new[] {
+        new { itemid = ticketType.Id, itemname = ConvertStatusTicketTypeToString(ticketType.Type), itemprice = ticketType.Price, itemquantity = 1 }
+    };
+
+            var param = new Dictionary<string, string>
+            {
+                { "appid", _zaloPaySettings.AppId.ToString() },
+                { "appuser", _zaloPaySettings.AppUser },
+                { "apptime", DateTime.Now.GetTimeStamp().ToString() },
+                { "amount", ticketType.Price.ToString("0") },
+                { "apptransid", appTransId },
+                { "embeddata", embeddata },
+                { "item", JsonConvert.SerializeObject(items) },
+                { "description", "ZaloPay demo" },
+                { "bankcode", "zalopayapp" },
+                { "phone", user.PhoneNumber },
+                { "email", user.Email },
+                { "address", user.Address },
+                { "subappid", "sub123" }
+            };
+
+            // Kiểm tra xem Key1 có null không
+            if (string.IsNullOrEmpty(_zaloPaySettings.Key1))
+            {
+                throw new InvalidOperationException("Key1 không được null hoặc rỗng.");
+            }
+
+            // Tính toán HMAC
+            var itemsJson = JsonConvert.SerializeObject(items);
+            var data = _zaloPaySettings.AppId.ToString() + "|"
+                       + appTransId + "|"
+                       + _zaloPaySettings.AppUser + "|"
+                       + ticketType.Price.ToString("0") + "|"
+                       + DateTime.Now.GetTimeStamp() + "|"
+                       + embeddata + "|"
+                       + itemsJson;
+
+            param["mac"] = ComputeHMACSHA256(data, _zaloPaySettings.Key1);
+
+            // Gửi yêu cầu POST đến ZaloPay
+            using var client = new HttpClient();
+            var result =  client.PostAsync(_zaloPaySettings.PaymentUrl, new FormUrlEncodedContent(param)).Result;
+
+            if (result.IsSuccessStatusCode)
+            {
+                var responseString =  result.Content.ReadAsStringAsync().Result;
+                var response = JsonConvert.DeserializeObject<ZaloPayResponse>(responseString);
+
+                if (response.returnCode == 1)
+                {
+                    var transaction = new Transaction
+                    {
+                        Id = Guid.NewGuid(),
+                        PaymentMethod = PaymentMethodEnum.ZaloPay,
+                        Status = PaymentStatus.Unpaid,
+                        Amount = ticketType.Price,
+                        OrderCode = orderCode,
+                        BuyerAddress = user.Address,
+                        Description = "Thanh toán ZaloPay",
+                        Signature = param["mac"],
+                        BuyerEmail = user.Email,
+                        BuyerPhone = user.PhoneNumber,
+                        BuyerName = user.FullName,
+                        CreatedBy = user.Id.ToString(),
+                        LastUpdatedBy = user.Id.ToString(),
+                        CreatedTime = DateTime.Now,
+                        LastUpdatedTime = DateTime.Now,
+                        HistoryTicketId = historyTicket.Id,
+                    };
+
+                    await _unitOfWork.GetRepository<Transaction>().InsertAsync(transaction);
+                    await _unitOfWork.SaveAsync();
+
+                    return response.orderUrl;
+                }
+                else
+                {
+                    return response.returnMessage;
+                }
+            }
+            else
+            {
+                return result.ReasonPhrase;
+            }
+        }
+
+
+        private string ComputeHMACSHA256(string data, string key)
+        {
+            using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(key)))
+            {
+                var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
+                return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+            }
+        }
+        #endregion
 
     }
 }

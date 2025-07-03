@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Wanvi.Repositories.SeedData;
+using static ShuttleMate.Services.Services.HistoryTicketService;
 
 namespace ShuttleMate.API
 {
@@ -31,6 +32,7 @@ namespace ShuttleMate.API
             services.AddServices();
             services.ConfigCors();
             services.JwtSettingsConfig(configuration);
+            services.AddZaloPayConfig(configuration);
             services.IntSeedData();
         }
         public static void JwtSettingsConfig(this IServiceCollection services, IConfiguration configuration)
@@ -222,6 +224,10 @@ namespace ShuttleMate.API
         public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)
         {
             services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
+        }
+        public static void AddZaloPayConfig(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<ZaloPaySettings>(configuration.GetSection("ZaloPay"));
         }
 
         public static void IntSeedData(this IServiceCollection services)
