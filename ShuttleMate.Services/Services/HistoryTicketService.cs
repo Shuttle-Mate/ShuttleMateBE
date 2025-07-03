@@ -41,7 +41,6 @@ namespace ShuttleMate.Services.Services
         private readonly ILogger<HistoryTicketService> _logger;
         private readonly HttpClient _httpClient;
         private readonly ZaloPaySettings _zaloPaySettings;
-        private readonly IHttpClientFactory _httpClientFactory;
 
         public HistoryTicketService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService, ILogger<HistoryTicketService> logger, HttpClient httpClient, IOptions<ZaloPaySettings> zaloPaySettings, IHttpClientFactory httpClientFactory)
         {
@@ -56,7 +55,6 @@ namespace ShuttleMate.Services.Services
             _checksumKey = configuration["PayOS:ChecksumKey"];
             _clientKey = configuration["PayOS:ClientKey"];
             _zaloPaySettings = zaloPaySettings.Value;
-            _httpClientFactory = httpClientFactory;
 
         }
 
