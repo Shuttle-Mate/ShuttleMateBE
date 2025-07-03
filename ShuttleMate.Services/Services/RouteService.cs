@@ -14,6 +14,7 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.RoleModelViews;
 using ShuttleMate.ModelViews.RouteModelViews;
+using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
 {
@@ -31,10 +32,18 @@ namespace ShuttleMate.Services.Services
         public async Task CreateRoute(RouteModel model)
         {
             Route route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.RouteName == model.RouteName || x.RouteCode == model.RouteCode);
+
+            School school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường học!");
+
             if (route != null)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trùng tên hoặc tuyến này đã tồn tại!!");
             }
+            else if (model.SchoolId == null || model.SchoolId == Guid.Empty)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trường không được để trống!!");
+            }
+
             var newRoute = _mapper.Map<Route>(model);   
             await _unitOfWork.GetRepository<Route>().InsertAsync(newRoute);
             await _unitOfWork.SaveAsync();
