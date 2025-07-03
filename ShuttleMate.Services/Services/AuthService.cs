@@ -10,6 +10,7 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.AuthModelViews;
 using ShuttleMate.ModelViews.RoleModelViews;
+using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
 {
@@ -299,6 +300,111 @@ namespace ShuttleMate.Services.Services
             users.RefeshToken = null;
             await _unitOfWork.GetRepository<User>().UpdateAsync(users);
             await _unitOfWork.SaveAsync();
+        }
+        public async Task CreateUserAdmin(CreateUserAdminModel model)
+        {
+            // Kiểm tra user co tồn tại
+            var user = await _unitOfWork.GetRepository<User>().Entities
+                .FirstOrDefaultAsync(x => x.Email == model.Email && !x.DeletedTime.HasValue);
+
+            // Kiểm tra xác nhận mật khẩu
+            if (user != null)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Tài khoản đã tồn tại!");
+            }
+            if (model.Password != model.ConfirmPassword)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Xác nhận mật khẩu không đúng!");
+            }
+
+            // Sử dụng PasswordHasher để băm mật khẩu
+            var passwordHasher = new FixedSaltPasswordHasher<User>(Options.Create(new PasswordHasherOptions()));
+            User newUser = new User();
+            newUser.Id = Guid.NewGuid();
+            newUser.FullName = model.Name;
+            newUser.Email = model.Email;
+            newUser.UserName = model.Email;
+            newUser.PhoneNumber = model.PhoneNumber;
+            newUser.PasswordHash = passwordHasher.HashPassword(null, model.Password); // Băm mật khẩu tại đây
+            newUser.EmailVerified = true;
+
+            switch (model.RoleName)
+            {
+                case RoleEnum.Student:
+                    var role = await _unitOfWork.GetRepository<Role>().Entities
+                    .FirstOrDefaultAsync(x => x.Name == "Student");
+                    if (role == null)
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò không tồn tại!");
+                    }
+                    // Thêm người dùng  vào cơ sở dữ liệu
+                    await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
+
+                    UserRole userRole = new UserRole()
+                    {
+                        UserId = newUser.Id,
+                        RoleId = role.Id,
+                    };
+                    await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRole);
+                    break;
+                case RoleEnum.Parent:
+                    var roleStudent = await _unitOfWork.GetRepository<Role>().Entities
+                    .FirstOrDefaultAsync(x => x.Name == "Parent");
+                    if (roleStudent == null)
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò không tồn tại!");
+                    }
+                    // Thêm người dùng  vào cơ sở dữ liệu
+                    await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
+
+                    UserRole userRoleStudent = new UserRole()
+                    {
+                        UserId = newUser.Id,
+                        RoleId = roleStudent.Id,
+                    };
+                    await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRoleStudent);
+                    break;
+                case RoleEnum.Operator:
+                    var roleOperator = await _unitOfWork.GetRepository<Role>().Entities
+                    .FirstOrDefaultAsync(x => x.Name == "Operator");
+                    if (roleOperator == null)
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò không tồn tại!");
+                    }
+                    // Thêm người dùng  vào cơ sở dữ liệu
+                    await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
+
+                    UserRole userRoleOperator = new UserRole()
+                    {
+                        UserId = newUser.Id,
+                        RoleId = roleOperator.Id,
+                    };
+                    await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRoleOperator);
+                    break;
+                case RoleEnum.Driver:
+                    var roleDriver = await _unitOfWork.GetRepository<Role>().Entities
+                    .FirstOrDefaultAsync(x => x.Name == "Driver");
+                    if (roleDriver == null)
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò không tồn tại!");
+                    }
+                    // Thêm người dùng  vào cơ sở dữ liệu
+                    await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
+
+                    UserRole userRoleDriver = new UserRole()
+                    {
+                        UserId = newUser.Id,
+                        RoleId = roleDriver.Id,
+                    };
+                    await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRoleDriver);
+                    break;
+                default:
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vui lòng chọn đúng vai trò!!");
+                    
+            }
+
+            await _unitOfWork.SaveAsync();
+
         }
     }
 }

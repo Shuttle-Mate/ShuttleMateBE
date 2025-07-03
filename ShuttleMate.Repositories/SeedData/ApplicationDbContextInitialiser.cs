@@ -83,6 +83,11 @@ namespace Wanvi.Repositories.SeedData
             {
                 Id = Guid.NewGuid(),
                 Name = "Parent",
+            },
+              new Role
+            {
+                Id = Guid.NewGuid(),
+                Name = "Operator",
             }
             ];
             return roles;
