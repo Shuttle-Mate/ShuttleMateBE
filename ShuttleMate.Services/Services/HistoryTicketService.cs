@@ -207,7 +207,7 @@ namespace ShuttleMate.Services.Services
                 _ => "Không xác định"
             };
         }
-        public async Task<string> CreateHistoryTicket(CreateHistoryTicketModel model)
+        public async Task<CreateHistoryTicketResponse> CreateHistoryTicket(CreateHistoryTicketModel model)
         {
             if (model.ValidFrom < DateTime.Now)
             {
@@ -217,7 +217,7 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
             }
-            if (model.ValidFrom < model.ValidUntil)
+            if (model.ValidFrom > model.ValidUntil)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Thời gian bắt đầu phải lớn hơn thời gian kết thúc");
             }
@@ -293,8 +293,15 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.SaveAsync();
             // 4. Gọi API PayOS
-            string checkoutUrl = await CallPayOSApi(payOSRequest);
-            return checkoutUrl;
+            PayOSResponseData checkoutUrl = await CallPayOSApi(payOSRequest);
+            CreateHistoryTicketResponse response = new CreateHistoryTicketResponse
+            {
+                HistoryTicketId = historyTicket.Id,
+                checkoutUrl = checkoutUrl.checkoutUrl,
+                qrCode = checkoutUrl.qrCode,
+                status = ConvertStatusToString(historyTicket.Status),
+            };
+            return response;
         }
         private string CalculateSignature(PayOSPaymentRequest request)
         {
@@ -335,7 +342,7 @@ namespace ShuttleMate.Services.Services
 
             return orderCode;
         }
-        private async Task<string> CallPayOSApi(PayOSPaymentRequest payOSRequest)
+        private async Task<PayOSResponseData> CallPayOSApi(PayOSPaymentRequest payOSRequest)
         {
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -358,7 +365,7 @@ namespace ShuttleMate.Services.Services
 
                     if (payOSResponse != null && payOSResponse.data != null && !string.IsNullOrEmpty(payOSResponse.data.checkoutUrl))
                     {
-                        return payOSResponse.data.checkoutUrl;
+                        return payOSResponse.data;
                     }
                     else
                     {

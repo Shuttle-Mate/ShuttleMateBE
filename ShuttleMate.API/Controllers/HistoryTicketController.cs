@@ -71,12 +71,12 @@ namespace ShuttleMate.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateHistoryTicket(CreateHistoryTicketModel model)
         {
-            string linkPayOS = await _historyTicketService.CreateHistoryTicket(model);
+            CreateHistoryTicketResponse response = await _historyTicketService.CreateHistoryTicket(model);
 
-            return Ok(new BaseResponseModel<string>(
+            return Ok(new BaseResponseModel<CreateHistoryTicketResponse>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: linkPayOS
+                data: response
             ));
         }
         /// <summary>
