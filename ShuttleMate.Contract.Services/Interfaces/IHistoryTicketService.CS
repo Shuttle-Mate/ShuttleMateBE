@@ -15,5 +15,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<IEnumerable<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null);
         Task PayOSCallback(PayOSWebhookRequest request);
         Task<string> CreateZaloPayOrder(CreateZaloPayOrderModel model);
+        Task<string> ResponseHistoryTicketStatus(Guid historyTicketId);
     }
 }

@@ -80,6 +80,21 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
+        /// Lấy status của history ticket
+        /// </summary>
+
+        [HttpGet("response-historyticket-status")]
+        public async Task<IActionResult> ResponseHistoryTicketStatus(Guid historyTicketId)
+        {
+            string response = await _historyTicketService.ResponseHistoryTicketStatus(historyTicketId);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: response
+            ));
+        }
+        /// <summary>
         /// Hàm xử lí sau khi thanh toán(PAYOS)
         /// </summary>
         [AllowAnonymous]

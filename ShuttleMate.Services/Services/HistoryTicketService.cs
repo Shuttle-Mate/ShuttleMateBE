@@ -303,6 +303,15 @@ namespace ShuttleMate.Services.Services
             };
             return response;
         }
+        public async Task<string> ResponseHistoryTicketStatus(Guid historyTicketId)
+        {
+            if (string.IsNullOrWhiteSpace(historyTicketId.ToString()))
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không được để trống Id của History Ticket!");
+            }
+            var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities.FirstOrDefaultAsync(x=>x.Id == historyTicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không tìm thấy History Ticket!"); ;
+            return ConvertStatusToString(historyTicket.Status);
+        }
         private string CalculateSignature(PayOSPaymentRequest request)
         {
             // 1. Đảm bảo amount là số nguyên
@@ -652,11 +661,11 @@ namespace ShuttleMate.Services.Services
 
             // Gửi yêu cầu POST đến ZaloPay
             using var client = new HttpClient();
-            var result =  client.PostAsync(_zaloPaySettings.PaymentUrl, new FormUrlEncodedContent(param)).Result;
+            var result = client.PostAsync(_zaloPaySettings.PaymentUrl, new FormUrlEncodedContent(param)).Result;
 
             if (result.IsSuccessStatusCode)
             {
-                var responseString =  result.Content.ReadAsStringAsync().Result;
+                var responseString = result.Content.ReadAsStringAsync().Result;
                 var response = JsonConvert.DeserializeObject<ZaloPayResponse>(responseString);
 
                 if (response.returnCode == 1)
