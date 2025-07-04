@@ -309,8 +309,9 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không được để trống Id của History Ticket!");
             }
-            var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities.FirstOrDefaultAsync(x=>x.Id == historyTicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không tìm thấy History Ticket!"); ;
-            return ConvertStatusToString(historyTicket.Status);
+            var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities.FirstOrDefaultAsync(x => x.Id == historyTicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy History Ticket!"); ;
+
+            return historyTicket.Status.ToString().ToLower();
         }
         private string CalculateSignature(PayOSPaymentRequest request)
         {
