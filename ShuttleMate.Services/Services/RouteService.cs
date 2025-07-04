@@ -14,6 +14,7 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.RoleModelViews;
 using ShuttleMate.ModelViews.RouteModelViews;
+using ShuttleMate.Services.Services.Infrastructure;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -22,15 +23,20 @@ namespace ShuttleMate.Services.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IHttpContextAccessor _contextAccessor;
 
-        public RouteService(IUnitOfWork unitOfWork, IMapper mapper)
+
+        public RouteService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _contextAccessor = contextAccessor;
         }
 
         public async Task CreateRoute(RouteModel model)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             Route route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.RouteName == model.RouteName || x.RouteCode == model.RouteCode);
 
             School school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường học!");
@@ -44,15 +50,20 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trường không được để trống!!");
             }
 
-            var newRoute = _mapper.Map<Route>(model);   
+            var newRoute = _mapper.Map<Route>(model);
+            newRoute.CreatedBy = userId;
+            newRoute.LastUpdatedBy = userId;
             await _unitOfWork.GetRepository<Route>().InsertAsync(newRoute);
             await _unitOfWork.SaveAsync();
         }
 
         public async Task DeleteRoute(Guid routeId)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == routeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
             route.DeletedTime = DateTime.Now;
+            route.DeletedBy = userId;
             await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
             await _unitOfWork.SaveAsync();
         }
@@ -76,6 +87,8 @@ namespace ShuttleMate.Services.Services
 
         public async Task UpdateRoute(UpdateRouteModel model)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             if (string.IsNullOrWhiteSpace(model.RouteName) && string.IsNullOrWhiteSpace(model.RouteCode))
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Mã tuyến và tên tuyến không được để trống!");
@@ -84,6 +97,8 @@ namespace ShuttleMate.Services.Services
 
             //route = _mapper.Map<Route>(model);
             _mapper.Map(model,route);
+            route.LastUpdatedBy = userId;
+            route.LastUpdatedTime = DateTime.Now;
             await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
             await _unitOfWork.SaveAsync();
         }
