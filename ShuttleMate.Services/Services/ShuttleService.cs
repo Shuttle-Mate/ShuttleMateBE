@@ -13,6 +13,7 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.RouteModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
+using ShuttleMate.Services.Services.Infrastructure;
 
 namespace ShuttleMate.Services.Services
 {
@@ -20,29 +21,38 @@ namespace ShuttleMate.Services.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IHttpContextAccessor _contextAccessor;
 
-        public ShuttleService(IUnitOfWork unitOfWork, IMapper mapper)
+        public ShuttleService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _contextAccessor = contextAccessor;
         }
 
         public async Task CreateShuttle(ShuttleModel model)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             Shuttle shuttle = await _unitOfWork.GetRepository<Shuttle>().Entities.FirstOrDefaultAsync(x => x.LicensePlate == model.LicensePlate);
             if (shuttle != null)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Biển số xe này đã tồn tại!!");
             }
             var newShuttle = _mapper.Map<Shuttle>(model);
+            newShuttle.CreatedBy = userId;
+            newShuttle.LastUpdatedBy = userId;
             await _unitOfWork.GetRepository<Shuttle>().InsertAsync(newShuttle);
             await _unitOfWork.SaveAsync();
         }
 
         public async Task DeleteShuttle(Guid shuttleId)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             var shuttle = await _unitOfWork.GetRepository<Shuttle>().Entities.FirstOrDefaultAsync(x => x.Id == shuttleId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy xe!");
             shuttle.DeletedTime = DateTime.Now;
+            shuttle.DeletedBy = userId;
             await _unitOfWork.GetRepository<Shuttle>().UpdateAsync(shuttle);
             await _unitOfWork.SaveAsync();
         }
@@ -66,6 +76,8 @@ namespace ShuttleMate.Services.Services
 
         public async Task UpdateShuttle(UpdateShuttleModel model)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             if (string.IsNullOrWhiteSpace(model.LicensePlate))
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Biển số xe không được để trống!");
@@ -74,6 +86,8 @@ namespace ShuttleMate.Services.Services
 
             //route = _mapper.Map<Route>(model);
             _mapper.Map(model, shutle);
+            shutle.LastUpdatedBy = userId;
+            shutle.LastUpdatedTime = DateTime.Now;
             await _unitOfWork.GetRepository<Shuttle>().UpdateAsync(shutle);
             await _unitOfWork.SaveAsync();
         }
