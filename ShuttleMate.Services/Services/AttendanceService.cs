@@ -71,6 +71,7 @@ namespace ShuttleMate.Services.Services
             checkout.Status = AttendanceStatusEnum.CheckedOut;
             checkout.CheckOutTime = DateTime.UtcNow;
             checkout.LastUpdatedBy = userId;
+            checkout.LastUpdatedTime = DateTime.UtcNow;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(checkout);
             await _unitOfWork.SaveAsync();
         }
