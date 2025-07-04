@@ -41,6 +41,7 @@ namespace ShuttleMate.Services.Services
             }
             var newShuttle = _mapper.Map<Shuttle>(model);
             newShuttle.CreatedBy = userId;
+            newShuttle.LastUpdatedBy = userId;
             await _unitOfWork.GetRepository<Shuttle>().InsertAsync(newShuttle);
             await _unitOfWork.SaveAsync();
         }
