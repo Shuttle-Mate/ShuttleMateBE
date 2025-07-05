@@ -34,6 +34,8 @@ namespace ShuttleMate.Services.Services
 
         public async Task CheckIn(CheckInModel model)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             Attendance attendance = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Status == AttendanceStatusEnum.CheckedIn);
             if (attendance != null)
             {
@@ -43,6 +45,8 @@ namespace ShuttleMate.Services.Services
             var checkin = _mapper.Map<Attendance>(model);
             checkin.CheckInTime = DateTime.UtcNow;
             checkin.Status = AttendanceStatusEnum.CheckedIn;
+            checkin.CreatedBy = userId;
+            checkin.LastUpdatedBy = userId;
             //checkin.CheckOutTime = null;
             await _unitOfWork.GetRepository<Attendance>().InsertAsync(checkin);
             await _unitOfWork.SaveAsync();
@@ -50,6 +54,8 @@ namespace ShuttleMate.Services.Services
 
         public async Task CheckOut(CheckOutModel model)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             if (string.IsNullOrWhiteSpace(model.CheckOutLocation))
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Địa điểm checkout không được để trống!");
@@ -64,14 +70,19 @@ namespace ShuttleMate.Services.Services
             _mapper.Map(model, checkout);
             checkout.Status = AttendanceStatusEnum.CheckedOut;
             checkout.CheckOutTime = DateTime.UtcNow;
+            checkout.LastUpdatedBy = userId;
+            checkout.LastUpdatedTime = DateTime.UtcNow;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(checkout);
             await _unitOfWork.SaveAsync();
         }
 
         public async Task DeleteAttendance(Guid attendanceId)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             var attendance = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Id == attendanceId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy thông tin điểm danh!");
             attendance.DeletedTime = DateTime.Now;
+            attendance.DeletedBy = userId;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(attendance);
             await _unitOfWork.SaveAsync();
         }
