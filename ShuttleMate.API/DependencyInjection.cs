@@ -219,6 +219,7 @@ namespace ShuttleMate.API
             services.AddScoped<ISupportRequestService, SupportRequestService>();
             services.AddScoped<IPromotionService, PromotionService>();
             services.AddScoped<IAttendanceService, AttendanceService>();
+            services.AddScoped<INotiRecipientService, NotiRecipientService>();
         }
 
         public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)

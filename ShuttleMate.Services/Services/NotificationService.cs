@@ -13,6 +13,7 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.NotificationModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
+using ShuttleMate.Services.Services.Infrastructure;
 
 namespace ShuttleMate.Services.Services
 {
@@ -20,30 +21,40 @@ namespace ShuttleMate.Services.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IHttpContextAccessor _contextAccessor;
 
-        public NotificationService(IUnitOfWork unitOfWork, IMapper mapper)
+
+        public NotificationService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _contextAccessor = contextAccessor;
         }
 
 
         public async Task CreateNotification(NotiModel model)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             //Notification noti = await _unitOfWork.GetRepository<Notification>().Entities.FirstOrDefaultAsync(x => x.Title == model.Title);
             //if (noti != null)
             //{
             //    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Thông báo này đã tồn tại!!");
             //}
             var newNoti = _mapper.Map<Notification>(model);
+            newNoti.CreatedBy = userId;
+            newNoti.LastUpdatedBy = userId;
             await _unitOfWork.GetRepository<Notification>().InsertAsync(newNoti);
             await _unitOfWork.SaveAsync();
         }
 
         public async Task DeleteNoti(Guid notiId)
         {
-            var noti = await _unitOfWork.GetRepository<Notification>().Entities.FirstOrDefaultAsync(x => x.Id == notiId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy xe!");
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            var noti = await _unitOfWork.GetRepository<Notification>().Entities.FirstOrDefaultAsync(x => x.Id == notiId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy thông báo!");
             noti.DeletedTime = DateTime.Now;
+            noti.DeletedBy = userId;
             await _unitOfWork.GetRepository<Notification>().UpdateAsync(noti);
             await _unitOfWork.SaveAsync();
         }
