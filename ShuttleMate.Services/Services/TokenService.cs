@@ -94,7 +94,7 @@ namespace ShuttleMate.Services.Services
                     FullName = user.FullName,
                     PhoneNumber = user.PhoneNumber,
                     CreatedTime = user.CreatedTime,
-                    Role = roleName,
+                    Role = roleName.ToUpper(),
                     ProfileImageUrl = user.ProfileImageUrl,
                     
 
