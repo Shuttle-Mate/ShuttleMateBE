@@ -31,7 +31,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        ///Rolename: 0 là Student, 1 là Parent, 2 là Operator, 3 là Driver
+        ///Rolename: 0 là Student, 1 là Parent, 2 là Operator, 3 là Driver, 4 là School
         /// </summary>
         [HttpPost("create-user-admin")]
         public async Task<IActionResult> CreateUserAdmin(CreateUserAdminModel model)

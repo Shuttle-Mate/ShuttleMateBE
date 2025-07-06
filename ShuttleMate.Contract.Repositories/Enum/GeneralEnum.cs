@@ -153,7 +153,8 @@ namespace ShuttleMate.Contract.Repositories.Enum
             Student ,
             Parent ,
             Operator,
-            Driver 
+            Driver,
+            School
         }
     }
 }

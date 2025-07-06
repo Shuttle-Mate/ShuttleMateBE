@@ -335,7 +335,7 @@ namespace ShuttleMate.Services.Services
                     .FirstOrDefaultAsync(x => x.Name == "Student");
                     if (role == null)
                     {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò không tồn tại!");
+                        throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Vai trò không tồn tại!");
                     }
                     // Thêm người dùng  vào cơ sở dữ liệu
                     await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
@@ -352,7 +352,7 @@ namespace ShuttleMate.Services.Services
                     .FirstOrDefaultAsync(x => x.Name == "Parent");
                     if (roleStudent == null)
                     {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò không tồn tại!");
+                        throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Vai trò không tồn tại!");
                     }
                     // Thêm người dùng  vào cơ sở dữ liệu
                     await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
@@ -369,7 +369,7 @@ namespace ShuttleMate.Services.Services
                     .FirstOrDefaultAsync(x => x.Name == "Operator");
                     if (roleOperator == null)
                     {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò không tồn tại!");
+                        throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Vai trò không tồn tại!");
                     }
                     // Thêm người dùng  vào cơ sở dữ liệu
                     await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
@@ -386,7 +386,7 @@ namespace ShuttleMate.Services.Services
                     .FirstOrDefaultAsync(x => x.Name == "Driver");
                     if (roleDriver == null)
                     {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò không tồn tại!");
+                        throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Vai trò không tồn tại!");
                     }
                     // Thêm người dùng  vào cơ sở dữ liệu
                     await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
@@ -397,6 +397,23 @@ namespace ShuttleMate.Services.Services
                         RoleId = roleDriver.Id,
                     };
                     await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRoleDriver);
+                    break;
+                case RoleEnum.School:
+                    var roleSchool = await _unitOfWork.GetRepository<Role>().Entities
+                    .FirstOrDefaultAsync(x => x.Name == "School");
+                    if (roleSchool == null)
+                    {
+                        throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Vai trò không tồn tại!");
+                    }
+                    // Thêm người dùng  vào cơ sở dữ liệu
+                    await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
+
+                    UserRole userRoleSchool = new UserRole()
+                    {
+                        UserId = newUser.Id,
+                        RoleId = roleSchool.Id,
+                    };
+                    await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRoleSchool);
                     break;
                 default:
                     throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vui lòng chọn đúng vai trò!!");
