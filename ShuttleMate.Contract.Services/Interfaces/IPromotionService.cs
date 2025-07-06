@@ -10,5 +10,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task CreateAsync(CreatePromotionModel model);
         Task UpdateAsync(Guid id, UpdatePromotionModel model);
         Task DeleteAsync(Guid id);
+        Task SavePromotionAsync(Guid id);
     }
 }

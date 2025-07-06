@@ -23,7 +23,7 @@ namespace ShuttleMate.Services.MapperProfile
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
                 .ReverseMap();
 
-            CreateMap<Promotion, CreatePromotionModel>()
+            CreateMap<Promotion, CreateDiscountPricePromotionModel>()
                 .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
                 .ForMember(dest => dest.DiscountPrice, opt => opt.MapFrom(src => src.DiscountPrice))

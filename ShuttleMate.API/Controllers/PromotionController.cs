@@ -59,7 +59,7 @@ namespace ShuttleMate.API.Controllers
         /// </summary>
         /// <param name="model">Thông tin khuyến mãi cần tạo</param>
         [HttpPost]
-        public async Task<IActionResult> CreatePromotion(CreatePromotionModel model)
+        public async Task<IActionResult> CreatePromotion(CreateDiscountPricePromotionModel model)
         {
             await _promotionService.CreateAsync(model);
             return Ok(new BaseResponseModel<string?>(
