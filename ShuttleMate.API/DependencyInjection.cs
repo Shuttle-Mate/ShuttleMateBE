@@ -220,6 +220,7 @@ namespace ShuttleMate.API
             services.AddScoped<ISupportRequestService, SupportRequestService>();
             services.AddScoped<IPromotionService, PromotionService>();
             services.AddScoped<IAttendanceService, AttendanceService>();
+            services.AddScoped<IRecordService, RecordService>();
             services.AddScoped<INotiRecipientService, NotiRecipientService>();
             services.AddScoped<IStopEstimateService, StopEstimateService>();
         }
