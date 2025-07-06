@@ -16,7 +16,7 @@ namespace ShuttleMate.Contract.Repositories.Enum
         public enum TripStatusEnum
         {
             Scheduled, //Scheduled but not start yet
-            InProgress, 
+            InProgress,
             Completed,
             Cancelled//Hủy
         }
@@ -39,11 +39,11 @@ namespace ShuttleMate.Contract.Repositories.Enum
             MissedPickup,             // Xe không đến đón
             UnsafeDriving,            // Lái xe ẩu, vượt tốc độ
             VehicleCleanliness,       // Vệ sinh xe không đảm bảo
-            OvercrowdedBus  ,           // Xe quá tải
+            OvercrowdedBus,           // Xe quá tải
             DriverBehavior,           // Thái độ tài xế không tốt
 
             //Ứng dụng & kỹ thuật
-            AppCrash    ,                // Ứng dụng bị treo/crash
+            AppCrash,                // Ứng dụng bị treo/crash
             GPSInaccuracy,           // Vị trí xe không chính xác
             NotificationIssue,       // Không nhận được thông báo
             UIUXIssue,               // Giao diện khó dùng
@@ -147,6 +147,14 @@ namespace ShuttleMate.Contract.Repositories.Enum
             Paid = 1,
             Cancelled = 2,
             Used = 3,
+        }
+        public enum RoleEnum
+        {
+            Student ,
+            Parent ,
+            Operator,
+            Driver,
+            School
         }
     }
 }

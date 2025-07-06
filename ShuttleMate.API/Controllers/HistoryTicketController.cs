@@ -65,20 +65,34 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Mua vé (PAYOS)
+        /// Lấy status của history ticket
         /// </summary>
-
-        [HttpPost]
-        public async Task<IActionResult> CreateHistoryTicket(CreateHistoryTicketModel model)
+        [HttpGet("response-historyticket-status")]
+        public async Task<IActionResult> ResponseHistoryTicketStatus(Guid historyTicketId)
         {
-            string linkPayOS = await _historyTicketService.CreateHistoryTicket(model);
+            string response = await _historyTicketService.ResponseHistoryTicketStatus(historyTicketId);
 
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: linkPayOS
+                data: response
             ));
         }
+        /// <summary>
+        /// Mua vé (PAYOS)
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> CreateHistoryTicket(CreateHistoryTicketModel model)
+        {
+            CreateHistoryTicketResponse response = await _historyTicketService.CreateHistoryTicket(model);
+
+            return Ok(new BaseResponseModel<CreateHistoryTicketResponse>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: response
+            ));
+        }
+
         /// <summary>
         /// Hàm xử lí sau khi thanh toán(PAYOS)
         /// </summary>

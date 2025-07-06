@@ -7,5 +7,6 @@
         public const string Forbidden = "Forbidden";
         public const string NotFound = "Not Found";
         public const string ServerError = "Internal Server Error";
+
     }
 }

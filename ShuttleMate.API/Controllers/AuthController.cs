@@ -30,6 +30,19 @@ namespace ShuttleMate.API.Controllers
                 data: "Đăng kí thành công!"
             ));
         }
+        /// <summary>
+        ///Rolename: 0 là Student, 1 là Parent, 2 là Operator, 3 là Driver, 4 là School
+        /// </summary>
+        [HttpPost("create-user-admin")]
+        public async Task<IActionResult> CreateUserAdmin(CreateUserAdminModel model)
+        {
+            await _authService.CreateUserAdmin(model);
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Đăng kí thành công!"
+            ));
+        }
 
         [HttpPatch("confirm-otp-email")]
         public async Task<IActionResult> ConfirmOTPEmailVerification(ConfirmEmailModel model)

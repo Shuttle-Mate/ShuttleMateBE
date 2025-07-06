@@ -197,44 +197,39 @@ namespace ShuttleMate.Services.Services
             User user = await _unitOfWork.GetRepository<User>()
          .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Tài khoản không tồn tại!");
 
-            if (model.FullName.Length < 8)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Tên phải chứa ít nhất 8 kí tự!!");
-            }
+            //if (model.FullName.Length < 8)
+            //{
+            //    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Tên phải chứa ít nhất 8 kí tự!!");
+            //}
 
-            if (string.IsNullOrEmpty(model.Email) || !model.Email.Contains("@"))
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Email không hợp lệ!!");
-            }
+            //if (string.IsNullOrEmpty(model.PhoneNumber) || model.PhoneNumber.Length < 10)
+            //{
+            //    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Số điện thoại phải có ít nhất 10 chữ số!!");
+            //}
 
-            if (string.IsNullOrEmpty(model.PhoneNumber) || model.PhoneNumber.Length < 10)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Số điện thoại phải có ít nhất 10 chữ số!!");
-            }
+            //if (model.Gender == null)
+            //{
+            //    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Giới tính không được để trống!!");
+            //}
 
-            if (model.Gender == null)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Giới tính không được để trống!!");
-            }
-
-            if (string.IsNullOrEmpty(model.Address))
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Địa chỉ không được để trống!!");
-            }
+            //if (string.IsNullOrEmpty(model.Address))
+            //{
+            //    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Địa chỉ không được để trống!!");
+            //}
 
             user.FullName = model.FullName;
-            user.Email = model.Email;
             user.PhoneNumber = model.PhoneNumber;
             user.Gender = model.Gender;
             user.Address = model.Address;
             user.DateOfBirth = model.DateOfBirth;
+            user.ProfileImageUrl =model.ProfileImageUrl;
 
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
         }
         public async Task<string> BlockUserForAdmin(BlockUserForAdminModel model)
         {
-            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.UserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không tìm thấy người dùng!");
+            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.UserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng!");
             user.Violate = true;
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
@@ -244,7 +239,7 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<string> UnBlockUserForAdmin(UnBlockUserForAdminModel model)
         {
-            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.UserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không tìm thấy người dùng!");
+            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.UserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng!");
             user.Violate = false;
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
