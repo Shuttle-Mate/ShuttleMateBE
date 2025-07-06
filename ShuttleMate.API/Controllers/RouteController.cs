@@ -26,7 +26,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Tạo tuyến thành công!"
+                message: "Tạo tuyến thành công!"
             ));
         }
         [HttpGet]
@@ -56,7 +56,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Cập nhật tuyến thành công"
+                message: "Cập nhật tuyến thành công"
             ));
         }
         [HttpDelete]
@@ -66,7 +66,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Xóa tuyến thành công"
+                message: "Xóa tuyến thành công"
             ));
         }
     }

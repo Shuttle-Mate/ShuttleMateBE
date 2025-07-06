@@ -2,7 +2,9 @@
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.AuthModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
+using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
 {
@@ -11,7 +13,19 @@ namespace ShuttleMate.API.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
-
+        /// <summary>
+        ///Rolename: 0 là Student, 1 là Parent, 2 là Operator, 3 là Driver, 4 là School
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> CreateUserAdmin(CreateUserAdminModel model)
+        {
+            await _userService.CreateUserAdmin(model);
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "Đăng kí thành công!"
+            ));
+        }
         public UserController(IUserService userService)
         {
             _userService = userService;
@@ -61,7 +75,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Gán vai trò cho người dùng thành công!"
+                message: "Gán vai trò cho người dùng thành công!"
             ));
         }
         [HttpPost("assign-parent")]
@@ -72,7 +86,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Gán vai trò cho phụ huynh thành công!"
+                message: "Gán vai trò cho phụ huynh thành công!"
             ));
         }
         [HttpDelete("remove-role")]
@@ -83,7 +97,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Xóa vai trò cho người dùng thành công!"
+                message: "Xóa vai trò cho người dùng thành công!"
             ));
         }
         [HttpGet("Get-Infor")]
@@ -103,7 +117,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                  statusCode: StatusCodes.Status200OK,
                  code: ResponseCodeConstants.SUCCESS,
-                 data: "Cập nhật tài khoản thành công!"
+                 message: "Cập nhật tài khoản thành công!"
              ));
         }
     }

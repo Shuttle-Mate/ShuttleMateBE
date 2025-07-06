@@ -27,22 +27,10 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Đăng kí thành công!"
+                message: "Đăng kí thành công!"
             ));
         }
-        /// <summary>
-        ///Rolename: 0 là Student, 1 là Parent, 2 là Operator, 3 là Driver, 4 là School
-        /// </summary>
-        [HttpPost("create-user-admin")]
-        public async Task<IActionResult> CreateUserAdmin(CreateUserAdminModel model)
-        {
-            await _authService.CreateUserAdmin(model);
-            return Ok(new BaseResponseModel<string>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                data: "Đăng kí thành công!"
-            ));
-        }
+        
 
         [HttpPatch("confirm-otp-email")]
         public async Task<IActionResult> ConfirmOTPEmailVerification(ConfirmEmailModel model)
@@ -62,7 +50,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Gửi lại email thành công!"
+                message: "Gửi lại email thành công!"
             ));
         }
 
@@ -96,7 +84,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Đã gửi email xác nhận yêu cầu thay đổi mật khẩu."
+                message: "Đã gửi email xác nhận yêu cầu thay đổi mật khẩu."
             ));
         }
 
@@ -118,7 +106,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Đã đặt lại mật khẩu thành công!"
+                message: "Đã đặt lại mật khẩu thành công!"
             ));
         }
 
@@ -129,7 +117,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Đăng xuất thành công!"
+                message: "Đăng xuất thành công!"
             ));
         }
 
