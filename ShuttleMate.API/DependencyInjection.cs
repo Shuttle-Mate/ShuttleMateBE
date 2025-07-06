@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Wanvi.Repositories.SeedData;
+using static ShuttleMate.Services.Services.HistoryTicketService;
 
 namespace ShuttleMate.API
 {
@@ -31,6 +32,8 @@ namespace ShuttleMate.API
             services.AddServices();
             services.ConfigCors();
             services.JwtSettingsConfig(configuration);
+            services.AddZaloPayConfig(configuration);
+            services.AddVietMapConfig(configuration);
             services.IntSeedData();
         }
         public static void JwtSettingsConfig(this IServiceCollection services, IConfiguration configuration)
@@ -207,6 +210,7 @@ namespace ShuttleMate.API
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IRouteService, RouteService>();
+            services.AddScoped<IStopService, StopService>();
             services.AddScoped<IDepartureTimeService, DepartureTimeService>();
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<ITicketTypeService, TicketTypeService>();
@@ -217,11 +221,22 @@ namespace ShuttleMate.API
             services.AddScoped<IPromotionService, PromotionService>();
             services.AddScoped<IAttendanceService, AttendanceService>();
             services.AddScoped<IRecordService, RecordService>();
+            services.AddScoped<INotiRecipientService, NotiRecipientService>();
+            services.AddScoped<IStopEstimateService, StopEstimateService>();
         }
 
         public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)
         {
             services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
+        }
+        public static void AddZaloPayConfig(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<ZaloPaySettings>(configuration.GetSection("ZaloPay"));
+        }
+
+        public static void AddVietMapConfig(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<VietMapSettings>(configuration.GetSection("VietMap"));
         }
 
         public static void IntSeedData(this IServiceCollection services)

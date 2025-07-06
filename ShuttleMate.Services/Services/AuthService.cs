@@ -57,22 +57,13 @@ namespace ShuttleMate.Services.Services
                 .FirstOrDefaultAsync(x => x.Email == model.Email && !x.DeletedTime.HasValue);
 
             // Kiểm tra xác nhận mật khẩu
-            if (user != null )
+            if (user != null)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Tài khoản đã tồn tại!");
             }
             if (model.Password != model.ConfirmPassword)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Xác nhận mật khẩu không đúng!");
-            }
-
-            // Xác định vai trò
-            var role = await _unitOfWork.GetRepository<Role>().Entities
-                .FirstOrDefaultAsync(x => x.Name == "Visitor");
-
-            if (role == null)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò không tồn tại!");
             }
 
             // Sử dụng PasswordHasher để băm mật khẩu
@@ -82,26 +73,55 @@ namespace ShuttleMate.Services.Services
             newUser.FullName = model.Name;
             newUser.Email = model.Email;
             newUser.UserName = model.Email;
-            newUser.Address = model.PlaceOfBirth;
-            newUser.DateOfBirth = model.DateOfBirth;
-            newUser.Gender = model.Gender;
             newUser.PhoneNumber = model.PhoneNumber;
             newUser.PasswordHash = passwordHasher.HashPassword(null, model.Password); // Băm mật khẩu tại đây
             newUser.EmailVerified = false;
 
-            // Thêm người dùng  vào cơ sở dữ liệu
-            await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
 
-            UserRole userRole = new UserRole()
+            // Xác định vai trò
+            if (model.RoleName == true)
             {
-                UserId = newUser.Id,
-                RoleId = role.Id,
-            };
+                var role = await _unitOfWork.GetRepository<Role>().Entities
+                .FirstOrDefaultAsync(x => x.Name == "Student");
+                if (role == null)
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò không tồn tại!");
+                }
+                // Thêm người dùng  vào cơ sở dữ liệu
+                await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
+
+                UserRole userRole = new UserRole()
+                {
+                    UserId = newUser.Id,
+                    RoleId = role.Id,
+                };
+                await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRole);
+
+            }
+            else
+            {
+                var role = await _unitOfWork.GetRepository<Role>().Entities
+                .FirstOrDefaultAsync(x => x.Name == "Parent");
+                if (role == null)
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò không tồn tại!");
+                }
+                // Thêm người dùng  vào cơ sở dữ liệu
+                await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
+
+                UserRole userRole = new UserRole()
+                {
+                    UserId = newUser.Id,
+                    RoleId = role.Id,
+                };
+                await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRole);
+
+            }
+
             string OTP = GenerateOtp();
             newUser.EmailCode = int.Parse(OTP);
             newUser.CodeGeneratedTime = DateTime.Now;
             await _emailService.SendEmailAsync(model.Email, "Xác nhận tài khoản", $"Vui lòng xác nhận tài khoản của bạn, OTP của bạn là: <div class='otp'>{OTP}</div>");
-            await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRole);
 
             await _unitOfWork.SaveAsync();
 
@@ -146,7 +166,7 @@ namespace ShuttleMate.Services.Services
         public async Task<LoginResponse> LoginAsync(LoginRequestModel request)
         {
             var user = _unitOfWork.GetRepository<User>().Entities
-                .Where(u => !u.DeletedTime.HasValue && u.UserName == request.Username)
+                .Where(u => !u.DeletedTime.HasValue && u.Email == request.Email)
                 .FirstOrDefault()
                 ?? throw new ErrorException(StatusCodes.Status401Unauthorized, ResponseCodeConstants.BADREQUEST, "Không tìm thấy tài khoản");
             if (user.EmailVerified == false)
@@ -267,7 +287,7 @@ namespace ShuttleMate.Services.Services
         private async Task<User> CheckRefreshToken(string refreshToken)
         {
 
-            User users = await  _unitOfWork.GetRepository<User>().Entities
+            User users = await _unitOfWork.GetRepository<User>().Entities
                 .FirstOrDefaultAsync(x => x.RefeshToken == refreshToken)
                 ?? throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không tìm thấy tài khoản");
             return users;
@@ -275,7 +295,7 @@ namespace ShuttleMate.Services.Services
         public async Task LogoutAsync(RefreshTokenModel model)
         {
             // Tải toàn bộ user (hoặc tối ưu hơn nếu bạn có userId từ JWT)
-            var users = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x=>x.RefeshToken == model.RefreshToken && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Token không hợp lệ");
+            var users = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.RefeshToken == model.RefreshToken && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Token không hợp lệ");
             users.RefeshToken = null;
             await _unitOfWork.GetRepository<User>().UpdateAsync(users);
             await _unitOfWork.SaveAsync();

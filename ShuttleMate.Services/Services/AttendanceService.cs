@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
@@ -13,6 +14,7 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.AttendanceModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
+using ShuttleMate.Services.Services.Infrastructure;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -21,15 +23,19 @@ namespace ShuttleMate.Services.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IHttpContextAccessor _contextAccessor;
 
-        public AttendanceService(IUnitOfWork unitOfWork, IMapper mapper)
+        public AttendanceService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _contextAccessor = contextAccessor;
         }
 
         public async Task CheckIn(CheckInModel model)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             Attendance attendance = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Status == AttendanceStatusEnum.CheckedIn);
             if (attendance != null)
             {
@@ -39,6 +45,8 @@ namespace ShuttleMate.Services.Services
             var checkin = _mapper.Map<Attendance>(model);
             checkin.CheckInTime = DateTime.UtcNow;
             checkin.Status = AttendanceStatusEnum.CheckedIn;
+            checkin.CreatedBy = userId;
+            checkin.LastUpdatedBy = userId;
             //checkin.CheckOutTime = null;
             await _unitOfWork.GetRepository<Attendance>().InsertAsync(checkin);
             await _unitOfWork.SaveAsync();
@@ -46,6 +54,8 @@ namespace ShuttleMate.Services.Services
 
         public async Task CheckOut(CheckOutModel model)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             if (string.IsNullOrWhiteSpace(model.CheckOutLocation))
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Địa điểm checkout không được để trống!");
@@ -60,14 +70,19 @@ namespace ShuttleMate.Services.Services
             _mapper.Map(model, checkout);
             checkout.Status = AttendanceStatusEnum.CheckedOut;
             checkout.CheckOutTime = DateTime.UtcNow;
+            checkout.LastUpdatedBy = userId;
+            checkout.LastUpdatedTime = DateTime.UtcNow;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(checkout);
             await _unitOfWork.SaveAsync();
         }
 
         public async Task DeleteAttendance(Guid attendanceId)
         {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
             var attendance = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Id == attendanceId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy thông tin điểm danh!");
             attendance.DeletedTime = DateTime.Now;
+            attendance.DeletedBy = userId;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(attendance);
             await _unitOfWork.SaveAsync();
         }
@@ -88,6 +103,44 @@ namespace ShuttleMate.Services.Services
 
             return _mapper.Map<ResponseAttendanceModel>(attendance);
         }
+
+        public async Task<List<ResponseAttendanceModel>> GetMyAttendance(DateTime? fromDate, DateTime? toDate)
+        {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            //Guid.TryParse(userId, out Guid cb);
+
+            if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out Guid ui))
+            {
+                throw new ErrorException(StatusCodes.Status401Unauthorized, ErrorCode.Unauthorized, "Người dùng chưa đăng nhập hoặc không hợp lệ");
+            }
+
+            var attendanceQuery = _unitOfWork.GetRepository<Attendance>().Entities
+                .Include(a => a.HistoryTicket) // Include HistoryTickets
+                .Where(a => !a.DeletedTime.HasValue && a.HistoryTicket.UserId.ToString() == userId);
+
+            if (fromDate.HasValue)
+            {
+                attendanceQuery = attendanceQuery.Where(a => a.CheckInTime >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                attendanceQuery = attendanceQuery.Where(a => a.CheckInTime <= toDate.Value);
+            }
+
+            var attendances = await attendanceQuery
+                .OrderByDescending(a => a.CheckInTime)
+                .ToListAsync();
+
+            if (!attendances.Any())
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy dữ liệu điểm danh nào.");
+            }
+
+            return _mapper.Map<List<ResponseAttendanceModel>>(attendances);
+        }
+
 
         //public Task UpdateAttendance(UpdateAttendanceModel model)
         //{
