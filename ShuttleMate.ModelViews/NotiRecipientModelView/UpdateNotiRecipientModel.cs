@@ -9,9 +9,7 @@ namespace ShuttleMate.ModelViews.NotiRecipientModelView
 {
     public class UpdateNotiRecipientModel
     {
-        public Guid RecipientId { get; set; }
-        public Guid NotificationId { get; set; }
-        public string RecipientType { get; set; }
+        public Guid Id { get; set; }
         public NotificationStatusEnum Status { get; set; }
     }
 }
