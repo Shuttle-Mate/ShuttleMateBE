@@ -1,4 +1,5 @@
-﻿using ShuttleMate.ModelViews.UserModelViews;
+﻿using ShuttleMate.ModelViews.AuthModelViews;
+using ShuttleMate.ModelViews.UserModelViews;
 
 namespace ShuttleMate.Contract.Services.Interfaces
 {
@@ -12,5 +13,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task UpdateProfiel(UpdateProfileModel model);
         Task<IEnumerable<AdminResponseUserModel>> GetAllAsync(Guid? roleId = null, string? name = null, bool? gender= null);
         Task AssignParent(AssignParentModel model);
+        Task CreateUserAdmin(CreateUserAdminModel model);
     }
 }
