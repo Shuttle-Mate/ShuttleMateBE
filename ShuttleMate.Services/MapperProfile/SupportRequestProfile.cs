@@ -25,16 +25,12 @@ namespace ShuttleMate.Services.MapperProfile
         {
             return status switch
             {
-                SupportRequestStatusEnum.Created => "Mới tạo",
-                SupportRequestStatusEnum.Open => "Đã mở để xử lý",
-                SupportRequestStatusEnum.InProgress => "Đang xử lý",
-                SupportRequestStatusEnum.WaitingForCustomer => "Đang chờ người dùng bổ sung",
-                SupportRequestStatusEnum.WaitingForSupport => "Đang chờ phản hồi bộ phận khác",
-                SupportRequestStatusEnum.Escalated => "Đã chuyển cấp xử lý",
-                SupportRequestStatusEnum.Resolved => "Đã giải quyết",
-                SupportRequestStatusEnum.Closed => "Đã đóng",
-                SupportRequestStatusEnum.Cancelled => "Đã hủy",
-                _ => "Không xác định"
+                SupportRequestStatusEnum.CREATED => "CREATED",
+                SupportRequestStatusEnum.IN_PROGRESS => "IN_PROGRESS",
+                SupportRequestStatusEnum.ESCALATED => "ESCALATED",
+                SupportRequestStatusEnum.RESOLVED => "RESOLVED",
+                SupportRequestStatusEnum.CANCELLED => "CANCELLED",
+                _ => "UNKNOWN"
             };
         }
 
@@ -42,23 +38,22 @@ namespace ShuttleMate.Services.MapperProfile
         {
             return category switch
             {
-                SupportRequestCategoryEnum.ShuttleDelay => "Xe đưa đón đến trễ",
-                SupportRequestCategoryEnum.ShuttleNoShow => "Xe không đến đón",
-                SupportRequestCategoryEnum.UnsafeDriving => "Tài xế lái ẩu",
-                SupportRequestCategoryEnum.PaymentIssue => "Sự cố thanh toán",
-                SupportRequestCategoryEnum.TicketNotReceived => "Không nhận được vé",
-                SupportRequestCategoryEnum.AppCrash => "Ứng dụng bị lỗi hoặc treo",
-                SupportRequestCategoryEnum.GPSNotAccurate => "Vị trí xe không chính xác",
-                SupportRequestCategoryEnum.NotificationMissing => "Không nhận được thông báo",
-                SupportRequestCategoryEnum.AccountProblem => "Vấn đề tài khoản",
-                SupportRequestCategoryEnum.FeatureRequest => "Yêu cầu tính năng mới",
-                SupportRequestCategoryEnum.ServiceComplaint => "Phàn nàn dịch vụ",
-                SupportRequestCategoryEnum.DriverComplaint => "Phản ánh tài xế",
-                SupportRequestCategoryEnum.GeneralInquiry => "Câu hỏi chung",
-                SupportRequestCategoryEnum.Other => "Khác",
-                _ => "Không xác định"
+                SupportRequestCategoryEnum.SHUTTLE_DELAY => "SHUTTLE_DELAY",
+                SupportRequestCategoryEnum.SHUTTLE_NO_SHOW => "SHUTTLE_NO_SHOW",
+                SupportRequestCategoryEnum.UNSAFE_DRIVING => "UNSAFE_DRIVING",
+                SupportRequestCategoryEnum.PAYMENT_ISSUE => "PAYMENT_ISSUE",
+                SupportRequestCategoryEnum.TICKET_NOT_RECEIVED => "TICKET_NOT_RECEIVED",
+                SupportRequestCategoryEnum.APP_CRASH => "APP_CRASH",
+                SupportRequestCategoryEnum.GPS_NOT_ACCURATE => "GPS_NOT_ACCURATE",
+                SupportRequestCategoryEnum.NOTIFICATION_MISSING => "NOTIFICATION_MISSING",
+                SupportRequestCategoryEnum.ACCOUNT_PROBLEM => "ACCOUNT_PROBLEM",
+                SupportRequestCategoryEnum.FEATURE_REQUEST => "FEATURE_REQUEST",
+                SupportRequestCategoryEnum.SERVICE_COMPLAINT => "SERVICE_COMPLAINT",
+                SupportRequestCategoryEnum.DRIVER_COMPLAINT => "DRIVER_COMPLAINT",
+                SupportRequestCategoryEnum.GENERAL_INQUIRY => "GENERAL_INQUIRY",
+                SupportRequestCategoryEnum.OTHER => "OTHER",
+                _ => "UNKNOWN"
             };
         }
-
     }
 }
