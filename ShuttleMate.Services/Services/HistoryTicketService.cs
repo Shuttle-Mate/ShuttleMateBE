@@ -111,10 +111,10 @@ namespace ShuttleMate.Services.Services
                     ValidFrom = u.ValidFrom,
                     TicketId = u.TicketId,
                     UserId = u.UserId,
-                    Status = ConvertStatusToString(u.Status),
+                    Status = u.Status.ToString().ToUpper(),
                     Price = u.TicketType.Price,
                     RouteName = u.TicketType.Route.RouteName,
-                    TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type),
+                    TicketType = u.TicketType.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
 
 
@@ -173,10 +173,10 @@ namespace ShuttleMate.Services.Services
                     ValidFrom = u.ValidFrom,
                     TicketId = u.TicketId,
                     UserId = u.UserId,
-                    Status = ConvertStatusToString(u.Status),
+                    Status = u.Status.ToString().ToUpper(),
                     Price = u.TicketType.Price,
                     RouteName = u.TicketType.Route.RouteName,
-                    TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type),
+                    TicketType = u.TicketType.Type.ToString().ToUpper(),
                     FullNameOfUser = u.User.FullName,
                     OrderCode = u.Transaction.OrderCode,
                 })
@@ -311,7 +311,7 @@ namespace ShuttleMate.Services.Services
             }
             var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities.FirstOrDefaultAsync(x => x.Id == historyTicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy History Ticket!"); ;
 
-            return historyTicket.Status.ToString().ToLower();
+            return historyTicket.Status.ToString().ToUpper();
         }
         private string CalculateSignature(PayOSPaymentRequest request)
         {
