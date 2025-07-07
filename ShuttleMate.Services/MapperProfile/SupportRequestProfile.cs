@@ -25,11 +25,11 @@ namespace ShuttleMate.Services.MapperProfile
         {
             return status switch
             {
-                SupportRequestStatusEnum.Created => "CREATED",
-                SupportRequestStatusEnum.InProgress => "INPROGRESS",
-                SupportRequestStatusEnum.Escalated => "ESCALATED",
-                SupportRequestStatusEnum.Resolved => "RESOLVED",
-                SupportRequestStatusEnum.Cancelled => "CANCELLED",
+                SupportRequestStatusEnum.CREATED => "CREATED",
+                SupportRequestStatusEnum.IN_PROGRESS => "IN_PROGRESS",
+                SupportRequestStatusEnum.ESCALATED => "ESCALATED",
+                SupportRequestStatusEnum.RESOLVED => "RESOLVED",
+                SupportRequestStatusEnum.CANCELLED => "CANCELLED",
                 _ => "UNKNOWN"
             };
         }
@@ -38,23 +38,22 @@ namespace ShuttleMate.Services.MapperProfile
         {
             return category switch
             {
-                SupportRequestCategoryEnum.ShuttleDelay => "SHUTTLEDELAY",
-                SupportRequestCategoryEnum.ShuttleNoShow => "SHUTTLENOSHOW",
-                SupportRequestCategoryEnum.UnsafeDriving => "UNSAFEDRIVING",
-                SupportRequestCategoryEnum.PaymentIssue => "PAYMENTISSUE",
-                SupportRequestCategoryEnum.TicketNotReceived => "TICKETNOTRECEIVED",
-                SupportRequestCategoryEnum.AppCrash => "APPCRASH",
-                SupportRequestCategoryEnum.GPSNotAccurate => "GPSNOTACCURATE",
-                SupportRequestCategoryEnum.NotificationMissing => "NOTIFICATIONMISSING",
-                SupportRequestCategoryEnum.AccountProblem => "ACCOUNTPROBLEM",
-                SupportRequestCategoryEnum.FeatureRequest => "FEATUREREQUEST",
-                SupportRequestCategoryEnum.ServiceComplaint => "SERVICECOMPLAINT",
-                SupportRequestCategoryEnum.DriverComplaint => "DRIVERCOMPLAINT",
-                SupportRequestCategoryEnum.GeneralInquiry => "GENERALINQUIRY",
-                SupportRequestCategoryEnum.Other => "OTHER",
+                SupportRequestCategoryEnum.SHUTTLE_DELAY => "SHUTTLE_DELAY",
+                SupportRequestCategoryEnum.SHUTTLE_NO_SHOW => "SHUTTLE_NO_SHOW",
+                SupportRequestCategoryEnum.UNSAFE_DRIVING => "UNSAFE_DRIVING",
+                SupportRequestCategoryEnum.PAYMENT_ISSUE => "PAYMENT_ISSUE",
+                SupportRequestCategoryEnum.TICKET_NOT_RECEIVED => "TICKET_NOT_RECEIVED",
+                SupportRequestCategoryEnum.APP_CRASH => "APP_CRASH",
+                SupportRequestCategoryEnum.GPS_NOT_ACCURATE => "GPS_NOT_ACCURATE",
+                SupportRequestCategoryEnum.NOTIFICATION_MISSING => "NOTIFICATION_MISSING",
+                SupportRequestCategoryEnum.ACCOUNT_PROBLEM => "ACCOUNT_PROBLEM",
+                SupportRequestCategoryEnum.FEATURE_REQUEST => "FEATURE_REQUEST",
+                SupportRequestCategoryEnum.SERVICE_COMPLAINT => "SERVICE_COMPLAINT",
+                SupportRequestCategoryEnum.DRIVER_COMPLAINT => "DRIVER_COMPLAINT",
+                SupportRequestCategoryEnum.GENERAL_INQUIRY => "GENERAL_INQUIRY",
+                SupportRequestCategoryEnum.OTHER => "OTHER",
                 _ => "UNKNOWN"
             };
         }
-
     }
 }
