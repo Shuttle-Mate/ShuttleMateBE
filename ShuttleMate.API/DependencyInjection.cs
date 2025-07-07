@@ -33,6 +33,7 @@ namespace ShuttleMate.API
             services.ConfigCors();
             services.JwtSettingsConfig(configuration);
             services.AddZaloPayConfig(configuration);
+            services.AddVietMapConfig(configuration);
             services.IntSeedData();
         }
         public static void JwtSettingsConfig(this IServiceCollection services, IConfiguration configuration)
@@ -219,7 +220,10 @@ namespace ShuttleMate.API
             services.AddScoped<ISupportRequestService, SupportRequestService>();
             services.AddScoped<IPromotionService, PromotionService>();
             services.AddScoped<IAttendanceService, AttendanceService>();
+            services.AddScoped<IRecordService, RecordService>();
             services.AddScoped<INotiRecipientService, NotiRecipientService>();
+            services.AddScoped<IStopEstimateService, StopEstimateService>();
+            services.AddScoped<ITransactionService, TransactionService>();
         }
 
         public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)
@@ -229,6 +233,11 @@ namespace ShuttleMate.API
         public static void AddZaloPayConfig(this IServiceCollection services, IConfiguration configuration)
         {
             services.Configure<ZaloPaySettings>(configuration.GetSection("ZaloPay"));
+        }
+
+        public static void AddVietMapConfig(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<VietMapSettings>(configuration.GetSection("VietMap"));
         }
 
         public static void IntSeedData(this IServiceCollection services)

@@ -17,7 +17,7 @@ namespace ShuttleMate.Contract.Repositories.Enum
         public enum TripStatusEnum
         {
             Scheduled, //Scheduled but not start yet
-            InProgress, 
+            InProgress,
             Completed,
             Cancelled//Hủy
         }
@@ -134,8 +134,8 @@ namespace ShuttleMate.Contract.Repositories.Enum
         public enum PaymentMethodEnum
         {
             PayOs,
-            VNPay,
-            ZaloPay
+            VNPay
+            
         }
 
         public enum PaymentStatus
@@ -152,6 +152,14 @@ namespace ShuttleMate.Contract.Repositories.Enum
             Paid = 1,
             Cancelled = 2,
             Used = 3,
+        }
+        public enum RoleEnum
+        {
+            Student ,
+            Parent ,
+            Operator,
+            Driver,
+            School
         }
     }
 }

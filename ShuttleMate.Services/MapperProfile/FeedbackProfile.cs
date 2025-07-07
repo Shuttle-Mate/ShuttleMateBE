@@ -49,7 +49,6 @@ namespace ShuttleMate.Services.MapperProfile
                 FeedbackCategoryEnum.COMPLIMENT => "COMPLIMENT",
                 FeedbackCategoryEnum.COMPLAINT => "COMPLAINT",
                 FeedbackCategoryEnum.OTHER => "OTHER",
-
                 _ => "UNKNOWN"
             };
         }

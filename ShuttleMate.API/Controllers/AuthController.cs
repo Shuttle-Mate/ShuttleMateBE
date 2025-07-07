@@ -27,9 +27,10 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Đăng kí thành công!"
+                message: "Đăng kí thành công!"
             ));
         }
+        
 
         [HttpPatch("confirm-otp-email")]
         public async Task<IActionResult> ConfirmOTPEmailVerification(ConfirmEmailModel model)
@@ -49,7 +50,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Gửi lại email thành công!"
+                message: "Gửi lại email thành công!"
             ));
         }
 
@@ -83,7 +84,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Đã gửi email xác nhận yêu cầu thay đổi mật khẩu."
+                message: "Đã gửi email xác nhận yêu cầu thay đổi mật khẩu."
             ));
         }
 
@@ -105,7 +106,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Đã đặt lại mật khẩu thành công!"
+                message: "Đã đặt lại mật khẩu thành công!"
             ));
         }
 
@@ -116,7 +117,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Đăng xuất thành công!"
+                message: "Đăng xuất thành công!"
             ));
         }
 

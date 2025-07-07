@@ -59,7 +59,7 @@ namespace ShuttleMate.Services.Services
         }
 
         #region payment PAYOS
-        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForUserAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null)
+        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForUserAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, TicketTypeEnum? ticketType = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -80,6 +80,72 @@ namespace ShuttleMate.Services.Services
             if (status.HasValue)
             {
                 query = query.Where(u => u.Status == status);
+            }
+            if (ticketType.HasValue)
+            {
+                query = query.Where(x => x.TicketType.Type == ticketType);
+            }
+            if (PurchaseAt.HasValue)
+            {
+                query = query.Where(u => u.PurchaseAt.Date == PurchaseAt.Value.Date);
+            }
+            if (ValidFrom.HasValue)
+            {
+                query = query.Where(u => u.ValidFrom.Date == ValidFrom.Value.Date);
+            }
+            if (ValidUntil.HasValue)
+            {
+                query = query.Where(u => u.ValidUntil.Date == ValidUntil.Value.Date);
+            }
+            if (CreateTime == true)
+            {
+                query = query.OrderBy(x => x.CreatedTime);
+            }
+            else
+            {
+                query = query.OrderByDescending(x => x.CreatedTime);
+            }
+            
+
+            var historyTickets = await query
+                .Select(u => new HistoryTicketResponseModel
+                {
+                    Id = u.Id,
+                    PurchaseAt = u.PurchaseAt,
+                    ValidUntil = u.ValidUntil,
+                    ValidFrom = u.ValidFrom,
+                    TicketId = u.TicketId,
+                    UserId = u.UserId,
+                    Status = u.Status.ToString().ToUpper(),
+                    Price = u.TicketType.Price,
+                    RouteName = u.TicketType.Route.RouteName,
+                    TicketType = u.TicketType.Type.ToString().ToUpper(),
+                    OrderCode = u.Transaction.OrderCode,
+                })
+                .ToListAsync();
+
+            return historyTickets;
+        }
+        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForParentAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, TicketTypeEnum? ticketType = null)
+        {
+            var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
+
+            var query = historyTicketRepo.Entities
+                .Include(u => u.User)
+                .Include(u => u.TicketType)
+                .Where(x => x.UserId == studentId)
+                .AsQueryable();
+            if (ticketId.HasValue)
+            {
+                query = query.Where(u => u.TicketId == ticketId);
+            }
+            if (status.HasValue)
+            {
+                query = query.Where(u => u.Status == status);
+            }
+            if (ticketType.HasValue)
+            {
+                query = query.Where(x => x.TicketType.Type == ticketType);
             }
             if (PurchaseAt.HasValue)
             {
@@ -111,19 +177,17 @@ namespace ShuttleMate.Services.Services
                     ValidFrom = u.ValidFrom,
                     TicketId = u.TicketId,
                     UserId = u.UserId,
-                    Status = ConvertStatusToString(u.Status),
+                    Status = u.Status.ToString().ToUpper(),
                     Price = u.TicketType.Price,
                     RouteName = u.TicketType.Route.RouteName,
-                    TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type),
+                    TicketType = u.TicketType.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
-
-
                 })
                 .ToListAsync();
 
             return historyTickets;
         }
-        public async Task<IEnumerable<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null)
+        public async Task<IEnumerable<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, TicketTypeEnum? ticketType = null)
         {
             var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
 
@@ -142,6 +206,10 @@ namespace ShuttleMate.Services.Services
             if (status.HasValue)
             {
                 query = query.Where(u => u.Status == status);
+            }
+            if (ticketType.HasValue)
+            {
+                query = query.Where(x => x.TicketType.Type == ticketType);
             }
             if (PurchaseAt.HasValue)
             {
@@ -173,10 +241,10 @@ namespace ShuttleMate.Services.Services
                     ValidFrom = u.ValidFrom,
                     TicketId = u.TicketId,
                     UserId = u.UserId,
-                    Status = ConvertStatusToString(u.Status),
+                    Status = u.Status.ToString().ToUpper(),
                     Price = u.TicketType.Price,
                     RouteName = u.TicketType.Route.RouteName,
-                    TicketType = ConvertStatusTicketTypeToString(u.TicketType.Type),
+                    TicketType = u.TicketType.Type.ToString().ToUpper(),
                     FullNameOfUser = u.User.FullName,
                     OrderCode = u.Transaction.OrderCode,
                 })
@@ -207,7 +275,7 @@ namespace ShuttleMate.Services.Services
                 _ => "Không xác định"
             };
         }
-        public async Task<string> CreateHistoryTicket(CreateHistoryTicketModel model)
+        public async Task<CreateHistoryTicketResponse> CreateHistoryTicket(CreateHistoryTicketModel model)
         {
             if (model.ValidFrom < DateTime.Now)
             {
@@ -217,7 +285,7 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
             }
-            if (model.ValidFrom < model.ValidUntil)
+            if (model.ValidFrom > model.ValidUntil)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Thời gian bắt đầu phải lớn hơn thời gian kết thúc");
             }
@@ -293,8 +361,25 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.SaveAsync();
             // 4. Gọi API PayOS
-            string checkoutUrl = await CallPayOSApi(payOSRequest);
-            return checkoutUrl;
+            PayOSResponseData checkoutUrl = await CallPayOSApi(payOSRequest);
+            CreateHistoryTicketResponse response = new CreateHistoryTicketResponse
+            {
+                HistoryTicketId = historyTicket.Id,
+                checkoutUrl = checkoutUrl.checkoutUrl,
+                qrCode = checkoutUrl.qrCode,
+                status = ConvertStatusToString(historyTicket.Status),
+            };
+            return response;
+        }
+        public async Task<string> ResponseHistoryTicketStatus(Guid historyTicketId)
+        {
+            if (string.IsNullOrWhiteSpace(historyTicketId.ToString()))
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không được để trống Id của History Ticket!");
+            }
+            var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities.FirstOrDefaultAsync(x => x.Id == historyTicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy History Ticket!"); ;
+
+            return historyTicket.Status.ToString().ToUpper();
         }
         private string CalculateSignature(PayOSPaymentRequest request)
         {
@@ -335,7 +420,7 @@ namespace ShuttleMate.Services.Services
 
             return orderCode;
         }
-        private async Task<string> CallPayOSApi(PayOSPaymentRequest payOSRequest)
+        private async Task<PayOSResponseData> CallPayOSApi(PayOSPaymentRequest payOSRequest)
         {
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -358,7 +443,7 @@ namespace ShuttleMate.Services.Services
 
                     if (payOSResponse != null && payOSResponse.data != null && !string.IsNullOrEmpty(payOSResponse.data.checkoutUrl))
                     {
-                        return payOSResponse.data.checkoutUrl;
+                        return payOSResponse.data;
                     }
                     else
                     {
@@ -645,11 +730,11 @@ namespace ShuttleMate.Services.Services
 
             // Gửi yêu cầu POST đến ZaloPay
             using var client = new HttpClient();
-            var result =  client.PostAsync(_zaloPaySettings.PaymentUrl, new FormUrlEncodedContent(param)).Result;
+            var result = client.PostAsync(_zaloPaySettings.PaymentUrl, new FormUrlEncodedContent(param)).Result;
 
             if (result.IsSuccessStatusCode)
             {
-                var responseString =  result.Content.ReadAsStringAsync().Result;
+                var responseString = result.Content.ReadAsStringAsync().Result;
                 var response = JsonConvert.DeserializeObject<ZaloPayResponse>(responseString);
 
                 if (response.returnCode == 1)
@@ -657,7 +742,7 @@ namespace ShuttleMate.Services.Services
                     var transaction = new Transaction
                     {
                         Id = Guid.NewGuid(),
-                        PaymentMethod = PaymentMethodEnum.ZaloPay,
+                        //PaymentMethod = PaymentMethodEnum.ZaloPay,
                         Status = PaymentStatus.Unpaid,
                         Amount = ticketType.Price,
                         OrderCode = orderCode,

@@ -41,7 +41,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "CheckIn thành công!"
+                message: "CheckIn thành công!"
             ));
         }
         /// <summary>
@@ -54,7 +54,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "CheckOut thành công"
+                message: "CheckOut thành công"
             ));
         }
         /// <summary>
@@ -93,7 +93,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Xóa điểm danh thành công"
+                message: "Xóa điểm danh thành công"
             ));
         }
     }

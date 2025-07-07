@@ -81,7 +81,7 @@ namespace ShuttleMate.Services.Services
                     Id = u.Id,
                     Price = u.Price,
                     RouteName = u.Route.RouteName,
-                    Type = ConvertStatusToString(u.Type)
+                    Type = u.Type.ToString().ToUpper()
                 })
                 .ToListAsync();
 
@@ -107,7 +107,7 @@ namespace ShuttleMate.Services.Services
                     Id = ticketType.Id,
                     Price = ticketType.Price,
                     RouteName = ticketType.Route.RouteName,
-                    Type = ConvertStatusToString(ticketType.Type)
+                    Type = ticketType.Type.ToString().ToUpper(),
                 };
             return response;
         }

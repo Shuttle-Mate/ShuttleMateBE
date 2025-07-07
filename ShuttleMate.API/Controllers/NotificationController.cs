@@ -26,7 +26,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Tạo thông báo thành công!"
+                message: "Tạo thông báo thành công!"
             ));
         }
         [HttpGet]
@@ -66,7 +66,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Xóa thông báo thành công"
+                message: "Xóa thông báo thành công"
             ));
         }
     }

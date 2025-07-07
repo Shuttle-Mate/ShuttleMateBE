@@ -90,12 +90,11 @@ namespace ShuttleMate.Services.Services
                 User = new ResponseUserModel
                 {
                     Id = user.Id.ToString(),
-                    Username = user.UserName,
                     Email = user.Email,
                     FullName = user.FullName,
                     PhoneNumber = user.PhoneNumber,
                     CreatedTime = user.CreatedTime,
-                    Role = roleName,
+                    Role = roleName.ToUpper(),
                     ProfileImageUrl = user.ProfileImageUrl,
                     
 

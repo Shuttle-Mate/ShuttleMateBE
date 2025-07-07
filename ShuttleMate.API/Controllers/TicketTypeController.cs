@@ -21,13 +21,13 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Lấy tất cả các vé
+        /// Lấy tất cả các vé.
         /// </summary>
-        /// <param name="type">loại vé lần lượt là SingleRide = 0, DayPass = 1, Weekly = 2, Monthly = 3</param>
-        /// <param name="routeName">tên tuyến</param>
-        /// <param name="price">true là tăng dần, false là giảm dần</param>
-        /// <param name="lowerBound">Cận dưới: khi 1 cận thì >= nó, khi 2 cận thì >= nó và <= cận trên</param>
-        /// <param name="upperBound">Cận trên: khi 1 cận thì >= cận dưới, khi 2 cận thì >= nó và <= nó</param>
+        /// <param name="type">Loại vé, lần lượt là: SingleRide = 0, DayPass = 1, Weekly = 2, Monthly = 3.</param>
+        /// <param name="routeName">Tên tuyến (tuỳ chọn).</param>
+        /// <param name="price">Sắp xếp theo giá: true là tăng dần, false là giảm dần (tuỳ chọn).</param>
+        /// <param name="lowerBound">Cận dưới: khi chỉ có một cận thì >= nó, khi có hai cận thì >= nó và bé hơn hoặc = cận trên (tuỳ chọn).</param>
+        /// <param name="upperBound">Cận trên: khi chỉ có một cận thì >= cận dưới, khi có hai cận thì >= nó và bé hơn hoặc = nó (tuỳ chọn).</param>
         [HttpGet]
         public async Task<IActionResult> GetAllTicketTypes(TicketTypeEnum? type, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null)
         {
@@ -53,12 +53,12 @@ namespace ShuttleMate.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateTicketType(CreateTicketTypeModel model)
         {
-             await _ticketTypeService.CreateTicketType(model);
+            await _ticketTypeService.CreateTicketType(model);
 
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Tạo loại vé thành công!"
+                message: "Tạo loại vé thành công!"
             ));
         }
         [HttpPatch]
@@ -69,7 +69,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Cập nhật loại vé thành công!"
+                message: "Cập nhật loại vé thành công!"
             ));
         }
         [HttpDelete]
@@ -80,7 +80,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Xóa loại vé thành công!"
+                message: "Xóa loại vé thành công!"
             ));
         }
     }
