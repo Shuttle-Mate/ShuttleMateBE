@@ -39,5 +39,26 @@ namespace ShuttleMate.API.Controllers
                 data: transactions
             ));
         }
+        /// <summary>
+        /// Lấy tất cả các giao dịch(Admin)
+        /// </summary>
+        /// <param name="paymentMethodEnum">Loại thanh toán lần lượt là PayOs = 0, VNPay = 1</param>
+        /// <param name="paymentStatus">trạng thái lần lượt là Unpaid = 0, Paid = 1, Refunded = 2, Canceled = 3</param>
+        /// <param name="orderCode">mã của giao dịch</param>
+        /// <param name="CreateTime">true là tăng dần, false là giảm dần</param>
+        /// <param name="description">mô tả</param>
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllForAdminAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null)
+        {
+            var transactions = await _transactionService.GetAllForAdminAsync(paymentMethodEnum, paymentStatus, orderCode, description, CreateTime);
+
+            return Ok(new BaseResponseModel<IEnumerable<TransactionAdminResponseModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: transactions
+            ));
+        }
+
     }
 }

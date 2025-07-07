@@ -742,7 +742,7 @@ namespace ShuttleMate.Services.Services
                     var transaction = new Transaction
                     {
                         Id = Guid.NewGuid(),
-                        PaymentMethod = PaymentMethodEnum.ZaloPay,
+                        //PaymentMethod = PaymentMethodEnum.ZaloPay,
                         Status = PaymentStatus.Unpaid,
                         Amount = ticketType.Price,
                         OrderCode = orderCode,

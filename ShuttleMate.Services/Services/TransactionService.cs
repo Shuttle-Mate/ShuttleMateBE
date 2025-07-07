@@ -80,7 +80,58 @@ namespace ShuttleMate.Services.Services
                     PaymentMethod = u.PaymentMethod.ToString().ToUpper(),
                     OrderCode = u.OrderCode,
                     Description = u.Description,
-                    HistoryTicketId = u.HistoryTicketId
+                    HistoryTicketId = u.HistoryTicketId,
+                })
+                .ToListAsync();
+
+            return transactions;
+        }
+        public async Task<IEnumerable<TransactionAdminResponseModel>> GetAllForAdminAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null)
+        {
+            var transaction = _unitOfWork.GetRepository<Transaction>();
+
+            var query = transaction.Entities
+                .Include(u => u.HistoryTicket)
+                .AsQueryable();
+            if (!string.IsNullOrWhiteSpace(description))
+            {
+                query = query.Where(u => u.Description.Contains(description));
+            }
+            if (orderCode.HasValue)
+            {
+                query = query.Where(u => u.OrderCode == orderCode);
+            }
+            if (paymentMethodEnum.HasValue)
+            {
+                query = query.Where(x => x.PaymentMethod == paymentMethodEnum);
+            }
+            if (paymentStatus.HasValue)
+            {
+                query = query.Where(u => u.Status == paymentStatus);
+            }
+            if (CreateTime == true)
+            {
+                query = query.OrderBy(x => x.CreatedTime);
+            }
+            else
+            {
+                query = query.OrderByDescending(x => x.CreatedTime);
+            }
+
+            var transactions = await query
+                .Select(u => new TransactionAdminResponseModel
+                {
+                    Id = u.Id,
+                    Amount = u.Amount,
+                    Status = u.Status.ToString().ToUpper(),
+                    PaymentMethod = u.PaymentMethod.ToString().ToUpper(),
+                    OrderCode = u.OrderCode,
+                    Description = u.Description,
+                    HistoryTicketId = u.HistoryTicketId,
+                    BuyerAddress = u.BuyerAddress,
+                    BuyerEmail = u.BuyerEmail,
+                    BuyerName = u.BuyerName,
+                    BuyerPhone = u.BuyerPhone   
                 })
                 .ToListAsync();
 
