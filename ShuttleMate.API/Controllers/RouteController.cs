@@ -26,7 +26,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: "Tạo tuyết thành công!"
+                data: "Tạo tuyến thành công!"
             ));
         }
         [HttpGet]

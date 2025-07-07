@@ -17,7 +17,9 @@ namespace ShuttleMate.API.Controllers
         {
             _authService = authService;
         }
-
+        /// <summary>
+        /// True la Student, false la Parent
+        /// </summary>
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterModel model)
         {

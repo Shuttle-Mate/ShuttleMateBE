@@ -131,7 +131,8 @@ namespace ShuttleMate.Contract.Repositories.Enum
         public enum PaymentMethodEnum
         {
             PayOs,
-            VNPay
+            VNPay,
+            ZaloPay
         }
         public enum PaymentStatus
         {
