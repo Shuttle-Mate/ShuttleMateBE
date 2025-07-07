@@ -7,7 +7,6 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.PromotionModelViews;
-using ShuttleMate.ModelViews.SupportRequestModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
@@ -79,7 +78,7 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé này đã bị xóa.");
             }
 
-            if (!Enum.IsDefined(typeof(TypePromotionEnum), model.Type))
+            if (!Enum.TryParse<TypePromotionEnum>(model.Type, true, out var typeEnum) || !Enum.IsDefined(typeof(TypePromotionEnum), typeEnum))
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phân loại khuyến mãi không hợp lệ.");
             }
@@ -106,19 +105,19 @@ namespace ShuttleMate.Services.Services
 
             var newPromotion = _mapper.Map<Promotion>(model);
 
+            newPromotion.Type = typeEnum;
             newPromotion.CreatedBy = userId;
             newPromotion.LastUpdatedBy = userId;
 
-            switch (model.Type)
+            switch (typeEnum)
             {
-                case TypePromotionEnum.FixedAmountDiscount:
+                case TypePromotionEnum.DIRECT_DISCOUNT:
                     newPromotion.DiscountPrice = model.DiscountValue;
                     break;
-                case TypePromotionEnum.PercentageDiscount:
+                case TypePromotionEnum.PERCENTAGE_DISCOUNT:
                     newPromotion.DiscountPercent = model.DiscountValue;
                     break;
                 //case TypePromotionEnum.DiscountAmount:
-                //    // Gán giá trị giảm giá cho loại "Giảm theo lượng tiền"
                 //    promotion.DiscountAmount = model.DiscountValue;
                 //    break;
                 default:
@@ -134,65 +133,6 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<Promotion>().InsertAsync(newPromotion);
             await _unitOfWork.SaveAsync();
         }
-
-        //public async Task CreateAsync(CreatePromotionModel model)
-        //{
-        //    var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-        //    Guid.TryParse(userId, out Guid userIdGuid);
-        //    model.TrimAllStrings();
-
-        //    var ticketType = await _unitOfWork.GetRepository<TicketType>().GetByIdAsync(model.TicketTypeId)
-        //        ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại.");
-
-        //    if (ticketType.DeletedTime.HasValue)
-        //    {
-        //        throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé này đã bị xóa.");
-        //    }
-
-        //    if (string.IsNullOrWhiteSpace(model.Name))
-        //    {
-        //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền tên khuyến mãi.");
-        //    }
-
-        //    if (string.IsNullOrWhiteSpace(model.Description))
-        //    {
-        //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền mô tả khuyến mãi.");
-        //    }
-
-        //    if (model.DiscountValue <= 0)
-        //    {
-        //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giá giảm không hợp lệ.");
-        //    }
-
-        //    if (model.LimitSalePrice <= 0)
-        //    {
-        //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giá trị giới hạn bán không hợp lệ.");
-        //    }
-
-        //    if (model.EndDate <= DateTime.Now)
-        //    {
-        //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Ngày kết thúc khuyến mãi không hợp lệ.");
-        //    }
-
-        //    if (model.UsingLimit < 0)
-        //    {
-        //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giới hạn sử dụng không hợp lệ.");
-        //    }
-
-        //    if (!Enum.IsDefined(typeof(TypePromotionEnum), model.Type))
-        //    {
-        //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phân loại khuyến mãi không hợp lệ.");
-        //    }
-
-        //    var newPromotion = _mapper.Map<Promotion>(model);
-
-        //    newPromotion.CreatedBy = userId;
-        //    newPromotion.LastUpdatedBy = userId;
-        //    newPromotion.IsExpiredOrReachLimit = false;
-
-        //    await _unitOfWork.GetRepository<Promotion>().InsertAsync(newPromotion);
-        //    await _unitOfWork.SaveAsync();
-        //}
 
         public async Task UpdateAsync(Guid id, UpdatePromotionModel model)
         {
@@ -294,12 +234,12 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã bị xóa.");
             }
 
-            if (promotion.UserId.HasValue && promotion.UserId == guidUserId)
+            if (promotion.UserId.HasValue && promotion.UserId == userIdGuid)
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã được lưu.");
             }
 
-            promotion.UserId = guidUserId;
+            promotion.UserId = userIdGuid;
 
             await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
             await _unitOfWork.SaveAsync();

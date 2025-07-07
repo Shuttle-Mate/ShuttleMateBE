@@ -1,10 +1,8 @@
-﻿using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
-
-namespace ShuttleMate.ModelViews.PromotionModelViews
+﻿namespace ShuttleMate.ModelViews.PromotionModelViews
 {
     public class CreatePromotionModel
     {
-        public TypePromotionEnum Type { get; set; }
+        public string Type { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public decimal DiscountValue { get; set; }
