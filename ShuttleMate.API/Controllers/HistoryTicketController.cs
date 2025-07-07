@@ -53,6 +53,8 @@ namespace ShuttleMate.API.Controllers
         /// <param name="ValidFrom">tra theo thời gian có hiệu lực</param>
         /// <param name="ValidUntil">tra theo thời gian hết hiệu lực</param>
         /// <param name="ticketId">tra theo vé</param>
+        /// <param name="ticketType">loại vé lần lượt là SingleRide = 0, DayPass = 1, Weekly = 2, Monthly = 3, Semester = 4</param>
+        /// <param name="studentId">Id của học sinh</param>
         [HttpGet("studentId")]
         public async Task<IActionResult> GetAllForParentAsync(TicketTypeEnum? ticketType = null, HistoryTicketStatus ? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null )
         {
@@ -74,6 +76,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="ValidUntil">tra theo thời gian hết hiệu lực</param>
         /// <param name="ticketId">tra theo vé</param>
         /// <param name="userId">tra theo người mua</param>
+        /// <param name="ticketType">loại vé lần lượt là SingleRide = 0, DayPass = 1, Weekly = 2, Monthly = 3, Semester = 4</param>
         [HttpGet]
         public async Task<IActionResult> GetAllForAdminAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, TicketTypeEnum? ticketType = null)
         {
