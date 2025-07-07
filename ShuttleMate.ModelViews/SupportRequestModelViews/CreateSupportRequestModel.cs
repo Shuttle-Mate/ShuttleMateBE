@@ -4,7 +4,7 @@ namespace ShuttleMate.ModelViews.SupportRequestModelViews
 {
     public class CreateSupportRequestModel
     {
-        public SupportRequestCategoryEnum Category { get; set; }
+        public string Category { get; set; }
         public string Title { get; set; }
         public string Message { get; set; }
     }

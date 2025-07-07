@@ -70,7 +70,7 @@ namespace ShuttleMate.Services.Services
             Guid.TryParse(userId, out Guid userIdGuid);
             model.TrimAllStrings();
 
-            if (!Enum.IsDefined(typeof(SupportRequestCategoryEnum), model.Category))
+            if (!Enum.TryParse<SupportRequestCategoryEnum>(model.Category, true, out var categoryEnum) || !Enum.IsDefined(typeof(SupportRequestCategoryEnum), categoryEnum))
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phân loại yêu cầu hỗ trợ không hợp lệ.");
             }
@@ -87,7 +87,8 @@ namespace ShuttleMate.Services.Services
 
             var newSupportRequest = _mapper.Map<SupportRequest>(model);
 
-            newSupportRequest.Status = SupportRequestStatusEnum.Created;
+            newSupportRequest.Category = categoryEnum;
+            newSupportRequest.Status = SupportRequestStatusEnum.CREATED;
             newSupportRequest.UserId = userIdGuid;
             newSupportRequest.CreatedBy = userId;
             newSupportRequest.LastUpdatedBy = userId;
@@ -110,12 +111,13 @@ namespace ShuttleMate.Services.Services
             Guid.TryParse(userId, out Guid cb);
             model.TrimAllStrings();
 
-            if (!Enum.IsDefined(typeof(SupportRequestStatusEnum), model.Status))
+            if (!Enum.TryParse<SupportRequestStatusEnum>(model.Status, true, out var statusEnum) ||
+                !Enum.IsDefined(typeof(SupportRequestStatusEnum), statusEnum))
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trạng thái yêu cầu hỗ trợ không hợp lệ.");
             }
 
-            supportRequest.Status = model.Status;
+            supportRequest.Status = statusEnum;
             supportRequest.LastUpdatedTime = CoreHelper.SystemTimeNow;
             supportRequest.LastUpdatedBy = userId;
 
