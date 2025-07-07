@@ -59,7 +59,7 @@ namespace ShuttleMate.Services.Services
         }
 
         #region payment PAYOS
-        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForUserAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null)
+        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForUserAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, TicketTypeEnum? ticketType = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -80,6 +80,72 @@ namespace ShuttleMate.Services.Services
             if (status.HasValue)
             {
                 query = query.Where(u => u.Status == status);
+            }
+            if (ticketType.HasValue)
+            {
+                query = query.Where(x => x.TicketType.Type == ticketType);
+            }
+            if (PurchaseAt.HasValue)
+            {
+                query = query.Where(u => u.PurchaseAt.Date == PurchaseAt.Value.Date);
+            }
+            if (ValidFrom.HasValue)
+            {
+                query = query.Where(u => u.ValidFrom.Date == ValidFrom.Value.Date);
+            }
+            if (ValidUntil.HasValue)
+            {
+                query = query.Where(u => u.ValidUntil.Date == ValidUntil.Value.Date);
+            }
+            if (CreateTime == true)
+            {
+                query = query.OrderBy(x => x.CreatedTime);
+            }
+            else
+            {
+                query = query.OrderByDescending(x => x.CreatedTime);
+            }
+            
+
+            var historyTickets = await query
+                .Select(u => new HistoryTicketResponseModel
+                {
+                    Id = u.Id,
+                    PurchaseAt = u.PurchaseAt,
+                    ValidUntil = u.ValidUntil,
+                    ValidFrom = u.ValidFrom,
+                    TicketId = u.TicketId,
+                    UserId = u.UserId,
+                    Status = u.Status.ToString().ToUpper(),
+                    Price = u.TicketType.Price,
+                    RouteName = u.TicketType.Route.RouteName,
+                    TicketType = u.TicketType.Type.ToString().ToUpper(),
+                    OrderCode = u.Transaction.OrderCode,
+                })
+                .ToListAsync();
+
+            return historyTickets;
+        }
+        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForParentAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, TicketTypeEnum? ticketType = null)
+        {
+            var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
+
+            var query = historyTicketRepo.Entities
+                .Include(u => u.User)
+                .Include(u => u.TicketType)
+                .Where(x => x.UserId == studentId)
+                .AsQueryable();
+            if (ticketId.HasValue)
+            {
+                query = query.Where(u => u.TicketId == ticketId);
+            }
+            if (status.HasValue)
+            {
+                query = query.Where(u => u.Status == status);
+            }
+            if (ticketType.HasValue)
+            {
+                query = query.Where(x => x.TicketType.Type == ticketType);
             }
             if (PurchaseAt.HasValue)
             {
@@ -116,14 +182,12 @@ namespace ShuttleMate.Services.Services
                     RouteName = u.TicketType.Route.RouteName,
                     TicketType = u.TicketType.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
-
-
                 })
                 .ToListAsync();
 
             return historyTickets;
         }
-        public async Task<IEnumerable<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null)
+        public async Task<IEnumerable<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, TicketTypeEnum? ticketType = null)
         {
             var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
 
@@ -142,6 +206,10 @@ namespace ShuttleMate.Services.Services
             if (status.HasValue)
             {
                 query = query.Where(u => u.Status == status);
+            }
+            if (ticketType.HasValue)
+            {
+                query = query.Where(x => x.TicketType.Type == ticketType);
             }
             if (PurchaseAt.HasValue)
             {

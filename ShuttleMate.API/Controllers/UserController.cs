@@ -78,6 +78,9 @@ namespace ShuttleMate.API.Controllers
                 message: "Gán vai trò cho người dùng thành công!"
             ));
         }
+        /// <summary>
+        /// Admin gán parent
+        /// </summary>
         [HttpPost("assign-parent")]
         public async Task<IActionResult> AssignParent([FromBody] AssignParentModel model)
         {
