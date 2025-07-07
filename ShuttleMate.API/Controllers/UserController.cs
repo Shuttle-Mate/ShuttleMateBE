@@ -92,6 +92,20 @@ namespace ShuttleMate.API.Controllers
                 message: "Gán vai trò cho phụ huynh thành công!"
             ));
         }
+        /// <summary>
+        /// Student gán parent
+        /// </summary>
+        [HttpPost("assign-parent/student")]
+        public async Task<IActionResult> AssignParentForStudent([FromBody] AssignParentForStudentModel model)
+        {
+            await _userService.AssignParentForParent(model);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "Gán vai trò cho phụ huynh thành công!"
+            ));
+        }
         [HttpDelete("remove-role")]
         public async Task<IActionResult> RemoveRole([FromBody] RemoveUserRoleModel model)
         {

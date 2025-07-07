@@ -54,7 +54,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="ValidUntil">tra theo thời gian hết hiệu lực</param>
         /// <param name="ticketId">tra theo vé</param>
         [HttpGet("studentId")]
-        public async Task<IActionResult> GetAllForParentAsync(TicketTypeEnum? ticketType = null, HistoryTicketStatus ? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null )
+        public async Task<IActionResult> GetAllForParentAsync(TicketTypeEnum? ticketType = null, HistoryTicketStatus ? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null )
         {
             var tickets = await _historyTicketService.GetAllForParentAsync(status, PurchaseAt, CreateTime, ValidFrom, ValidUntil, ticketId, studentId, ticketType);
 

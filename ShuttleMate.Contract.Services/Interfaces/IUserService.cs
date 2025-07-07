@@ -13,6 +13,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task UpdateProfiel(UpdateProfileModel model);
         Task<IEnumerable<AdminResponseUserModel>> GetAllAsync(Guid? roleId = null, string? name = null, bool? gender= null);
         Task AssignParent(AssignParentModel model);
+        Task AssignParentForParent(AssignParentForStudentModel model);
         Task CreateUserAdmin(CreateUserAdminModel model);
     }
 }
