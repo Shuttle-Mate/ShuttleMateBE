@@ -78,10 +78,27 @@ namespace ShuttleMate.API.Controllers
                 message: "Gán vai trò cho người dùng thành công!"
             ));
         }
+        /// <summary>
+        /// Admin gán parent
+        /// </summary>
         [HttpPost("assign-parent")]
         public async Task<IActionResult> AssignParent([FromBody] AssignParentModel model)
         {
             await _userService.AssignParent(model);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "Gán vai trò cho phụ huynh thành công!"
+            ));
+        }
+        /// <summary>
+        /// Student gán parent
+        /// </summary>
+        [HttpPost("assign-parent/student")]
+        public async Task<IActionResult> AssignParentForStudent([FromBody] AssignParentForStudentModel model)
+        {
+            await _userService.AssignParentForParent(model);
 
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,

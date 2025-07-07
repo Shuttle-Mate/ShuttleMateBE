@@ -94,13 +94,9 @@ namespace ShuttleMate.Contract.Repositories.Enum
         public enum SupportRequestStatusEnum
         {
             Created,            // 🆕 Mới được tạo, chưa ai xử lý
-            Open,               // 🔧 Đã được mở để xử lý (trạng thái làm việc)
             InProgress,         // 🛠️ Đang được xử lý bởi nhân viên kỹ thuật
-            WaitingForCustomer,// ⏳ Đang chờ người dùng bổ sung thông tin
-            WaitingForSupport, // ⌛ Đang chờ bộ phận khác/phản hồi nội bộ
             Escalated,          // ⚠️ Đã được chuyển cấp xử lý cao hơn
             Resolved,           // ✅ Đã giải quyết
-            Closed,             // 📦 Đã đóng (hoàn tất)
             Cancelled           // ❌ Bị hủy bởi người dùng hoặc hệ thống
         }
         public enum SupportRequestCategoryEnum
@@ -131,8 +127,8 @@ namespace ShuttleMate.Contract.Repositories.Enum
         public enum PaymentMethodEnum
         {
             PayOs,
-            VNPay,
-            ZaloPay
+            VNPay
+            
         }
         public enum PaymentStatus
         {

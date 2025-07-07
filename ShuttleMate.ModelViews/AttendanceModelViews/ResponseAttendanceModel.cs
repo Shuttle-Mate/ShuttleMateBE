@@ -16,7 +16,7 @@ namespace ShuttleMate.ModelViews.AttendanceModelViews
         public string? CheckInLocation { get; set; }
         public DateTime CheckOutTime { get; set; }
         public string? CheckOutLocation { get; set; }
-        public AttendanceStatusEnum Status { get; set; }
+        public AttendanceStatusEnum Status { get; set; } 
         public string? Notes { get; set; }
         //public virtual HistoryTicket HistoryTicket { get; set; }
     }
