@@ -27,26 +27,26 @@ namespace ShuttleMate.Services.MapperProfile
         {
             return category switch
             {
-                FeedbackCategoryEnum.LateArrival => "Xe đến trễ",
-                FeedbackCategoryEnum.EarlyArrival => "Xe đến quá sớm",
-                FeedbackCategoryEnum.MissedPickup => "Xe không đến đón",
-                FeedbackCategoryEnum.UnsafeDriving => "Lái xe ẩu, vượt tốc độ",
-                FeedbackCategoryEnum.VehicleCleanliness => "Vệ sinh xe không đảm bảo",
-                FeedbackCategoryEnum.OvercrowdedBus => "Xe quá tải",
-                FeedbackCategoryEnum.DriverBehavior => "Thái độ tài xế không tốt",
-                FeedbackCategoryEnum.AppCrash => "Ứng dụng bị treo/crash",
-                FeedbackCategoryEnum.GPSInaccuracy => "Vị trí xe không chính xác",
-                FeedbackCategoryEnum.NotificationIssue => "Không nhận được thông báo",
-                FeedbackCategoryEnum.UIUXIssue => "Giao diện khó sử dụng",
-                FeedbackCategoryEnum.PaymentFailed => "Thanh toán thất bại",
-                FeedbackCategoryEnum.IncorrectCharge => "Bị trừ tiền sai",
-                FeedbackCategoryEnum.TicketNotReceived => "Không nhận được vé",
-                FeedbackCategoryEnum.PromotionIssue => "Lỗi mã khuyến mãi",
-                FeedbackCategoryEnum.GeneralSuggestion => "Góp ý chung",
-                FeedbackCategoryEnum.Compliment => "Khen ngợi",
-                FeedbackCategoryEnum.Complaint => "Khiếu nại không rõ nhóm",
-                FeedbackCategoryEnum.Other => "Khác",
-                _ => "Không xác định"
+                FeedbackCategoryEnum.LateArrival => "LATEARRIVAL",
+                FeedbackCategoryEnum.EarlyArrival => "EARLYARRIVAL",
+                FeedbackCategoryEnum.MissedPickup => "MISSEDPICKUP",
+                FeedbackCategoryEnum.UnsafeDriving => "UNSAFEDRIVING",
+                FeedbackCategoryEnum.VehicleCleanliness => "VEHICLECLEANLINESS",
+                FeedbackCategoryEnum.OvercrowdedBus => "OVERCROWDEDBUS",
+                FeedbackCategoryEnum.DriverBehavior => "DRIVERBEHAVIOR",
+                FeedbackCategoryEnum.AppCrash => "APPCRASH",
+                FeedbackCategoryEnum.GPSInaccuracy => "GPSINACCURACY",
+                FeedbackCategoryEnum.NotificationIssue => "NOTIFICATIONISSUE",
+                FeedbackCategoryEnum.UIUXIssue => "UIUXISSUE",
+                FeedbackCategoryEnum.PaymentFailed => "PAYMENTFAILED",
+                FeedbackCategoryEnum.IncorrectCharge => "INCORRECTCHARGE",
+                FeedbackCategoryEnum.TicketNotReceived => "TICKETNOTRECEIVED",
+                FeedbackCategoryEnum.PromotionIssue => "PROMOTIONISSUE",
+                FeedbackCategoryEnum.GeneralSuggestion => "GENERALSUGGESTION",
+                FeedbackCategoryEnum.Compliment => "COMPLIMENT",
+                FeedbackCategoryEnum.Complaint => "COMPLAINT",
+                FeedbackCategoryEnum.Other => "OTHER",
+                _ => "UNKNOWN"
             };
         }
     }
