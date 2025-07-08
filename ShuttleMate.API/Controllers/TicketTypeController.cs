@@ -49,8 +49,10 @@ namespace ShuttleMate.API.Controllers
                 code: ResponseCodeConstants.SUCCESS,
                 data: ticket
             ));
-        }/// <summary>
-         /// Type(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER)/// </summary>
+        }
+        /// <summary>
+        /// Type(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER)
+        /// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateTicketType(CreateTicketTypeModel model)
         {
