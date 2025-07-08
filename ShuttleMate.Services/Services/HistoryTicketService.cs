@@ -59,7 +59,7 @@ namespace ShuttleMate.Services.Services
         }
 
         #region payment PAYOS
-        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForUserAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, TicketTypeEnum? ticketType = null)
+        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForUserAsync(string? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, string? ticketType = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -77,13 +77,13 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(u => u.TicketId == ticketId);
             }
-            if (status.HasValue)
+            if (string.IsNullOrWhiteSpace(status) )
             {
-                query = query.Where(u => u.Status == status);
+                query = query.Where(u => u.Status.ToString().ToUpper() == status.ToUpper());
             }
-            if (ticketType.HasValue)
+            if (string.IsNullOrWhiteSpace(ticketType))
             {
-                query = query.Where(x => x.TicketType.Type == ticketType);
+                query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType.ToUpper());
             }
             if (PurchaseAt.HasValue)
             {
@@ -126,7 +126,7 @@ namespace ShuttleMate.Services.Services
 
             return historyTickets;
         }
-        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForParentAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, TicketTypeEnum? ticketType = null)
+        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForParentAsync(string? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, string? ticketType = null)
         {
             var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
 
@@ -139,13 +139,13 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(u => u.TicketId == ticketId);
             }
-            if (status.HasValue)
+            if (string.IsNullOrWhiteSpace(status))
             {
-                query = query.Where(u => u.Status == status);
+                query = query.Where(u => u.Status.ToString().ToUpper() == status.ToUpper());
             }
-            if (ticketType.HasValue)
+            if (string.IsNullOrWhiteSpace(ticketType))
             {
-                query = query.Where(x => x.TicketType.Type == ticketType);
+                query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType.ToUpper());
             }
             if (PurchaseAt.HasValue)
             {
@@ -187,7 +187,7 @@ namespace ShuttleMate.Services.Services
 
             return historyTickets;
         }
-        public async Task<IEnumerable<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(HistoryTicketStatus? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, TicketTypeEnum? ticketType = null)
+        public async Task<IEnumerable<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(string? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null)
         {
             var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
 
@@ -203,13 +203,13 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(u => u.TicketId == ticketId);
             }
-            if (status.HasValue)
+            if (string.IsNullOrWhiteSpace(status))
             {
-                query = query.Where(u => u.Status == status);
+                query = query.Where(u => u.Status.ToString().ToUpper() == status.ToUpper());
             }
-            if (ticketType.HasValue)
+            if (string.IsNullOrWhiteSpace(ticketType))
             {
-                query = query.Where(x => x.TicketType.Type == ticketType);
+                query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType.ToUpper());
             }
             if (PurchaseAt.HasValue)
             {
@@ -256,10 +256,10 @@ namespace ShuttleMate.Services.Services
         {
             return status switch
             {
-                HistoryTicketStatus.UnPaid => "Đặt vé",
-                HistoryTicketStatus.Paid => "Đã thanh toán",
-                HistoryTicketStatus.Cancelled => "Hủy",
-                HistoryTicketStatus.Used => "Đã sử dụng",
+                HistoryTicketStatus.UNPAID => "Đặt vé",
+                HistoryTicketStatus.PAID => "Đã thanh toán",
+                HistoryTicketStatus.CANCELLED => "Hủy",
+                HistoryTicketStatus.USED => "Đã sử dụng",
                 _ => "Không xác định"
             };
         }
@@ -267,11 +267,11 @@ namespace ShuttleMate.Services.Services
         {
             return status switch
             {
-                TicketTypeEnum.SingleRide => "Chuyến 1 chiều",
-                TicketTypeEnum.DayPass => "Chuyến trong ngày",
-                TicketTypeEnum.Weekly => "Chuyến 1 tuần",
-                TicketTypeEnum.Semester => "Chuyến 1 học kì",
-                TicketTypeEnum.Monthly => "Chuyến 1 tháng",
+                TicketTypeEnum.SINGLE_RIDE => "Chuyến 1 chiều",
+                TicketTypeEnum.DAY_PASS => "Chuyến trong ngày",
+                TicketTypeEnum.WEEKLY => "Chuyến 1 tuần",
+                TicketTypeEnum.SEMESTER => "Chuyến 1 học kì",
+                TicketTypeEnum.MONTHLY => "Chuyến 1 tháng",
                 _ => "Không xác định"
             };
         }
@@ -304,7 +304,7 @@ namespace ShuttleMate.Services.Services
                 ValidUntil = model.ValidUntil,
                 CreatedTime = DateTime.Now,
                 TicketId = model.TicketId,
-                Status = HistoryTicketStatus.UnPaid,
+                Status = HistoryTicketStatus.UNPAID,
                 PurchaseAt = DateTime.Now,
                 UserId = cb,
                 LastUpdatedTime = DateTime.Now,
@@ -338,8 +338,8 @@ namespace ShuttleMate.Services.Services
             var transaction = new Transaction
             {
                 Id = Guid.NewGuid(),
-                PaymentMethod = PaymentMethodEnum.PayOs,
-                Status = PaymentStatus.Unpaid,
+                PaymentMethod = PaymentMethodEnum.PAYOS,
+                Status = PaymentStatus.UNPAID,
                 Amount = ticketType.Price,
                 OrderCode = payOSRequest.orderCode,
                 BuyerAddress = payOSRequest.buyerAddress,
@@ -486,8 +486,8 @@ namespace ShuttleMate.Services.Services
                     var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities
                          .FirstOrDefaultAsync(x => x.Id == transaction.HistoryTicketId && !x.DeletedTime.HasValue);
 
-                    historyTicket.Status = HistoryTicketStatus.Paid;
-                    transaction.Status = PaymentStatus.Paid;
+                    historyTicket.Status = HistoryTicketStatus.PAID;
+                    transaction.Status = PaymentStatus.PAID;
 
                     await _unitOfWork.GetRepository<Transaction>().UpdateAsync(transaction);
                     await _unitOfWork.GetRepository<HistoryTicket>().UpdateAsync(historyTicket);
@@ -498,11 +498,11 @@ namespace ShuttleMate.Services.Services
                     break;
 
                 case "01": // Giao dịch thất bại
-                    transaction.Status = PaymentStatus.Unpaid;
+                    transaction.Status = PaymentStatus.UNPAID;
                     break;
 
                 case "02": // Hủy giao dịch
-                    transaction.Status = PaymentStatus.Canceled;
+                    transaction.Status = PaymentStatus.CANCELED;
                     break;
 
                 default:
@@ -673,7 +673,7 @@ namespace ShuttleMate.Services.Services
                 ValidUntil = model.ValidUntil,
                 CreatedTime = DateTime.Now,
                 TicketId = model.TicketId,
-                Status = HistoryTicketStatus.UnPaid,
+                Status = HistoryTicketStatus.UNPAID,
                 PurchaseAt = DateTime.Now,
                 UserId = cb,
                 LastUpdatedTime = DateTime.Now,
@@ -743,7 +743,7 @@ namespace ShuttleMate.Services.Services
                     {
                         Id = Guid.NewGuid(),
                         //PaymentMethod = PaymentMethodEnum.ZaloPay,
-                        Status = PaymentStatus.Unpaid,
+                        Status = PaymentStatus.UNPAID,
                         Amount = ticketType.Price,
                         OrderCode = orderCode,
                         BuyerAddress = user.Address,
