@@ -9,6 +9,6 @@
         public decimal? LimitSalePrice { get; set; }
         public DateTime EndDate { get; set; }
         public int UsingLimit { get; set; }
-        public Guid TicketTypeId { get; set; }
+        public List<Guid> TicketTypeIds { get; set; } = new();
     }
 }
