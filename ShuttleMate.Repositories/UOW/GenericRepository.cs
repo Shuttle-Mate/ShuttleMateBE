@@ -32,6 +32,11 @@ namespace ShuttleMate.Repositories.UOW
             _dbSet.Remove(entity);
         }
 
+        public async Task DeleteAsync(T entity)
+        {
+            _dbSet.Remove(entity);
+        }
+
         public IEnumerable<T> GetAll()
         {
             return _dbSet.AsEnumerable();

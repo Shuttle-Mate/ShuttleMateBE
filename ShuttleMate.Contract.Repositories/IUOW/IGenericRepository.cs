@@ -24,6 +24,7 @@ namespace ShuttleMate.Contract.Repositories.IUOW
         Task InsertAsync(T obj);
         Task UpdateAsync(T obj);
         Task DeleteAsync(object id);
+        Task DeleteAsync(T entity);
         Task SaveAsync();
         Task<T> FindAsync(Expression<Func<T, bool>> predicate);
         Task<List<T>> FindAllAsync(Expression<Func<T, bool>> predicate);

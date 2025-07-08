@@ -14,6 +14,12 @@
         public int UsingLimit { get; set; }
         public int UsedCount { get; set; }
         public bool IsExpiredOrReachLimit { get; set; }
-        public Guid? UserId { get; set; }
+        public List<ResponseTicketPromotionModel> TicketTypes { get; set; } = new();
+    }
+
+    public class ResponseTicketPromotionModel
+    {
+        public Guid TicketId { get; set; }
+        public string Type { get; set; }
     }
 }

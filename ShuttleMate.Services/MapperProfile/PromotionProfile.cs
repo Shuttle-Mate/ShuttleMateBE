@@ -11,16 +11,16 @@ namespace ShuttleMate.Services.MapperProfile
         {
             CreateMap<Promotion, ResponsePromotionModel>()
                 .ForMember(dest => dest.Type, opt => opt.MapFrom(src => ConvertPromotionTypeToVietnameseString(src.Type)))
-                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
-                .ForMember(dest => dest.DiscountPrice, opt => opt.MapFrom(src => src.DiscountPrice))
-                .ForMember(dest => dest.DiscountPercent, opt => opt.MapFrom(src => src.DiscountPercent))
-                .ForMember(dest => dest.LimitSalePrice, opt => opt.MapFrom(src => src.LimitSalePrice))
-                .ForMember(dest => dest.EndDate, opt => opt.MapFrom(src => src.EndDate))
-                .ForMember(dest => dest.UsingLimit, opt => opt.MapFrom(src => src.UsingLimit))
-                .ForMember(dest => dest.UsedCount, opt => opt.MapFrom(src => src.UsedCount))
-                .ForMember(dest => dest.IsExpiredOrReachLimit, opt => opt.MapFrom(src => src.IsExpiredOrReachLimit))
-                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
-                .ReverseMap();
+                .ForMember(dest => dest.TicketTypes, opt => opt.MapFrom(src =>
+                    src.TicketPromotions.Select(tp => new ResponseTicketPromotionModel
+                    {
+                        TicketId = tp.TicketId,
+                        Type = tp.TicketType != null
+                            ? tp.TicketType.Type.ToString().ToUpper()
+                            : string.Empty
+                    }).ToList()
+                    ));
+
             CreateMap<Promotion, CreatePromotionModel>().ReverseMap();
         }
 
