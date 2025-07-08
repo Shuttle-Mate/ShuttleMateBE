@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ShuttleMate.Contract.Repositories.Base;
-using ShuttleMate.Core.Utils;
+﻿using ShuttleMate.Contract.Repositories.Base;
 
 namespace ShuttleMate.Contract.Repositories.Entities
 {
     public class TicketPromotion : BaseEntity
     {
-        public string PromotionId { get; set; }
-        public string TicketId { get; set; }
+        public Guid PromotionId { get; set; }
+        public Guid TicketId { get; set; }
         public virtual Promotion Promotion { get; set; }
         public virtual TicketType TicketType { get; set; }
     }
