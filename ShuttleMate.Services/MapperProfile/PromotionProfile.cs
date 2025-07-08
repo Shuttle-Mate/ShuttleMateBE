@@ -20,8 +20,8 @@ namespace ShuttleMate.Services.MapperProfile
                 .ForMember(dest => dest.UsedCount, opt => opt.MapFrom(src => src.UsedCount))
                 .ForMember(dest => dest.IsExpiredOrReachLimit, opt => opt.MapFrom(src => src.IsExpiredOrReachLimit))
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
-                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
                 .ReverseMap();
+            CreateMap<Promotion, CreatePromotionModel>().ReverseMap();
         }
 
         private string ConvertPromotionTypeToVietnameseString(TypePromotionEnum type)

@@ -37,19 +37,19 @@ namespace ShuttleMate.Services.Services
             return _mapper.Map<IEnumerable<ResponsePromotionModel>>(promotions);
         }
 
-        public async Task<IEnumerable<ResponsePromotionModel>> GetAllMyAsync()
-        {
-            var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+        //public async Task<IEnumerable<ResponsePromotionModel>> GetAllMyAsync()
+        //{
+        //    var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            var myPromotions = await _unitOfWork.GetRepository<Promotion>().FindAllAsync(a => !a.DeletedTime.HasValue && a.UserId.ToString() == userId);
+        //    var myPromotions = await _unitOfWork.GetRepository<Promotion>().FindAllAsync(a => !a.DeletedTime.HasValue && a.UserId.ToString() == userId);
 
-            if (!myPromotions.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có khuyến mãi nào.");
-            }
+        //    if (!myPromotions.Any())
+        //    {
+        //        throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có khuyến mãi nào.");
+        //    }
 
-            return _mapper.Map<IEnumerable<ResponsePromotionModel>>(myPromotions);
-        }
+        //    return _mapper.Map<IEnumerable<ResponsePromotionModel>>(myPromotions);
+        //}
 
         public async Task<ResponsePromotionModel> GetByIdAsync(Guid id)
         {
@@ -70,12 +70,21 @@ namespace ShuttleMate.Services.Services
             Guid.TryParse(userId, out Guid userIdGuid);
             model.TrimAllStrings();
 
-            var ticketType = await _unitOfWork.GetRepository<TicketType>().GetByIdAsync(model.TicketTypeId)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại.");
-
-            if (ticketType.DeletedTime.HasValue)
+            if (model.TicketTypeIds == null || !model.TicketTypeIds.Any())
             {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé này đã bị xóa.");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng chọn ít nhất một loại vé.");
+            }
+
+            var ticketTypes = await _unitOfWork.GetRepository<TicketType>().FindAllAsync(x => model.TicketTypeIds.Contains(x.Id));
+
+            if (ticketTypes.Count != model.TicketTypeIds.Count)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Một hoặc nhiều loại vé không tồn tại.");
+            }
+
+            if (ticketTypes.Any(t => t.DeletedTime.HasValue))
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Một hoặc nhiều loại vé đã bị xóa.");
             }
 
             if (!Enum.TryParse<TypePromotionEnum>(model.Type, true, out var typeEnum) || !Enum.IsDefined(typeof(TypePromotionEnum), typeEnum))
@@ -104,7 +113,6 @@ namespace ShuttleMate.Services.Services
             }
 
             var newPromotion = _mapper.Map<Promotion>(model);
-
             newPromotion.Type = typeEnum;
             newPromotion.CreatedBy = userId;
             newPromotion.LastUpdatedBy = userId;
@@ -117,20 +125,28 @@ namespace ShuttleMate.Services.Services
                 case TypePromotionEnum.PERCENTAGE_DISCOUNT:
                     newPromotion.DiscountPercent = model.DiscountValue;
                     break;
-                //case TypePromotionEnum.DiscountAmount:
-                //    promotion.DiscountAmount = model.DiscountValue;
-                //    break;
+                case TypePromotionEnum.FIXED_AMOUNT_DISCOUNT:
+                    newPromotion.DiscountAmount = model.DiscountValue;
+                    break;
                 default:
                     break;
             }
 
-            //var newTicketPromotion = new TicketPromotion();
-            //newTicketPromotion.CreatedBy = userId;
-            //newTicketPromotion.LastUpdatedBy = userId;
-            //newTicketPromotion.TicketId = ticketType.Id;
-            //newTicketPromotion.PromotionId = newPromotion.Id;
-
             await _unitOfWork.GetRepository<Promotion>().InsertAsync(newPromotion);
+
+            foreach (var ticketTypeId in model.TicketTypeIds)
+            {
+                var ticketPromotion = new TicketPromotion
+                {
+                    TicketId = ticketTypeId,
+                    PromotionId = newPromotion.Id,
+                    CreatedBy = userId,
+                    LastUpdatedBy = userId
+                };
+
+                await _unitOfWork.GetRepository<TicketPromotion>().InsertAsync(ticketPromotion);
+            }
+
             await _unitOfWork.SaveAsync();
         }
 
@@ -221,28 +237,28 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task SavePromotionAsync(Guid id)
-        {
-            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-            Guid.TryParse(userId, out Guid userIdGuid);
+        //public async Task SavePromotionAsync(Guid id)
+        //{
+        //    string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+        //    Guid.TryParse(userId, out Guid userIdGuid);
 
-            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(id)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi không tồn tại.");
+        //    var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(id)
+        //        ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi không tồn tại.");
 
-            if (promotion.DeletedTime.HasValue)
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã bị xóa.");
-            }
+        //    if (promotion.DeletedTime.HasValue)
+        //    {
+        //        throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã bị xóa.");
+        //    }
 
-            if (promotion.UserId.HasValue && promotion.UserId == userIdGuid)
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã được lưu.");
-            }
+        //    if (promotion.UserId.HasValue && promotion.UserId == userIdGuid)
+        //    {
+        //        throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã được lưu.");
+        //    }
 
-            promotion.UserId = userIdGuid;
+        //    promotion.UserId = userIdGuid;
 
-            await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
-            await _unitOfWork.SaveAsync();
-        }
+        //    await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
+        //    await _unitOfWork.SaveAsync();
+        //}
     }
 }
