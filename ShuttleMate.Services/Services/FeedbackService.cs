@@ -70,7 +70,7 @@ namespace ShuttleMate.Services.Services
             Guid.TryParse(userId, out Guid userIdGuid);
             model.TrimAllStrings();
 
-            if (!Enum.IsDefined(typeof(FeedbackCategoryEnum), model.FeedbackCategory))
+            if (!Enum.TryParse<FeedbackCategoryEnum>(model.FeedbackCategory, true, out var categoryEnum) || !Enum.IsDefined(typeof(FeedbackCategoryEnum), categoryEnum))
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phân loại phản hồi không hợp lệ.");
             }
@@ -87,6 +87,7 @@ namespace ShuttleMate.Services.Services
 
             var newFeedback = _mapper.Map<Feedback>(model);
 
+            newFeedback.FeedbackCategory = categoryEnum;
             newFeedback.UserId = userIdGuid;
             newFeedback.CreatedBy = userId;
             newFeedback.LastUpdatedBy = userId;

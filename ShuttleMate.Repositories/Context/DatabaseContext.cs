@@ -26,6 +26,7 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<Trip> Trips => Set<Trip>();
         public virtual DbSet<Promotion> Promotions => Set<Promotion>();
         public virtual DbSet<TicketPromotion> TicketPromotions => Set<TicketPromotion>();
+        public virtual DbSet<UserPromotion> UserPromotions => Set<UserPromotion>();
         public virtual DbSet<Feedback> Feedbacks => Set<Feedback>();
         public virtual DbSet<SupportRequest> SupportRequests => Set<SupportRequest>();
         public virtual DbSet<ShuttleLocationRecord> ShuttleLocationRecords => Set<ShuttleLocationRecord>();
@@ -215,6 +216,34 @@ namespace ShuttleMate.Repositories.Context
 
             modelBuilder.Entity<TicketPromotion>()
                 .HasKey(ur => new { ur.PromotionId, ur.TicketId });
+
+            modelBuilder.Entity<TicketPromotion>()
+                .HasOne(up => up.TicketType)
+                .WithMany(u => u.TicketPromotions)
+                .HasForeignKey(up => up.TicketId);
+
+            modelBuilder.Entity<TicketPromotion>()
+                .HasOne(up => up.Promotion)
+                .WithMany(p => p.TicketPromotions)
+                .HasForeignKey(up => up.PromotionId);
+
+            modelBuilder.Entity<UserPromotion>(entity =>
+            {
+                entity.ToTable("UserPromotions");
+            });
+
+            modelBuilder.Entity<UserPromotion>()
+                .HasKey(up => new { up.UserId, up.PromotionId });
+
+            modelBuilder.Entity<UserPromotion>()
+                .HasOne(up => up.User)
+                .WithMany(u => u.UserPromotions)
+                .HasForeignKey(up => up.UserId);
+
+            modelBuilder.Entity<UserPromotion>()
+                .HasOne(up => up.Promotion)
+                .WithMany(p => p.UserPromotions)
+                .HasForeignKey(up => up.PromotionId);
 
             modelBuilder.Entity<ChatBotLog>(entity =>
             {

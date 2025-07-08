@@ -27,25 +27,28 @@ namespace ShuttleMate.Services.MapperProfile
         {
             return category switch
             {
-                FeedbackCategoryEnum.LateArrival => "LATEARRIVAL",
-                FeedbackCategoryEnum.EarlyArrival => "EARLYARRIVAL",
-                FeedbackCategoryEnum.MissedPickup => "MISSEDPICKUP",
-                FeedbackCategoryEnum.UnsafeDriving => "UNSAFEDRIVING",
-                FeedbackCategoryEnum.VehicleCleanliness => "VEHICLECLEANLINESS",
-                FeedbackCategoryEnum.OvercrowdedBus => "OVERCROWDEDBUS",
-                FeedbackCategoryEnum.DriverBehavior => "DRIVERBEHAVIOR",
-                FeedbackCategoryEnum.AppCrash => "APPCRASH",
-                FeedbackCategoryEnum.GPSInaccuracy => "GPSINACCURACY",
-                FeedbackCategoryEnum.NotificationIssue => "NOTIFICATIONISSUE",
-                FeedbackCategoryEnum.UIUXIssue => "UIUXISSUE",
-                FeedbackCategoryEnum.PaymentFailed => "PAYMENTFAILED",
-                FeedbackCategoryEnum.IncorrectCharge => "INCORRECTCHARGE",
-                FeedbackCategoryEnum.TicketNotReceived => "TICKETNOTRECEIVED",
-                FeedbackCategoryEnum.PromotionIssue => "PROMOTIONISSUE",
-                FeedbackCategoryEnum.GeneralSuggestion => "GENERALSUGGESTION",
-                FeedbackCategoryEnum.Compliment => "COMPLIMENT",
-                FeedbackCategoryEnum.Complaint => "COMPLAINT",
-                FeedbackCategoryEnum.Other => "OTHER",
+                FeedbackCategoryEnum.LATE_ARRIVAL => "LATE_ARRIVAL",
+                FeedbackCategoryEnum.EARLY_ARRIVAL => "EARLY_ARRIVAL",
+                FeedbackCategoryEnum.MISSED_PICKUP => "MISSED_PICKUP",
+                FeedbackCategoryEnum.UNSAFE_DRIVING => "UNSAFE_DRIVING",
+                FeedbackCategoryEnum.VEHICLE_CLEANLINESS => "VEHICLE_CLEANLINESS",
+                FeedbackCategoryEnum.OVERCROWDED_BUS => "OVERCROWDED_BUS",
+                FeedbackCategoryEnum.DRIVER_BEHAVIOR => "DRIVER_BEHAVIOR",
+
+                FeedbackCategoryEnum.APP_CRASH => "APP_CRASH",
+                FeedbackCategoryEnum.GPS_INACCURACY => "GPS_INACCURACY",
+                FeedbackCategoryEnum.NOTIFICATION_ISSUE => "NOTIFICATION_ISSUE",
+                FeedbackCategoryEnum.UI_UX_ISSUE => "UI_UX_ISSUE",
+
+                FeedbackCategoryEnum.PAYMENT_FAILED => "PAYMENT_FAILED",
+                FeedbackCategoryEnum.INCORRECT_CHARGE => "INCORRECT_CHARGE",
+                FeedbackCategoryEnum.TICKET_NOT_RECEIVED => "TICKET_NOT_RECEIVED",
+                FeedbackCategoryEnum.PROMOTION_ISSUE => "PROMOTION_ISSUE",
+
+                FeedbackCategoryEnum.GENERAL_SUGGESTION => "GENERAL_SUGGESTION",
+                FeedbackCategoryEnum.COMPLIMENT => "COMPLIMENT",
+                FeedbackCategoryEnum.COMPLAINT => "COMPLAINT",
+                FeedbackCategoryEnum.OTHER => "OTHER",
                 _ => "UNKNOWN"
             };
         }
