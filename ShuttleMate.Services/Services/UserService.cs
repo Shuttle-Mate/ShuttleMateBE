@@ -65,9 +65,9 @@ namespace ShuttleMate.Services.Services
 
             switch (model.RoleName)
             {
-                case RoleEnum.Student:
+                case "STUDENT":
                     var role = await _unitOfWork.GetRepository<Role>().Entities
-                    .FirstOrDefaultAsync(x => x.Name == "Student");
+                    .FirstOrDefaultAsync(x => x.Name == "STUDENT");
                     if (role == null)
                     {
                         throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Vai trò không tồn tại!");
@@ -82,9 +82,9 @@ namespace ShuttleMate.Services.Services
                     };
                     await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRole);
                     break;
-                case RoleEnum.Parent:
+                case "PARENT":
                     var roleStudent = await _unitOfWork.GetRepository<Role>().Entities
-                    .FirstOrDefaultAsync(x => x.Name == "Parent");
+                    .FirstOrDefaultAsync(x => x.Name == "PARENT");
                     if (roleStudent == null)
                     {
                         throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Vai trò không tồn tại!");
@@ -99,9 +99,9 @@ namespace ShuttleMate.Services.Services
                     };
                     await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRoleStudent);
                     break;
-                case RoleEnum.Operator:
+                case "OPERATOR":
                     var roleOperator = await _unitOfWork.GetRepository<Role>().Entities
-                    .FirstOrDefaultAsync(x => x.Name == "Operator");
+                    .FirstOrDefaultAsync(x => x.Name == "OPERATOR");
                     if (roleOperator == null)
                     {
                         throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Vai trò không tồn tại!");
@@ -116,9 +116,9 @@ namespace ShuttleMate.Services.Services
                     };
                     await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRoleOperator);
                     break;
-                case RoleEnum.Driver:
+                case "DRIVER":
                     var roleDriver = await _unitOfWork.GetRepository<Role>().Entities
-                    .FirstOrDefaultAsync(x => x.Name == "Driver");
+                    .FirstOrDefaultAsync(x => x.Name == "DRIVER");
                     if (roleDriver == null)
                     {
                         throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Vai trò không tồn tại!");
@@ -133,9 +133,9 @@ namespace ShuttleMate.Services.Services
                     };
                     await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRoleDriver);
                     break;
-                case RoleEnum.School:
+                case "SCHOOL":
                     var roleSchool = await _unitOfWork.GetRepository<Role>().Entities
-                    .FirstOrDefaultAsync(x => x.Name == "School");
+                    .FirstOrDefaultAsync(x => x.Name == "SCHOOL");
                     if (roleSchool == null)
                     {
                         throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Vai trò không tồn tại!");

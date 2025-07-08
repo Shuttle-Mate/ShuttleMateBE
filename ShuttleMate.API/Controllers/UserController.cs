@@ -14,7 +14,7 @@ namespace ShuttleMate.API.Controllers
     {
         private readonly IUserService _userService;
         /// <summary>
-        ///Rolename: 0 là Student, 1 là Parent, 2 là Operator, 3 là Driver, 4 là School
+        ///Rolename: STUDENT, PARENT, OPERATOR, DRIVER, SCHOOL
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateUserAdmin(CreateUserAdminModel model)
