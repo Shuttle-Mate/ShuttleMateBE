@@ -11,6 +11,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
     {
         public Guid RouteId { get; set; }
         public Guid StopId { get; set; }
+        public int StopOrder { get; set; }
         public virtual Route Route { get; set; }
         public virtual Stop Stop { get; set; }
     }
