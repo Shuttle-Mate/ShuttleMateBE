@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ShuttleMate.Repositories.Migrations
 {
     /// <inheritdoc />
-    public partial class DbVer4 : Migration
+    public partial class DbVer5 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -51,6 +51,35 @@ namespace ShuttleMate.Repositories.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_NotificationTemplates", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Promotions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DiscountPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    DiscountPercent = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    DiscountAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    LimitSalePrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UsingLimit = table.Column<int>(type: "int", nullable: false),
+                    UsedCount = table.Column<int>(type: "int", nullable: false),
+                    IsExpiredOrReachLimit = table.Column<bool>(type: "bit", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LastUpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DeletedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    LastUpdatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    DeletedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    MetaData = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Promotions", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -374,40 +403,6 @@ namespace ShuttleMate.Repositories.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Promotions",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    DiscountPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    DiscountPercent = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    LimitSalePrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UsingLimit = table.Column<int>(type: "int", nullable: false),
-                    UsedCount = table.Column<int>(type: "int", nullable: false),
-                    IsExpiredOrReachLimit = table.Column<bool>(type: "bit", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Type = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    LastUpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DeletedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    LastUpdatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    DeletedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
-                    MetaData = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Promotions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Promotions_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Shuttles",
                 columns: table => new
                 {
@@ -483,6 +478,38 @@ namespace ShuttleMate.Repositories.Migrations
                     table.ForeignKey(
                         name: "FK_SystemLogs_Users_ActorId",
                         column: x => x.ActorId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserPromotions",
+                columns: table => new
+                {
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PromotionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    LastUpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DeletedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    LastUpdatedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
+                    DeletedTime = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    MetaData = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserPromotions", x => new { x.UserId, x.PromotionId });
+                    table.ForeignKey(
+                        name: "FK_UserPromotions_Promotions_PromotionId",
+                        column: x => x.PromotionId,
+                        principalTable: "Promotions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserPromotions_Users_UserId",
+                        column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -592,10 +619,8 @@ namespace ShuttleMate.Repositories.Migrations
                 name: "TicketPromotions",
                 columns: table => new
                 {
-                    PromotionId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    TicketId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    PromotionId1 = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TicketTypeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PromotionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TicketId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     LastUpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -609,14 +634,14 @@ namespace ShuttleMate.Repositories.Migrations
                 {
                     table.PrimaryKey("PK_TicketPromotions", x => new { x.PromotionId, x.TicketId });
                     table.ForeignKey(
-                        name: "FK_TicketPromotions_Promotions_PromotionId1",
-                        column: x => x.PromotionId1,
+                        name: "FK_TicketPromotions_Promotions_PromotionId",
+                        column: x => x.PromotionId,
                         principalTable: "Promotions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_TicketPromotions_TicketTypes_TicketTypeId",
-                        column: x => x.TicketTypeId,
+                        name: "FK_TicketPromotions_TicketTypes_TicketId",
+                        column: x => x.TicketId,
                         principalTable: "TicketTypes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -823,11 +848,6 @@ namespace ShuttleMate.Repositories.Migrations
                 column: "RecipientId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Promotions_UserId",
-                table: "Promotions",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_ResponseSupports_SupportRequestId",
                 table: "ResponseSupports",
                 column: "SupportRequestId");
@@ -873,14 +893,9 @@ namespace ShuttleMate.Repositories.Migrations
                 column: "ActorId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TicketPromotions_PromotionId1",
+                name: "IX_TicketPromotions_TicketId",
                 table: "TicketPromotions",
-                column: "PromotionId1");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TicketPromotions_TicketTypeId",
-                table: "TicketPromotions",
-                column: "TicketTypeId");
+                column: "TicketId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TicketTypes_RouteId",
@@ -903,6 +918,11 @@ namespace ShuttleMate.Repositories.Migrations
                 name: "IX_Trips_ShuttleId",
                 table: "Trips",
                 column: "ShuttleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserPromotions_PromotionId",
+                table: "UserPromotions",
+                column: "PromotionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserRoles_RoleId",
@@ -960,6 +980,9 @@ namespace ShuttleMate.Repositories.Migrations
                 name: "Transactions");
 
             migrationBuilder.DropTable(
+                name: "UserPromotions");
+
+            migrationBuilder.DropTable(
                 name: "UserRoles");
 
             migrationBuilder.DropTable(
@@ -978,10 +1001,10 @@ namespace ShuttleMate.Repositories.Migrations
                 name: "Stops");
 
             migrationBuilder.DropTable(
-                name: "Promotions");
+                name: "HistoryTickets");
 
             migrationBuilder.DropTable(
-                name: "HistoryTickets");
+                name: "Promotions");
 
             migrationBuilder.DropTable(
                 name: "Roles");
