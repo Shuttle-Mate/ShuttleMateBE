@@ -47,8 +47,13 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có vai trò nào tồn tại!");
             }
-            return _mapper.Map<List<ResponseRoleModel>>(roles);
+            var listRole = roles.Select(role => new ResponseRoleModel
+            {
+                Id = role.Id,
+                Name = role.Name.ToUpper(),
+            }).ToList();
 
+            return listRole;
         }
         public async Task UpdateRole(UpdateRoleModel model)
         {

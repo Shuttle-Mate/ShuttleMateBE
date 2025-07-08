@@ -23,13 +23,13 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy tất cả các vé.
         /// </summary>
-        /// <param name="type">Loại vé, lần lượt là: SingleRide = 0, DayPass = 1, Weekly = 2, Monthly = 3.</param>
+        /// <param name="type">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER)</param>
         /// <param name="routeName">Tên tuyến (tuỳ chọn).</param>
         /// <param name="price">Sắp xếp theo giá: true là tăng dần, false là giảm dần (tuỳ chọn).</param>
         /// <param name="lowerBound">Cận dưới: khi chỉ có một cận thì >= nó, khi có hai cận thì >= nó và bé hơn hoặc = cận trên (tuỳ chọn).</param>
         /// <param name="upperBound">Cận trên: khi chỉ có một cận thì >= cận dưới, khi có hai cận thì >= nó và bé hơn hoặc = nó (tuỳ chọn).</param>
         [HttpGet]
-        public async Task<IActionResult> GetAllTicketTypes(TicketTypeEnum? type, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null)
+        public async Task<IActionResult> GetAllTicketTypes(string? type, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null)
         {
             var tickets = await _ticketTypeService.GetAllAsync(type, routeName, price, lowerBound, upperBound);
 
@@ -49,7 +49,8 @@ namespace ShuttleMate.API.Controllers
                 code: ResponseCodeConstants.SUCCESS,
                 data: ticket
             ));
-        }
+        }/// <summary>
+         /// Type(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER)/// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateTicketType(CreateTicketTypeModel model)
         {

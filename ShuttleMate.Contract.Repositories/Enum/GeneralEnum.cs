@@ -118,39 +118,39 @@ namespace ShuttleMate.Contract.Repositories.Enum
         }
         public enum TicketTypeEnum
         {
-            SingleRide,
-            DayPass,
-            Weekly,
-            Monthly,
-            Semester
+            SINGLE_RIDE,
+            DAY_PASS,
+            WEEKLY,
+            MONTHLY,
+            SEMESTER
         }
         public enum PaymentMethodEnum
         {
-            PayOs,
-            VNPay
+            PAYOS,
+            VNPAY
             
         }
         public enum PaymentStatus
         {
-            Unpaid = 0,
-            Paid = 1,
-            Refunded = 2,
-            Canceled = 3,
+            UNPAID = 0,
+            PAID = 1,
+            REFUNDED = 2,
+            CANCELED = 3,
         }
         public enum HistoryTicketStatus
         {
-            UnPaid = 0,
-            Paid = 1,
-            Cancelled = 2,
-            Used = 3,
+            UNPAID = 0,
+            PAID = 1,
+            CANCELLED = 2,
+            USED = 3,
         }
         public enum RoleEnum
         {
-            Student ,
-            Parent ,
-            Operator,
-            Driver,
-            School
+            STUDENT ,
+            PARENT ,
+            OPERATOR,
+            DRIVER,
+            SCHOOL
         }
     }
 }

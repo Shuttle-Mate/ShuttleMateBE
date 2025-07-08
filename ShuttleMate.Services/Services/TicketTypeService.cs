@@ -36,16 +36,16 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _emailService = emailService;
         }
-        public async Task<IEnumerable<TicketTypeResponseModel>> GetAllAsync(TicketTypeEnum? type, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null)
+        public async Task<IEnumerable<TicketTypeResponseModel>> GetAllAsync(string? type, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null)
         {
             var ticketRepo = _unitOfWork.GetRepository<TicketType>();
 
             var query = ticketRepo.Entities
         .Include(u => u.Route)
         .AsQueryable();
-            if (type.HasValue)
+            if (string.IsNullOrWhiteSpace(type))
             {
-                query = query.Where(u => u.Type == type);
+                query = query.Where(u => u.Type.ToString().ToUpper() == type);
             }
             if (!string.IsNullOrWhiteSpace(routeName))
             {
@@ -91,46 +91,103 @@ namespace ShuttleMate.Services.Services
         {
             return status switch
             {
-                TicketTypeEnum.DayPass => "Vé ngày",
-                TicketTypeEnum.Monthly => "Vé tháng",
-                TicketTypeEnum.Weekly => "Vé tuần",
-                TicketTypeEnum.SingleRide => "Vé 1 chiều",
-                TicketTypeEnum.Semester => "Vé 1 học kì",
+                TicketTypeEnum.DAY_PASS => "Vé ngày",
+                TicketTypeEnum.MONTHLY => "Vé tháng",
+                TicketTypeEnum.WEEKLY => "Vé tuần",
+                TicketTypeEnum.SINGLE_RIDE => "Vé 1 chiều",
+                TicketTypeEnum.SEMESTER => "Vé 1 học kì",
                 _ => "Không xác định"
             };
         }
         public async Task<TicketTypeResponseModel> GetById(Guid Id)
         {
-            var ticketType = await _unitOfWork.GetRepository<TicketType>().Entities.FirstOrDefaultAsync(x=>x.Id == Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
-            var response =  new TicketTypeResponseModel
-                {
-                    Id = ticketType.Id,
-                    Price = ticketType.Price,
-                    RouteName = ticketType.Route.RouteName,
-                    Type = ticketType.Type.ToString().ToUpper(),
-                };
+            var ticketType = await _unitOfWork.GetRepository<TicketType>().Entities.FirstOrDefaultAsync(x => x.Id == Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+            var response = new TicketTypeResponseModel
+            {
+                Id = ticketType.Id,
+                Price = ticketType.Price,
+                RouteName = ticketType.Route.RouteName,
+                Type = ticketType.Type.ToString().ToUpper(),
+            };
             return response;
         }
         public async Task CreateTicketType(CreateTicketTypeModel model)
         {
-            if(model.Price <= 0)
+            if (model.Price <= 0)
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Giá loại vé phải lớn hơn 0!");
             }
-            var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x=>x.Id == model.RouteId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
-
-            var newTicketType = new TicketType
+            var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == model.RouteId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
+            switch (model.Type)
             {
-                Id = Guid.NewGuid(),
-                CreatedTime = DateTime.Now,
-                Price = model.Price,
-                RouteId = model.RouteId,
-                Type = model.Type,
-                LastUpdatedTime = DateTime.Now,
-                
-            };
-            await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketType);
-            await _unitOfWork.SaveAsync();
+                case "SINGLE_RIDE":
+                    var newTicketTypeSINGLE_RIDE = new TicketType
+                    {
+                        Id = Guid.NewGuid(),
+                        CreatedTime = DateTime.Now,
+                        Price = model.Price,
+                        RouteId = model.RouteId,
+                        Type = TicketTypeEnum.SINGLE_RIDE,
+                        LastUpdatedTime = DateTime.Now,
+                    };
+                    await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketTypeSINGLE_RIDE);
+                    await _unitOfWork.SaveAsync();
+                    break;
+                case "DAY_PASS":
+                    var newTicketTypeDAY_PASS = new TicketType
+                    {
+                        Id = Guid.NewGuid(),
+                        CreatedTime = DateTime.Now,
+                        Price = model.Price,
+                        RouteId = model.RouteId,
+                        Type = TicketTypeEnum.DAY_PASS,
+                        LastUpdatedTime = DateTime.Now,
+                    };
+                    await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketTypeDAY_PASS);
+                    await _unitOfWork.SaveAsync();
+                    break;
+                case "WEEKLY":
+                    var newTicketTypeWEEKLY = new TicketType
+                    {
+                        Id = Guid.NewGuid(),
+                        CreatedTime = DateTime.Now,
+                        Price = model.Price,
+                        RouteId = model.RouteId,
+                        Type = TicketTypeEnum.WEEKLY,
+                        LastUpdatedTime = DateTime.Now,
+                    };
+                    await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketTypeWEEKLY);
+                    await _unitOfWork.SaveAsync();
+                    break;
+                case "MONTHLY":
+                    var newTicketTypeMONTHLY = new TicketType
+                    {
+                        Id = Guid.NewGuid(),
+                        CreatedTime = DateTime.Now,
+                        Price = model.Price,
+                        RouteId = model.RouteId,
+                        Type = TicketTypeEnum.MONTHLY,
+                        LastUpdatedTime = DateTime.Now,
+                    };
+                    await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketTypeMONTHLY);
+                    await _unitOfWork.SaveAsync();
+                    break;
+                case "SEMESTER":
+                    var newTicketTypeSEMESTER = new TicketType
+                    {
+                        Id = Guid.NewGuid(),
+                        CreatedTime = DateTime.Now,
+                        Price = model.Price,
+                        RouteId = model.RouteId,
+                        Type = TicketTypeEnum.SEMESTER,
+                        LastUpdatedTime = DateTime.Now,
+                    };
+                    await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketTypeSEMESTER);
+                    await _unitOfWork.SaveAsync();
+                    break;
+                default:
+                    throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy loại vé!");
+            }
         }
         public async Task UpdateTicketType(UpdateTicketTypeModel model)
         {
@@ -144,7 +201,26 @@ namespace ShuttleMate.Services.Services
 
             ticketType.Price = model.Price;
             ticketType.RouteId = model.RouteId;
-            ticketType.Type = model.Type;
+            switch (model.Type)
+            {
+                case "SINGLE_RIDE":
+                    ticketType.Type = TicketTypeEnum.SINGLE_RIDE;
+                    break;
+                case "DAY_PASS":
+                    ticketType.Type = TicketTypeEnum.DAY_PASS;
+                    break;
+                case "WEEKLY":
+                    ticketType.Type = TicketTypeEnum.WEEKLY;
+                    break;
+                case "MONTHLY":
+                    ticketType.Type = TicketTypeEnum.MONTHLY;
+                    break;
+                case "SEMESTER":
+                    ticketType.Type = TicketTypeEnum.SEMESTER;
+                    break;
+                default:
+                    throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy loại vé!");
+            }
 
             await _unitOfWork.GetRepository<TicketType>().UpdateAsync(ticketType);
             await _unitOfWork.SaveAsync();
