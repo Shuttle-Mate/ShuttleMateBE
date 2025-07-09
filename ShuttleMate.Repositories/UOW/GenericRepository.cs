@@ -119,5 +119,11 @@ namespace ShuttleMate.Repositories.UOW
         {
             return _dbSet.AsQueryable();
         }
+        public async Task UpdateRangeAsync(IEnumerable<T> entities)
+        {
+            _context.Set<T>().UpdateRange(entities);
+            await Task.CompletedTask;
+        }
+
     }
 }

@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ShuttleMate.Contract.Repositories.Base;
-using ShuttleMate.Core.Utils;
-using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
+﻿using ShuttleMate.Contract.Repositories.Base;
 
 namespace ShuttleMate.Contract.Repositories.Entities
 {
@@ -15,6 +8,5 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public string Title { get; set; }
         public string Description { get; set; }
         public virtual SupportRequest SupportRequest { get; set; }
-        public ResponseSupportEnum Status { get; set; }
     }
 }
