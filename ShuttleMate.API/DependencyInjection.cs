@@ -225,6 +225,7 @@ namespace ShuttleMate.API
             services.AddScoped<IStopEstimateService, StopEstimateService>();
             services.AddScoped<ITransactionService, TransactionService>();
             services.AddScoped<IRouteStopService, RouteStopService>();
+            services.AddScoped<IResponseSupportService, ResponseSupportService>();
         }
 
         public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)
