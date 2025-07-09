@@ -52,7 +52,7 @@ namespace ShuttleMate.Services.Services
                 {
                     old.DeletedTime = DateTime.UtcNow;
                     old.DeletedBy = userId;
-                    _unitOfWork.DbContext.Entry(old).State = EntityState.Detached; // Ngắt tracking
+                    //_unitOfWork.DbContext.Entry(old).State = EntityState.Detached; // Ngắt tracking
                 }
 
                 await routeStopRepo.UpdateRangeAsync(oldStops);

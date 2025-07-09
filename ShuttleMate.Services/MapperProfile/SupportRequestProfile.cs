@@ -16,6 +16,7 @@ namespace ShuttleMate.Services.MapperProfile
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
                 .ForMember(dest => dest.Message, opt => opt.MapFrom(src => src.Message))
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.User.FullName))
                 .ReverseMap();
 
             CreateMap<SupportRequest, CreateSupportRequestModel>().ReverseMap();
@@ -25,7 +26,6 @@ namespace ShuttleMate.Services.MapperProfile
         {
             return status switch
             {
-                SupportRequestStatusEnum.CREATED => "CREATED",
                 SupportRequestStatusEnum.IN_PROGRESS => "IN_PROGRESS",
                 SupportRequestStatusEnum.ESCALATED => "ESCALATED",
                 SupportRequestStatusEnum.RESOLVED => "RESOLVED",
