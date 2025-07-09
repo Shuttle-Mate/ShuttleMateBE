@@ -85,11 +85,11 @@ namespace ShuttleMate.Contract.Repositories.Enum
 
         public enum SupportRequestStatusEnum
         {
-            CREATED,             // 🆕 Mới được tạo, chưa ai xử lý
-            IN_PROGRESS,         // 🛠️ Đang được xử lý bởi nhân viên kỹ thuật
-            ESCALATED,           // ⚠️ Đã được chuyển cấp xử lý cao hơn
-            RESOLVED,            // ✅ Đã giải quyết
-            CANCELLED            // ❌ Bị hủy bởi người dùng hoặc hệ thống
+            IN_PROGRESS,         // Đang được xử lý bởi nhân viên kỹ thuật
+            RESPONSED,           // Đã phản hồi bởi nhân viên kỹ thuật
+            ESCALATED,           // Đã được chuyển cấp xử lý cao hơn
+            RESOLVED,            // Đã giải quyết
+            CANCELLED            // Bị hủy bởi người dùng
         }
 
         public enum SupportRequestCategoryEnum
