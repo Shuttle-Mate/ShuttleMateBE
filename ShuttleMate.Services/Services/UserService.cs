@@ -340,7 +340,9 @@ namespace ShuttleMate.Services.Services
 
 
             User user = await _unitOfWork.GetRepository<User>()
-         .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Tài khoản không tồn tại!");
+         .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
+            School school = await _unitOfWork.GetRepository<School>()
+         .Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Trường học không tồn tại!");
 
             //if (model.FullName.Length < 8)
             //{
@@ -368,7 +370,7 @@ namespace ShuttleMate.Services.Services
             user.Address = model.Address;
             user.DateOfBirth = model.DateOfBirth;
             user.ProfileImageUrl =model.ProfileImageUrl;
-
+            user.SchoolId = model.SchoolId;
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
         }
