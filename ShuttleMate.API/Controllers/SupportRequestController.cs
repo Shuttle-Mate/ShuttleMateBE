@@ -58,7 +58,7 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy yêu cầu hỗ trợ bằng id.
         /// </summary>
-        [HttpGet("{id}")]
+        [HttpGet("{supportRequestId}")]
         public async Task<IActionResult> GetSupportRequestById(Guid supportRequestId)
         {
             return Ok(new BaseResponseModel<ResponseSupportRequestModel>(
