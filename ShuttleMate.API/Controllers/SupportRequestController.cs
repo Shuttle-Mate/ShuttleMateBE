@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.ResponseSupportModelViews;
 using ShuttleMate.ModelViews.SupportRequestModelViews;
 
 namespace ShuttleMate.API.Controllers
@@ -18,22 +20,22 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Lấy toàn bộ yêu cầu hỗ trợ (Admin).
+        /// Lấy toàn bộ yêu cầu hỗ trợ.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetAllSupportRequestsAdmin()
+        public async Task<IActionResult> GetAllSupportRequests()
         {
             return Ok(new BaseResponseModel<IEnumerable<ResponseSupportRequestModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _supportRequestService.GetAllAdminAsync()));
+                data: await _supportRequestService.GetAllAsync()));
         }
 
         /// <summary>
         /// Lấy toàn bộ yêu cầu hỗ trợ của tôi.
         /// </summary>
         [HttpGet("my")]
-        public async Task<IActionResult> GetAllSupportRequestsMy()
+        public async Task<IActionResult> GetAllMySupportRequests()
         {
             return Ok(new BaseResponseModel<IEnumerable<ResponseSupportRequestModel>>(
                 statusCode: StatusCodes.Status200OK,
@@ -42,16 +44,27 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
+        /// Lấy toàn bộ phản hồi hỗ trợ của một yêu cầu hỗ trợ.
+        /// </summary>
+        [HttpGet("{supportRequestId}/responses")]
+        public async Task<IActionResult> GetAllMySupportRequests(Guid supportRequestId)
+        {
+            return Ok(new BaseResponseModel<IEnumerable<ResponseResponseSupportModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: await _supportRequestService.GetAllMyResponseAsync(supportRequestId)));
+        }
+
+        /// <summary>
         /// Lấy yêu cầu hỗ trợ bằng id.
         /// </summary>
-        /// <param name="id">ID của yêu cầu hỗ trợ cần lấy</param>
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetSupportRequestById(Guid id)
+        [HttpGet("{supportRequestId}")]
+        public async Task<IActionResult> GetSupportRequestById(Guid supportRequestId)
         {
             return Ok(new BaseResponseModel<ResponseSupportRequestModel>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _supportRequestService.GetByIdAsync(id)));
+                data: await _supportRequestService.GetByIdAsync(supportRequestId)));
         }
 
         /// <summary>
@@ -69,14 +82,12 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Cập nhật trạng thái một yêu cầu hỗ trợ.
+        /// Cập nhật trạng thái yêu cầu hỗ trợ thành đã gửi lên cấp cao hơn.
         /// </summary>
-        /// <param name="id">ID của yêu cầu hỗ trợ cần cập nhật trạng thái</param>
-        /// <param name="model">Thông tin cập nhật cho yêu cầu hỗ trợ</param>
-        [HttpPut("{id}")]
-        public async Task<IActionResult> ChangeSupportRequestStatus(Guid id, UpdateSupportRequestModel model)
+        [HttpPut("{supportRequestId}/escalated")]
+        public async Task<IActionResult> ChangeSupportRequestStatusToEscalated(Guid supportRequestId)
         {
-            await _supportRequestService.ChangeStatusAsync(id, model);
+            await _supportRequestService.EscalateAsync(supportRequestId);
             return Ok(new BaseResponseModel<string?>(
                statusCode: StatusCodes.Status200OK,
                code: ResponseCodeConstants.SUCCESS,
@@ -84,18 +95,29 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Xóa một yêu cầu hỗ trợ.
+        /// Cập nhật trạng thái một yêu cầu hỗ trợ thành đã giải quyết.
         /// </summary>
-        /// <param name="id">id của yêu cầu hỗ trợ cần xóa.</param>
-        ///
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteSupportRequest(Guid id)
+        [HttpPut("{supportRequestId}/resolved")]
+        public async Task<IActionResult> ChangeSupportRequestStatusToResolved(Guid supportRequestId)
         {
-            await _supportRequestService.DeleteAsync(id);
+            await _supportRequestService.ResolveAsync(supportRequestId);
             return Ok(new BaseResponseModel<string?>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                message: "Xóa yêu cầu hỗ trợ công."));
+               statusCode: StatusCodes.Status200OK,
+               code: ResponseCodeConstants.SUCCESS,
+               message: "Cập nhật trạng thái yêu cầu hỗ trợ thành công."));
+        }
+
+        /// <summary>
+        /// Cập nhật trạng thái một yêu cầu hỗ trợ thành đã hủy.
+        /// </summary>
+        [HttpPut("{supportRequestId}/cancelled")]
+        public async Task<IActionResult> ChangeSupportRequestStatusToCancelled(Guid supportRequestId)
+        {
+            await _supportRequestService.CancelAsync(supportRequestId);
+            return Ok(new BaseResponseModel<string?>(
+               statusCode: StatusCodes.Status200OK,
+               code: ResponseCodeConstants.SUCCESS,
+               message: "Cập nhật trạng thái yêu cầu hỗ trợ thành công."));
         }
     }
 }

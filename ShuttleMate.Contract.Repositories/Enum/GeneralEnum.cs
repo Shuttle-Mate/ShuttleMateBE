@@ -83,25 +83,13 @@ namespace ShuttleMate.Contract.Repositories.Enum
             FIXED_AMOUNT_DISCOUNT        // Giảm giá theo số tiền
         }
 
-        public enum ResponseSupportEnum
-        {
-            Resolved,             // Đã xử lý xong và giải quyết thành công
-            Rejected,             // Từ chối xử lý (không hợp lệ hoặc không thuộc phạm vi)
-            Escalated,            // Đã chuyển tiếp đến cấp cao hơn để xử lý
-            PendingCustomer,      // Đang chờ người dùng cung cấp thêm thông tin
-            PendingSupport,       // Đang chờ nhân viên/phòng ban xử lý
-            CancelledByUser,      // Người dùng đã hủy yêu cầu
-            TimedOut,             // Hết thời gian xử lý mà không có phản hồi (SLA breach)
-            Other                // Trạng thái khác
-        }
-
         public enum SupportRequestStatusEnum
         {
-            CREATED,             // 🆕 Mới được tạo, chưa ai xử lý
-            IN_PROGRESS,         // 🛠️ Đang được xử lý bởi nhân viên kỹ thuật
-            ESCALATED,           // ⚠️ Đã được chuyển cấp xử lý cao hơn
-            RESOLVED,            // ✅ Đã giải quyết
-            CANCELLED            // ❌ Bị hủy bởi người dùng hoặc hệ thống
+            IN_PROGRESS,         // Đang được xử lý bởi nhân viên kỹ thuật
+            RESPONSED,           // Đã phản hồi bởi nhân viên kỹ thuật
+            ESCALATED,           // Đã được chuyển cấp xử lý cao hơn
+            RESOLVED,            // Đã giải quyết
+            CANCELLED            // Bị hủy bởi người dùng
         }
 
         public enum SupportRequestCategoryEnum

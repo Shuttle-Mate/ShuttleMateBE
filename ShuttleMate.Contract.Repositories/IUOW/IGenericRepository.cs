@@ -30,5 +30,6 @@ namespace ShuttleMate.Contract.Repositories.IUOW
         Task<List<T>> FindAllAsync(Expression<Func<T, bool>> predicate);
         Task<IQueryable<T>> GetAllQueryableAsync();
         IQueryable<T> GetQueryable();
+        Task UpdateRangeAsync(IEnumerable<T> entities);
     }
 }
