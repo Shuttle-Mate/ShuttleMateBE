@@ -8,6 +8,7 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.ResponseSupportModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
+using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
 {
@@ -47,6 +48,14 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền Id yêu cầu hỗ trợ hợp lệ.");
             }
 
+            var supportRequest = await _unitOfWork.GetRepository<SupportRequest>().GetByIdAsync(model.SupportRequestId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hỗ trợ không tồn tại.");
+
+            if (supportRequest.DeletedTime.HasValue)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hỗ trợ đã bị xóa.");
+            }
+
             if (string.IsNullOrWhiteSpace(model.Title))
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền tiêu đề.");
@@ -63,6 +72,11 @@ namespace ShuttleMate.Services.Services
             newResponseSupport.LastUpdatedBy = userId;
 
             await _unitOfWork.GetRepository<ResponseSupport>().InsertAsync(newResponseSupport);
+
+            supportRequest.Status = SupportRequestStatusEnum.RESPONSED;
+
+            await _unitOfWork.GetRepository<SupportRequest>().UpdateAsync(supportRequest);
+
             await _unitOfWork.SaveAsync();
         }
 

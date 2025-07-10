@@ -1,14 +1,17 @@
-﻿using ShuttleMate.ModelViews.SupportRequestModelViews;
+﻿using ShuttleMate.ModelViews.ResponseSupportModelViews;
+using ShuttleMate.ModelViews.SupportRequestModelViews;
 
 namespace ShuttleMate.Contract.Services.Interfaces
 {
     public interface ISupportRequestService
     {
-        Task<IEnumerable<ResponseSupportRequestModel>> GetAllAdminAsync();
+        Task<IEnumerable<ResponseSupportRequestModel>> GetAllAsync();
         Task<IEnumerable<ResponseSupportRequestModel>> GetAllMyAsync();
+        Task<IEnumerable<ResponseResponseSupportModel>> GetAllMyResponseAsync(Guid id);
         Task<ResponseSupportRequestModel> GetByIdAsync(Guid id);
         Task CreateAsync(CreateSupportRequestModel model);
-        Task ChangeStatusAsync(Guid id, UpdateSupportRequestModel model);
-        Task DeleteAsync(Guid id);
+        Task EscalateAsync(Guid id);
+        Task ResolveAsync(Guid id);
+        Task CancelAsync(Guid id);
     }
 }
