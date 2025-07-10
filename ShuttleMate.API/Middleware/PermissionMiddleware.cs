@@ -119,7 +119,7 @@ namespace ShuttleMate.API.Middleware
 
         private static async Task HandleForbiddenRequest(HttpContext context)
         {
-            throw new ErrorException(StatusCodes.Status403Forbidden, ErrorCode.Forbidden, "Token đã hết hạn!");
+            throw new ErrorException(StatusCodes.Status401Unauthorized, ErrorCode.Unauthorized, "Token đã hết hạn!");
             //string result = JsonSerializer.Serialize(error);
 
             //context.Response.ContentType = "application/json";

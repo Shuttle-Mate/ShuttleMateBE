@@ -166,6 +166,10 @@ namespace ShuttleMate.Services.Services
             var parent = await _unitOfWork.GetRepository<User>()
                 .Entities.FirstOrDefaultAsync(x => x.Id == model.ParentId && !x.DeletedTime.HasValue)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Phụ huynh không tồn tại!");
+            if (parent.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "PARENT")
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò phụ huynh!");
+            }
             user.ParentId = parent.Id;
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
@@ -183,6 +187,10 @@ namespace ShuttleMate.Services.Services
             var parent = await _unitOfWork.GetRepository<User>()
                 .Entities.FirstOrDefaultAsync(x => x.Id == model.ParentId && !x.DeletedTime.HasValue)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Phụ huynh không tồn tại!");
+            if (parent.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "PARENT")
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò phụ huynh!");
+            }
             user.ParentId = parent.Id;
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
@@ -206,7 +214,7 @@ namespace ShuttleMate.Services.Services
             }
             if (gender != null)
             {
-                query = query.Where(u => u.Gender==gender);
+                query = query.Where(u => u.Gender == gender);
             }
 
             var users = await query
@@ -256,6 +264,27 @@ namespace ShuttleMate.Services.Services
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
                 ProfileImageUrl = user.ProfileImageUrl
+            };
+            return inforModel;
+        }
+        public async Task<UserResponseModel> GetById(Guid userId)
+        {
+
+            // Lấy thông tin người dùng
+            User user = await _unitOfWork.GetRepository<User>()
+                .Entities.FirstOrDefaultAsync(x => x.Id == userId) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại!");
+
+            UserResponseModel inforModel = new UserResponseModel
+            {
+                Id = user.Id,
+                Address = user.Address,
+                DateOfBirth = user.DateOfBirth,
+                Email = user.Email,
+                FullName = user.FullName,
+                Gender = user.Gender,
+                PhoneNumber = user.PhoneNumber,
+                ProfileImageUrl = user.ProfileImageUrl,
+                RoleName = user.UserRoles.FirstOrDefault().Role.Name.ToUpper()
             };
             return inforModel;
         }
@@ -340,7 +369,9 @@ namespace ShuttleMate.Services.Services
 
 
             User user = await _unitOfWork.GetRepository<User>()
-         .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Tài khoản không tồn tại!");
+         .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
+            School school = await _unitOfWork.GetRepository<School>()
+         .Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Trường học không tồn tại!");
 
             //if (model.FullName.Length < 8)
             //{
@@ -367,8 +398,8 @@ namespace ShuttleMate.Services.Services
             user.Gender = model.Gender;
             user.Address = model.Address;
             user.DateOfBirth = model.DateOfBirth;
-            user.ProfileImageUrl =model.ProfileImageUrl;
-
+            user.ProfileImageUrl = model.ProfileImageUrl;
+            user.SchoolId = model.SchoolId;
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
         }

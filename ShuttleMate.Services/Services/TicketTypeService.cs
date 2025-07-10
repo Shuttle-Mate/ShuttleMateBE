@@ -36,7 +36,7 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _emailService = emailService;
         }
-        public async Task<IEnumerable<TicketTypeResponseModel>> GetAllAsync(string? type, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null)
+        public async Task<IEnumerable<TicketTypeResponseModel>> GetAllAsync(string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid ? routeId = null)
         {
             var ticketRepo = _unitOfWork.GetRepository<TicketType>();
 
@@ -46,6 +46,10 @@ namespace ShuttleMate.Services.Services
             if (string.IsNullOrWhiteSpace(type))
             {
                 query = query.Where(u => u.Type.ToString().ToUpper() == type);
+            }
+            if (routeId != null)
+            {
+                query = query.Where(u => u.Route.Id.ToString().Contains(routeId.ToString()!));
             }
             if (!string.IsNullOrWhiteSpace(routeName))
             {

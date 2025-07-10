@@ -200,7 +200,7 @@ namespace ShuttleMate.Services.Services
             var loginResponse = new LoginResponse
             {
                 TokenResponse = tokenResponse,
-                Role = roleName,
+                //Role = roleName,
             };
             return loginResponse;
 
@@ -282,7 +282,7 @@ namespace ShuttleMate.Services.Services
             return new LoginResponse
             {
                 TokenResponse = tokenResponse,
-                Role = roleName
+                //Role = roleName
             };
         }
         private async Task<User> CheckRefreshToken(string refreshToken)
