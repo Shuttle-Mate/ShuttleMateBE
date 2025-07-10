@@ -64,7 +64,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<ResponseSupportRequestModel>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _supportRequestService.GetByIdAsync(id)));
+                data: await _supportRequestService.GetByIdAsync(supportRequestId)));
         }
 
         /// <summary>

@@ -34,7 +34,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="ValidUntil">tra theo thời gian hết hiệu lực</param>
         /// <param name="ticketId">tra theo vé</param>
         [HttpGet("my")]
-        public async Task<IActionResult> GetAllForUserAsync(string? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, string? ticketType = null)
+        public async Task<IActionResult> GetAllForUserAsync(string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, string? ticketType = null)
         {
             var tickets = await _historyTicketService.GetAllForUserAsync(status, PurchaseAt, CreateTime, ValidFrom, ValidUntil, ticketId, ticketType);
 
@@ -55,8 +55,8 @@ namespace ShuttleMate.API.Controllers
         /// <param name="ticketId">tra theo vé</param>
         /// <param name="ticketType">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER)</param>
         /// <param name="studentId">Id của học sinh</param>
-        [HttpGet("studentId")]
-        public async Task<IActionResult> GetAllForParentAsync(string? ticketType = null, string ? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null )
+        [HttpGet("student")]
+        public async Task<IActionResult> GetAllForParentAsync(string? ticketType = null, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null)
         {
             var tickets = await _historyTicketService.GetAllForParentAsync(status, PurchaseAt, CreateTime, ValidFrom, ValidUntil, ticketId, studentId, ticketType);
 
@@ -78,7 +78,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="userId">tra theo người mua</param>
         /// <param name="ticketType">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER)</param>
         [HttpGet]
-        public async Task<IActionResult> GetAllForAdminAsync(string? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null)
+        public async Task<IActionResult> GetAllForAdminAsync(string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null)
         {
             var tickets = await _historyTicketService.GetAllForAdminAsync(status, PurchaseAt, CreateTime, ValidFrom, ValidUntil, userId, ticketId, ticketType);
 
