@@ -10,7 +10,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
 {
     public interface ITicketTypeService
     {
-        Task<IEnumerable<TicketTypeResponseModel>> GetAllAsync(string? type, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null);
+        Task<IEnumerable<TicketTypeResponseModel>> GetAllAsync(string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid? routeId = null);
         Task<TicketTypeResponseModel> GetById(Guid Id);
         Task CreateTicketType(CreateTicketTypeModel model);
         Task UpdateTicketType(UpdateTicketTypeModel model);

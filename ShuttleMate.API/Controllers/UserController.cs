@@ -117,11 +117,21 @@ namespace ShuttleMate.API.Controllers
                 message: "Xóa vai trò cho người dùng thành công!"
             ));
         }
-        [HttpGet("Get-Infor")]
+        [HttpGet("get-infor")]
         public async Task<IActionResult> GetInfor()
         {
             UserInforModel res = await _userService.GetInfor();
             return Ok(new BaseResponseModel<UserInforModel>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 data: res
+             ));
+        }
+        [HttpGet("get-by-id")]
+        public async Task<IActionResult> GetById(Guid userId)
+        {
+            UserResponseModel res = await _userService.GetById(userId);
+            return Ok(new BaseResponseModel<UserResponseModel>(
                  statusCode: StatusCodes.Status200OK,
                  code: ResponseCodeConstants.SUCCESS,
                  data: res
