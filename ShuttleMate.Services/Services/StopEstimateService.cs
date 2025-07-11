@@ -154,7 +154,7 @@ namespace ShuttleMate.Services.Services
 
             if (estimatedTimeInSeconds.HasValue)
             {
-                var departureDateTime = DateTime.Today.Add(departureTime.Departure.ToTimeSpan());
+                var departureDateTime = DateTime.Today.Add(departureTime.Time.ToTimeSpan());
 
                 var expectedDateTime = departureDateTime.AddSeconds(estimatedTimeInSeconds.Value);
 
