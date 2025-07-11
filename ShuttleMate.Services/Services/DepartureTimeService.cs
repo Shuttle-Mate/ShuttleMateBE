@@ -24,176 +24,195 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
         }
 
-        public async Task<IEnumerable<ResponseDepartureTimeModel>> GetAllAsync()
-        {
-            var departureTimes = await _unitOfWork.GetRepository<DepartureTime>().FindAllAsync(a => !a.DeletedTime.HasValue);
-
-            if (!departureTimes.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có thời gian khởi hành nào.");
-            }
-
-            var groupedAndSortedDepartureTimes = departureTimes
-                .GroupBy(d => d.RouteId)
-                .Select(group => new
-                {
-                    RouteId = group.Key,
-                    DepartureTimes = group.OrderBy(d => d.Departure).ToList()
-                })
-                .ToList();
-
-            var result = new List<ResponseDepartureTimeModel>();
-            foreach (var group in groupedAndSortedDepartureTimes)
-            {
-                foreach (var departureTime in group.DepartureTimes)
-                {
-                    var mappedDepartureTime = _mapper.Map<ResponseDepartureTimeModel>(departureTime);
-                    result.Add(mappedDepartureTime);
-                }
-            }
-
-            return result;
-        }
-
-        public async Task<ResponseDepartureTimeModel> GetByIdAsync(Guid id)
-        {
-            var departureTime = await _unitOfWork.GetRepository<DepartureTime>().GetByIdAsync(id)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Thời gian khởi hành không tồn tại.");
-
-            if (departureTime.DeletedTime.HasValue)
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Thời gian khởi hành đã bị xóa.");
-            }
-
-            return _mapper.Map<ResponseDepartureTimeModel>(departureTime);
-        }
-
         public async Task CreateAsync(CreateDepartureTimeModel model)
         {
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-            Guid.TryParse(userId, out Guid cb);
             model.TrimAllStrings();
 
             if (model.RouteId == Guid.Empty)
             {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vui lòng điền mã tuyến hợp lệ.");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng cung cấp Id tuyến hợp lệ.");
             }
 
-            if (!TimeOnly.TryParse(model.Departure, out var departureTime))
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền giờ khởi hành hợp lệ.");
-            }
+            var route = await _unitOfWork.GetRepository<Route>().GetByIdAsync(model.RouteId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến không tồn tại.");
 
-            if (string.IsNullOrWhiteSpace(model.DayOfWeek))
+            if (route.DeletedTime.HasValue)
             {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vui lòng điền ngày trong tuần.");
-            }
-            
-            if (model.DayOfWeek.Length != 7 || !model.DayOfWeek.All(c => c == '0' || c == '1'))
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền ngày trong tuần hợp lệ.");
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đã bị xóa.");
             }
 
             var existingDepartures = await _unitOfWork.GetRepository<DepartureTime>()
-        .FindAllAsync(d => d.RouteId == model.RouteId && !d.DeletedTime.HasValue);
+                .FindAllAsync(d => d.RouteId == model.RouteId && !d.DeletedTime.HasValue);
 
-            foreach (var existingDeparture in existingDepartures)
+            if (existingDepartures.Any())
             {
-                var timeDifference = Math.Abs((departureTime.ToTimeSpan() - existingDeparture.Departure.ToTimeSpan()).TotalMinutes);
-
-                if (timeDifference < 15)
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giờ khởi hành của cùng một tuyến phải cách nhau ít nhất 15 phút.");
-                }
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tuyến này đã có giờ khởi hành.");
             }
 
-            var newDepartureTime = new DepartureTime
-            {
-                RouteId = model.RouteId,
-                Departure = departureTime,
-                DayOfWeek = model.DayOfWeek,
-                CreatedBy = userId,
-                LastUpdatedBy = userId
-            };
+            var timeGroups = model.DepartureTimes
+                .GroupBy(x => x.Time.Trim())
+                .ToDictionary(g => g.Key, g => g.Select(x => x.DayOfWeek.Trim().ToUpper()).ToList());
 
-            await _unitOfWork.GetRepository<DepartureTime>().InsertAsync(newDepartureTime);
+            var newDepartureTimes = new List<DepartureTime>();
+
+            foreach (var timeGroup in timeGroups)
+            {
+                var timeStr = timeGroup.Key;
+
+                if (!TimeOnly.TryParse(timeStr, out var time))
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Giờ khởi hành không hợp lệ: {timeStr}");
+                }
+
+                var days = timeGroup.Value;
+                string binaryDayOfWeek = ConvertToBinaryDayOfWeek(days);
+
+                foreach (var existing in newDepartureTimes)
+                {
+                    for (int i = 0; i < 7; i++)
+                    {
+                        if (binaryDayOfWeek[i] == '1' && existing.DayOfWeek[i] == '1')
+                        {
+                            var timeDiff = Math.Abs((time.ToTimeSpan() - existing.Time.ToTimeSpan()).TotalMinutes);
+                            if (timeDiff < 15)
+                            {
+                                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                                    $"Giờ khởi hành phải cách nhau ít nhất 15 phút trong cùng một thứ trong tuần.");
+                            }
+                        }
+                    }
+                }
+
+                newDepartureTimes.Add(new DepartureTime
+                {
+                    RouteId = model.RouteId,
+                    Time = time,
+                    DayOfWeek = binaryDayOfWeek,
+                    CreatedBy = userId,
+                    LastUpdatedBy = userId
+                });
+            }
+
+            if (newDepartureTimes.Count > 1)
+            {
+                await _unitOfWork.GetRepository<DepartureTime>().InsertRangeAsync(newDepartureTimes);
+            }
+            else if (newDepartureTimes.Count == 1)
+            {
+                await _unitOfWork.GetRepository<DepartureTime>().InsertAsync(newDepartureTimes[0]);
+            }
+
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task UpdateAsync(Guid id, UpdateDepartureTimeModel model)
+        public async Task UpdateAsync(UpdateDepartureTimeModel model)
         {
-            var departureTime = await _unitOfWork.GetRepository<DepartureTime>().GetByIdAsync(id)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Thời gian khởi hành không tồn tại.");
-
-            if (departureTime.DeletedTime.HasValue)
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Thời gian khởi hành đã bị xóa.");
-            }
-
-            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-            Guid.TryParse(userId, out Guid cb);
+            var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             model.TrimAllStrings();
 
             if (model.RouteId == Guid.Empty)
             {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền mã tuyến hợp lệ.");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng cung cấp Id tuyến hợp lệ.");
             }
 
-            if (model.DayOfWeek.Length != 7 || !model.DayOfWeek.All(c => c == '0' || c == '1'))
+            var route = await _unitOfWork.GetRepository<Route>().GetByIdAsync(model.RouteId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến không tồn tại.");
+
+            if (route.DeletedTime.HasValue)
             {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền ngày trong tuần hợp lệ.");
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đã bị xóa.");
             }
 
-            TimeOnly departureTimeParsed = default;
+            var departureRepo = _unitOfWork.GetRepository<DepartureTime>();
 
-            if (!TimeOnly.TryParse(model.Departure, out departureTimeParsed))
+            var existingDepartures = await departureRepo.FindAllAsync(d =>
+                d.RouteId == model.RouteId && !d.DeletedTime.HasValue);
+
+            await _unitOfWork.GetRepository<DepartureTime>().DeleteRangeAsync(existingDepartures);
+
+            var timeGroups = model.DepartureTimes
+                .GroupBy(x => x.Time.Trim())
+                .ToDictionary(g => g.Key, g => g.Select(x => x.DayOfWeek.Trim().ToUpper()).ToList());
+
+            var newDepartureTimes = new List<DepartureTime>();
+
+            foreach (var timeGroup in timeGroups)
             {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền giờ khởi hành hợp lệ.");
-            }
+                var timeStr = timeGroup.Key;
 
-            var existingDepartures = await _unitOfWork.GetRepository<DepartureTime>()
-        .FindAllAsync(d => d.RouteId == model.RouteId && d.Id != id && !d.DeletedTime.HasValue);
-
-            foreach (var existingDeparture in existingDepartures)
-            {
-                var timeDifference = Math.Abs((departureTimeParsed.ToTimeSpan() - existingDeparture.Departure.ToTimeSpan()).TotalMinutes);
-
-                if (timeDifference < 15)
+                if (!TimeOnly.TryParse(timeStr, out var time))
                 {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giờ khởi hành của cùng một tuyến phải cách nhau ít nhất 15 phút.");
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Giờ khởi hành không hợp lệ: {timeStr}");
                 }
+
+                var days = timeGroup.Value;
+                string binaryDayOfWeek = ConvertToBinaryDayOfWeek(days);
+
+                foreach (var existing in newDepartureTimes)
+                {
+                    for (int i = 0; i < 7; i++)
+                    {
+                        if (binaryDayOfWeek[i] == '1' && existing.DayOfWeek[i] == '1')
+                        {
+                            var timeDiff = Math.Abs((time.ToTimeSpan() - existing.Time.ToTimeSpan()).TotalMinutes);
+                            if (timeDiff < 15)
+                            {
+                                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                                    $"Giờ khởi hành phải cách nhau ít nhất 15 phút trong cùng một thứ trong tuần.");
+                            }
+                        }
+                    }
+                }
+
+                newDepartureTimes.Add(new DepartureTime
+                {
+                    RouteId = model.RouteId,
+                    Time = time,
+                    DayOfWeek = binaryDayOfWeek,
+                    CreatedBy = userId,
+                    LastUpdatedBy = userId
+                });
             }
 
-            departureTime.RouteId = model.RouteId;
-            departureTime.DayOfWeek = model.DayOfWeek;
-            departureTime.Departure = departureTimeParsed;
-            departureTime.LastUpdatedTime = CoreHelper.SystemTimeNow;
-            departureTime.LastUpdatedBy = userId;
+            if (newDepartureTimes.Count > 1)
+            {
+                await departureRepo.InsertRangeAsync(newDepartureTimes);
+            }
+            else if (newDepartureTimes.Count == 1)
+            {
+                await departureRepo.InsertAsync(newDepartureTimes[0]);
+            }
 
-            await _unitOfWork.GetRepository<DepartureTime>().UpdateAsync(departureTime);
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task DeleteAsync(Guid id)
+        private string ConvertToBinaryDayOfWeek(IEnumerable<string> days)
         {
-            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-            Guid.TryParse(userId, out Guid cb);
+            var map = new Dictionary<string, int>
+                {
+                    { "MONDAY", 0 },
+                    { "TUESDAY", 1 },
+                    { "WEDNESDAY", 2 },
+                    { "THURSDAY", 3 },
+                    { "FRIDAY", 4 },
+                    { "SATURDAY", 5 },
+                    { "SUNDAY", 6 }
+                };
 
-            var departureTime = await _unitOfWork.GetRepository<DepartureTime>().GetByIdAsync(id)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Thời gian khởi hành không tồn tại.");
+            var binary = new char[7] { '0', '0', '0', '0', '0', '0', '0' };
 
-            if (departureTime.DeletedTime.HasValue)
+            foreach (var day in days)
             {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Thời gian khởi hành đã bị xóa.");
+                if (!map.TryGetValue(day, out var index))
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày không hợp lệ: {day}");
+                }
+
+                binary[index] = '1';
             }
 
-            departureTime.LastUpdatedTime = CoreHelper.SystemTimeNow;
-            departureTime.LastUpdatedBy = userId;
-            departureTime.DeletedTime = CoreHelper.SystemTimeNow;
-            departureTime.DeletedBy = userId;
-
-            await _unitOfWork.GetRepository<DepartureTime>().UpdateAsync(departureTime);
-            await _unitOfWork.SaveAsync();
+            return new string(binary);
         }
     }
 }
