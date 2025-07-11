@@ -125,5 +125,13 @@ namespace ShuttleMate.Repositories.UOW
             await Task.CompletedTask;
         }
 
+        public async Task DeleteAsync(params object[] keyValues)
+        {
+            var entity = await _dbSet.FindAsync(keyValues);
+            if (entity != null)
+            {
+                _dbSet.Remove(entity);
+            }
+        }
     }
 }

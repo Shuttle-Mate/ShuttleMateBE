@@ -1,4 +1,5 @@
-﻿using ShuttleMate.Contract.Repositories.IUOW;
+﻿using Microsoft.EntityFrameworkCore;
+using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Repositories.Context;
 
 namespace ShuttleMate.Repositories.UOW
@@ -53,5 +54,10 @@ namespace ShuttleMate.Repositories.UOW
         {
             return new GenericRepository<T>(_dbContext);
         }
+        public void Detach(object entity)
+        {
+            _dbContext.Entry(entity).State = EntityState.Detached;
+        }
+
     }
 }

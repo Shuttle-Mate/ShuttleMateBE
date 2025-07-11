@@ -50,12 +50,21 @@ namespace ShuttleMate.Services.Services
 
                 foreach (var old in oldStops)
                 {
-                    old.DeletedTime = DateTime.UtcNow;
-                    old.DeletedBy = userId;
+                    //old.DeletedTime = DateTime.UtcNow;
+                    //old.DeletedBy = userId;
                     //_unitOfWork.DbContext.Entry(old).State = EntityState.Detached; // Ngắt tracking
+                    await routeStopRepo.DeleteAsync(old.RouteId, old.StopId);
+                    await _unitOfWork.SaveAsync();
+                    //_unitOfWork.Detach(old);
                 }
 
                 await routeStopRepo.UpdateRangeAsync(oldStops);
+                await _unitOfWork.SaveAsync();
+
+                foreach (var old in oldStops)
+                {
+                    _unitOfWork.Detach(old);
+                }
 
                 // Gắn Stop mới với StopOrder
                 int order = 1;

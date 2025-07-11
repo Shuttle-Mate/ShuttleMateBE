@@ -7,7 +7,7 @@ using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/route-stop")]
     [ApiController]
     public class RouteStopController : ControllerBase
     {
