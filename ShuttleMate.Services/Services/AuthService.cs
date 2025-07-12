@@ -278,6 +278,10 @@ namespace ShuttleMate.Services.Services
                 .FirstOrDefault() ?? "unknown";
 
             var tokenResponse = _tokenService.GenerateTokens(user, roleName);
+            user.RefeshToken = tokenResponse.RefreshToken;
+
+            await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+            await _unitOfWork.GetRepository<User>().SaveAsync();
 
             return new LoginResponse
             {
@@ -301,6 +305,6 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<User>().UpdateAsync(users);
             await _unitOfWork.SaveAsync();
         }
-       
+
     }
 }
