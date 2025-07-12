@@ -40,7 +40,7 @@ namespace ShuttleMate.Services.Services
         {
             var ticketRepo = _unitOfWork.GetRepository<TicketType>();
 
-            var query = ticketRepo.Entities
+            var query = ticketRepo.Entities.Where(x => !x.DeletedTime.HasValue)
         .Include(u => u.Route)
         .AsQueryable();
             if (string.IsNullOrWhiteSpace(type))

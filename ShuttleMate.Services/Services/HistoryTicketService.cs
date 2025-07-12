@@ -68,7 +68,7 @@ namespace ShuttleMate.Services.Services
 
             var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
 
-            var query = historyTicketRepo.Entities
+            var query = historyTicketRepo.Entities.Where(x => !x.DeletedTime.HasValue)
                 .Include(u => u.User)
                 .Include(u => u.TicketType)
                 .Where(x => x.UserId == cb)
@@ -130,7 +130,7 @@ namespace ShuttleMate.Services.Services
         {
             var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
 
-            var query = historyTicketRepo.Entities
+            var query = historyTicketRepo.Entities.Where(x => !x.DeletedTime.HasValue)
                 .Include(u => u.User)
                 .Include(u => u.TicketType)
                 .Where(x => x.UserId == studentId)
@@ -191,7 +191,7 @@ namespace ShuttleMate.Services.Services
         {
             var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
 
-            var query = historyTicketRepo.Entities
+            var query = historyTicketRepo.Entities.Where(x => !x.DeletedTime.HasValue)
                 .Include(u => u.User)
                 .Include(u => u.TicketType)
                 .AsQueryable();

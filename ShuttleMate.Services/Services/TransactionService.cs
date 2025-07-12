@@ -42,7 +42,7 @@ namespace ShuttleMate.Services.Services
 
             var transaction = _unitOfWork.GetRepository<Transaction>();
 
-            var query = transaction.Entities
+            var query = transaction.Entities.Where(x => !x.DeletedTime.HasValue)
                 .Include(u => u.HistoryTicket)
                 .Where(x => x.HistoryTicket.UserId == cb)
                 .AsQueryable();
@@ -90,7 +90,7 @@ namespace ShuttleMate.Services.Services
         {
             var transaction = _unitOfWork.GetRepository<Transaction>();
 
-            var query = transaction.Entities
+            var query = transaction.Entities.Where(x => !x.DeletedTime.HasValue)
                 .Include(u => u.HistoryTicket)
                 .AsQueryable();
             if (!string.IsNullOrWhiteSpace(description))
