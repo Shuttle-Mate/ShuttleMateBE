@@ -11,10 +11,11 @@ namespace ShuttleMate.Services.MapperProfile
         {
             CreateMap<SupportRequest, ResponseSupportRequestModel>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.Category, opt => opt.MapFrom(src => ConvertSupportRequestCategoryToVietnameseString(src.Category)))
-                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => ConvertSupportRequestStatusToVietnameseString(src.Status)))
+                .ForMember(dest => dest.Category, opt => opt.MapFrom(src => ConvertSupportRequestCategoryToUppercaseString(src.Category)))
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => ConvertSupportRequestStatusToUppercaseString(src.Status)))
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
                 .ForMember(dest => dest.Message, opt => opt.MapFrom(src => src.Message))
+                .ForMember(dest => dest.CreatedTime, opt => opt.MapFrom(src => src.CreatedTime))
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
                 .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.User.FullName))
                 .ReverseMap();
@@ -22,34 +23,25 @@ namespace ShuttleMate.Services.MapperProfile
             CreateMap<SupportRequest, CreateSupportRequestModel>().ReverseMap();
         }
 
-        private string ConvertSupportRequestStatusToVietnameseString(SupportRequestStatusEnum status)
+        private string ConvertSupportRequestStatusToUppercaseString(SupportRequestStatusEnum status)
         {
             return status switch
             {
                 SupportRequestStatusEnum.IN_PROGRESS => "IN_PROGRESS",
-                SupportRequestStatusEnum.ESCALATED => "ESCALATED",
+                SupportRequestStatusEnum.RESPONDED => "RESPONDED",
                 SupportRequestStatusEnum.RESOLVED => "RESOLVED",
                 SupportRequestStatusEnum.CANCELLED => "CANCELLED",
                 _ => "UNKNOWN"
             };
         }
 
-        private string ConvertSupportRequestCategoryToVietnameseString(SupportRequestCategoryEnum category)
+        private string ConvertSupportRequestCategoryToUppercaseString(SupportRequestCategoryEnum category)
         {
             return category switch
             {
-                SupportRequestCategoryEnum.SHUTTLE_DELAY => "SHUTTLE_DELAY",
-                SupportRequestCategoryEnum.SHUTTLE_NO_SHOW => "SHUTTLE_NO_SHOW",
-                SupportRequestCategoryEnum.UNSAFE_DRIVING => "UNSAFE_DRIVING",
+                SupportRequestCategoryEnum.TRANSPORT_ISSUE => "TRANSPORT_ISSUE",
+                SupportRequestCategoryEnum.TECHNICAL_ISSUE => "TECHNICAL_ISSUE",
                 SupportRequestCategoryEnum.PAYMENT_ISSUE => "PAYMENT_ISSUE",
-                SupportRequestCategoryEnum.TICKET_NOT_RECEIVED => "TICKET_NOT_RECEIVED",
-                SupportRequestCategoryEnum.APP_CRASH => "APP_CRASH",
-                SupportRequestCategoryEnum.GPS_NOT_ACCURATE => "GPS_NOT_ACCURATE",
-                SupportRequestCategoryEnum.NOTIFICATION_MISSING => "NOTIFICATION_MISSING",
-                SupportRequestCategoryEnum.ACCOUNT_PROBLEM => "ACCOUNT_PROBLEM",
-                SupportRequestCategoryEnum.FEATURE_REQUEST => "FEATURE_REQUEST",
-                SupportRequestCategoryEnum.SERVICE_COMPLAINT => "SERVICE_COMPLAINT",
-                SupportRequestCategoryEnum.DRIVER_COMPLAINT => "DRIVER_COMPLAINT",
                 SupportRequestCategoryEnum.GENERAL_INQUIRY => "GENERAL_INQUIRY",
                 SupportRequestCategoryEnum.OTHER => "OTHER",
                 _ => "UNKNOWN"

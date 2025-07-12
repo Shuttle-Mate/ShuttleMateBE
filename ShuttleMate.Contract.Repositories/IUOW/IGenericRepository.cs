@@ -22,9 +22,11 @@ namespace ShuttleMate.Contract.Repositories.IUOW
         Task<BasePaginatedList<T>> GetPagging(IQueryable<T> query, int index, int pageSize);
         Task<T?> GetByIdAsync(object id);
         Task InsertAsync(T obj);
+        Task InsertRangeAsync(IList<T> obj);
         Task UpdateAsync(T obj);
         Task DeleteAsync(object id);
         Task DeleteAsync(T entity);
+        Task DeleteRangeAsync(IEnumerable<T> entities);
         Task SaveAsync();
         Task<T> FindAsync(Expression<Func<T, bool>> predicate);
         Task<List<T>> FindAllAsync(Expression<Func<T, bool>> predicate);

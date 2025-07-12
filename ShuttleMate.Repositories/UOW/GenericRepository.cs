@@ -35,6 +35,13 @@ namespace ShuttleMate.Repositories.UOW
         public async Task DeleteAsync(T entity)
         {
             _dbSet.Remove(entity);
+            await Task.CompletedTask;
+        }
+
+        public async Task DeleteRangeAsync(IEnumerable<T> entities)
+        {
+            _dbSet.RemoveRange(entities);
+            await Task.CompletedTask;
         }
 
         public IEnumerable<T> GetAll()
@@ -78,6 +85,11 @@ namespace ShuttleMate.Repositories.UOW
         public void InsertRange(IList<T> obj)
         {
             _dbSet.AddRange(obj);
+        }
+
+        public async Task InsertRangeAsync(IList<T> obj)
+        {
+            await _dbSet.AddRangeAsync(obj);
         }
 
         public void Save()

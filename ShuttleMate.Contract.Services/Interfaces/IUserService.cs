@@ -11,7 +11,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<UserInforModel> GetInfor();
         Task RemoveUserToRoleAsync(Guid userId);
         Task UpdateProfiel(UpdateProfileModel model);
-        Task<IEnumerable<AdminResponseUserModel>> GetAllAsync(Guid? roleId = null, string? name = null, bool? gender= null);
+        Task<IEnumerable<AdminResponseUserModel>> GetAllAsync(string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null);
         Task AssignParent(AssignParentModel model);
         Task AssignParentForParent(AssignParentForStudentModel model);
         Task CreateUserAdmin(CreateUserAdminModel model);
