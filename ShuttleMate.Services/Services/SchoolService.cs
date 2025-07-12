@@ -64,11 +64,21 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Thời gian trường không được để trống!");
             }
-           var school =await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x=>x.Id == model.Id)?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường!");
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường!");
 
             school.Name = model.Name;
             school.Address = model.Address;
             school.SchoolTime = model.SchoolTime;
+
+            await _unitOfWork.GetRepository<School>().UpdateAsync(school);
+            await _unitOfWork.SaveAsync();
+        }
+        public async Task DeleteSchool(DeleteSchoolModel model)
+        {
+
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường!");
+
+            school.DeletedTime = DateTime.Now;
 
             await _unitOfWork.GetRepository<School>().UpdateAsync(school);
             await _unitOfWork.SaveAsync();
