@@ -30,6 +30,14 @@ namespace ShuttleMate.API.Controllers
         {
             _userService = userService;
         }
+        /// <summary>
+        /// Lấy tất cả người dùng(Admin)
+        /// </summary>
+        /// <param name="gender">true là nam, false là nữ (tuỳ chọn)</param>
+        /// <param name="Violate">true là bị khóa, false là không khóa (tuỳ chọn).</param>
+        /// <param name="schoolId">lọc theo id trường (tuỳ chọn).</param>
+        /// <param name="parentId">Lọc theo id phụ huynh.(tuỳ chọn).</param>
+        /// <param name="roleName"> STUDENT, PARENT, OPERATOR, DRIVER, SCHOOL</param>
         [HttpGet("get-all-users")]
         public async Task<IActionResult> GetAllUsers(string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
         {
