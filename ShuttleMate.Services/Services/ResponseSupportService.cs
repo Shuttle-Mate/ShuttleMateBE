@@ -73,7 +73,7 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.GetRepository<ResponseSupport>().InsertAsync(newResponseSupport);
 
-            supportRequest.Status = SupportRequestStatusEnum.RESPONSED;
+            supportRequest.Status = SupportRequestStatusEnum.RESPONDED;
 
             await _unitOfWork.GetRepository<SupportRequest>().UpdateAsync(supportRequest);
 
