@@ -6,7 +6,7 @@ using ShuttleMate.ModelViews.ResponseSupportModelViews;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/response-support")]
     [ApiController]
     public class ResponseSupportController : ControllerBase
     {
@@ -18,20 +18,9 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Lấy phản hồi hỗ trợ bằng id.
-        /// </summary>
-        [HttpGet("{responseSupportId}")]
-        public async Task<IActionResult> GetResponseSupportById(Guid responseSupportId)
-        {
-            return Ok(new BaseResponseModel<ResponseResponseSupportModel>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                data: await _responseSupportService.GetByIdAsync(responseSupportId)));
-        }
-
-        /// <summary>
         /// Tạo một phản hồi hỗ trợ mới.
         /// </summary>
+        //[Authorize(Roles = "Admin, Operator")]
         [HttpPost]
         public async Task<IActionResult> CreateResponseSupport(CreateResponseSupportModel model)
         {
@@ -45,11 +34,11 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Xóa một phản hồi hỗ trợ.
         /// </summary>
-        ///
-        [HttpDelete("{responseSupportId}")]
-        public async Task<IActionResult> DeleteFeedback(Guid responseSupportId)
+        //[Authorize(Roles = "Admin, Operator")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteFeedback(Guid id)
         {
-            await _responseSupportService.DeleteAsync(responseSupportId);
+            await _responseSupportService.DeleteAsync(id);
             return Ok(new BaseResponseModel<string?>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,

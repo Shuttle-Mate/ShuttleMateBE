@@ -123,7 +123,7 @@ namespace ShuttleMate.Services.Services
 
             var responseSupports = await _unitOfWork.GetRepository<ResponseSupport>()
                 .GetQueryable()
-                .Where(rs => rs.SupportRequestId == id)
+                .Where(rs => rs.SupportRequestId == id && !rs.DeletedTime.HasValue)
                 .OrderByDescending(rs => rs.CreatedTime)
                 .ToListAsync();
 
