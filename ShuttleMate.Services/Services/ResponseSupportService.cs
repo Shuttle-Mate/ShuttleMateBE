@@ -25,19 +25,6 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
         }
 
-        public async Task<ResponseResponseSupportModel> GetByIdAsync(Guid id)
-        {
-            var responseSupport = await _unitOfWork.GetRepository<ResponseSupport>().GetByIdAsync(id)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Phản hồi hỗ trợ không tồn tại.");
-
-            if (responseSupport.DeletedTime.HasValue)
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Phản hồi hỗ trợ đã bị xóa.");
-            }
-
-            return _mapper.Map<ResponseResponseSupportModel>(responseSupport);
-        }
-
         public async Task CreateAsync(CreateResponseSupportModel model)
         {
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -84,7 +71,10 @@ namespace ShuttleMate.Services.Services
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            var responseSupport = await _unitOfWork.GetRepository<ResponseSupport>().GetByIdAsync(id)
+            var responseSupportRepo = _unitOfWork.GetRepository<ResponseSupport>();
+            var supportRequestRepo = _unitOfWork.GetRepository<SupportRequest>();
+
+            var responseSupport = await responseSupportRepo.GetByIdAsync(id)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Phản hồi hỗ trợ không tồn tại.");
 
             if (responseSupport.DeletedTime.HasValue)
@@ -97,7 +87,27 @@ namespace ShuttleMate.Services.Services
             responseSupport.DeletedTime = CoreHelper.SystemTimeNow;
             responseSupport.DeletedBy = userId;
 
-            await _unitOfWork.GetRepository<ResponseSupport>().UpdateAsync(responseSupport);
+            await responseSupportRepo.UpdateAsync(responseSupport);
+
+            var remainingResponses = await responseSupportRepo
+                .FindAllAsync(rs =>
+                    rs.SupportRequestId == responseSupport.SupportRequestId &&
+                    !rs.DeletedTime.HasValue &&
+                    rs.Id != id);
+
+            if (!remainingResponses.Any())
+            {
+                var supportRequest = await supportRequestRepo.GetByIdAsync(responseSupport.SupportRequestId);
+                if (supportRequest != null && !supportRequest.DeletedTime.HasValue)
+                {
+                    supportRequest.Status = SupportRequestStatusEnum.IN_PROGRESS;
+                    supportRequest.LastUpdatedTime = CoreHelper.SystemTimeNow;
+                    supportRequest.LastUpdatedBy = userId;
+
+                    await supportRequestRepo.UpdateAsync(supportRequest);
+                }
+            }
+
             await _unitOfWork.SaveAsync();
         }
     }
