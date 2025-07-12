@@ -15,13 +15,9 @@ namespace ShuttleMate.ModelViews.UserModelViews
         public DateTime? DateOfBirth { get; set; }
         public string? ProfileImageUrl { get; set; }
         public string? Address { get; set; }
-        public string? IdentificationNumber { get; set; }
-        public int? EmailCode { get; set; }
         public string Email { get; set; }
-        public string UserName { get; set; }
         public string PhoneNumber { get; set; }
         public bool? EmailVerified { get; set; }
-        public DateTime? CodeGeneratedTime { get; set; }
         public bool? Violate { get; set; } = false;
         public string RoleName { get; set; }
         public string SchoolName { get; set; }
