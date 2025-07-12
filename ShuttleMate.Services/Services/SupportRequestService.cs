@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
@@ -26,45 +27,105 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
         }
 
-        public async Task<IEnumerable<ResponseSupportRequestModel>> GetAllAsync()
+        public async Task<BasePaginatedList<ResponseSupportRequestModel>> GetAllAsync(
+            string? category,
+            string? status,
+            string? search,
+            bool sortAsc = false,
+            int page = 1,
+            int pageSize = 10)
         {
-            var supportRequests = await _unitOfWork.GetRepository<SupportRequest>().FindAllAsync(a => !a.DeletedTime.HasValue);
+            var query = _unitOfWork.GetRepository<SupportRequest>()
+                .GetQueryable()
+                .Include(x => x.User)
+                .Where(x => !x.DeletedTime.HasValue);
 
-            if (!supportRequests.Any())
+            if (!string.IsNullOrWhiteSpace(category) && Enum.TryParse<SupportRequestCategoryEnum>(category, true, out var parsedCategory))
             {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có yêu cầu hỗ trợ nào.");
+                query = query.Where(x => x.Category == parsedCategory);
+            }
+            
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<SupportRequestStatusEnum>(status, true, out var parsedStatus))
+            {
+                query = query.Where(x => x.Status == parsedStatus);
             }
 
-            return _mapper.Map<IEnumerable<ResponseSupportRequestModel>>(supportRequests);
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var lowered = search.Trim().ToLower();
+                query = query.Where(x =>
+                    x.Title.ToLower().Contains(lowered) ||
+                    x.Message.ToLower().Contains(lowered));
+            }
+
+            query = sortAsc
+                ? query.OrderBy(x => x.CreatedTime)
+                : query.OrderByDescending(x => x.CreatedTime);
+
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = _mapper.Map<List<ResponseSupportRequestModel>>(pagedItems);
+
+            return new BasePaginatedList<ResponseSupportRequestModel>(result, totalCount, page, pageSize);
         }
 
-        public async Task<IEnumerable<ResponseSupportRequestModel>> GetAllMyAsync()
+        public async Task<IEnumerable<ResponseSupportRequestModel>> GetAllMyAsync(
+            string? category,
+            string? status,
+            string? search,
+            bool sortAsc = false)
         {
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            var mySupportRequests = await _unitOfWork.GetRepository<SupportRequest>().FindAllAsync(a => !a.DeletedTime.HasValue && a.UserId.ToString() == userId);
+            var query = _unitOfWork.GetRepository<SupportRequest>()
+                .GetQueryable()
+                .Include(x => x.User)
+                .Where(x => !x.DeletedTime.HasValue && x.UserId.ToString() == userId);
 
-            if (!mySupportRequests.Any())
+            if (!string.IsNullOrWhiteSpace(category) && Enum.TryParse<SupportRequestCategoryEnum>(category, true, out var parsedCategory))
             {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có yêu cầu hỗ trợ nào.");
+                query = query.Where(x => x.Category == parsedCategory);
             }
 
-            return _mapper.Map<IEnumerable<ResponseSupportRequestModel>>(mySupportRequests);
+            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<SupportRequestStatusEnum>(status, true, out var parsedStatus))
+            {
+                query = query.Where(x => x.Status == parsedStatus);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var lowered = search.Trim().ToLower();
+                query = query.Where(x =>
+                    x.Title.ToLower().Contains(lowered) ||
+                    x.Message.ToLower().Contains(lowered));
+            }
+
+            query = sortAsc
+                ? query.OrderBy(x => x.CreatedTime)
+                : query.OrderByDescending(x => x.CreatedTime);
+
+            var items = await query.ToListAsync();
+
+            return _mapper.Map<IEnumerable<ResponseSupportRequestModel>>(items);
         }
 
-        public async Task<IEnumerable<ResponseResponseSupportModel>> GetAllMyResponseAsync(Guid id)
+        public async Task<IEnumerable<ResponseResponseSupportModel>> GetAllResponsesAsync(Guid id)
         {
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             var supportRequest = await _unitOfWork.GetRepository<SupportRequest>().GetByIdAsync(id)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hỗ trợ không tồn tại.");
 
-            if (supportRequest.DeletedTime.HasValue)
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hỗ trợ đã bị xóa.");
-            }
-
-            var responseSupports = await _unitOfWork.GetRepository<ResponseSupport>().FindAllAsync(rs => rs.SupportRequestId == id);
+            var responseSupports = await _unitOfWork.GetRepository<ResponseSupport>()
+                .GetQueryable()
+                .Where(rs => rs.SupportRequestId == id)
+                .OrderByDescending(rs => rs.CreatedTime)
+                .ToListAsync();
 
             if (!responseSupports.Any())
             {
@@ -78,11 +139,6 @@ namespace ShuttleMate.Services.Services
         {
             var supportRequest = await _unitOfWork.GetRepository<SupportRequest>().GetByIdAsync(id)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hỗ trợ không tồn tại.");
-
-            if (supportRequest.DeletedTime.HasValue)
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hỗ trợ đã bị xóa.");
-            }
 
             return _mapper.Map<ResponseSupportRequestModel>(supportRequest);
         }
@@ -120,37 +176,12 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task EscalateAsync(Guid id)
-        {
-            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-
-            var supportRequest = await _unitOfWork.GetRepository<SupportRequest>().GetByIdAsync(id)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hỗ trợ không tồn tại.");
-
-            if (supportRequest.DeletedTime.HasValue)
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hỗ trợ đã bị xóa.");
-            }
-
-            supportRequest.Status = SupportRequestStatusEnum.ESCALATED;
-            supportRequest.LastUpdatedTime = CoreHelper.SystemTimeNow;
-            supportRequest.LastUpdatedBy = userId;
-
-            await _unitOfWork.GetRepository<SupportRequest>().UpdateAsync(supportRequest);
-            await _unitOfWork.SaveAsync();
-        }
-
         public async Task ResolveAsync(Guid id)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             var supportRequest = await _unitOfWork.GetRepository<SupportRequest>().GetByIdAsync(id)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hỗ trợ không tồn tại.");
-
-            if (supportRequest.DeletedTime.HasValue)
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hỗ trợ đã bị xóa.");
-            }
 
             supportRequest.Status = SupportRequestStatusEnum.RESOLVED;
             supportRequest.LastUpdatedTime = CoreHelper.SystemTimeNow;
@@ -166,11 +197,6 @@ namespace ShuttleMate.Services.Services
 
             var supportRequest = await _unitOfWork.GetRepository<SupportRequest>().GetByIdAsync(id)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hỗ trợ không tồn tại.");
-
-            if (supportRequest.DeletedTime.HasValue)
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hỗ trợ đã bị xóa.");
-            }
 
             supportRequest.Status = SupportRequestStatusEnum.CANCELLED;
             supportRequest.LastUpdatedTime = CoreHelper.SystemTimeNow;

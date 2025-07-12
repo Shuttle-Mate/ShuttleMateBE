@@ -85,30 +85,21 @@ namespace ShuttleMate.Contract.Repositories.Enum
 
         public enum SupportRequestStatusEnum
         {
-            IN_PROGRESS,         // Đang được xử lý bởi nhân viên kỹ thuật
-            RESPONSED,           // Đã phản hồi bởi nhân viên kỹ thuật
-            ESCALATED,           // Đã được chuyển cấp xử lý cao hơn
+            IN_PROGRESS,         // Đang được xử lý
+            RESPONDED,           // Đã phản hồi
             RESOLVED,            // Đã giải quyết
             CANCELLED            // Bị hủy bởi người dùng
         }
 
         public enum SupportRequestCategoryEnum
         {
-            SHUTTLE_DELAY,             // Xe đưa đón đến trễ
-            SHUTTLE_NO_SHOW,           // Xe không đến đón
-            UNSAFE_DRIVING,            // Tài xế lái ẩu
-            PAYMENT_ISSUE,             // Sự cố thanh toán
-            TICKET_NOT_RECEIVED,       // Không nhận được vé sau khi thanh toán
-            APP_CRASH,                 // Ứng dụng bị lỗi hoặc treo
-            GPS_NOT_ACCURATE,          // Vị trí xe không chính xác
-            NOTIFICATION_MISSING,      // Không nhận được thông báo
-            ACCOUNT_PROBLEM,           // Không đăng nhập được, quên mật khẩu
-            FEATURE_REQUEST,           // Góp ý thêm chức năng mới
-            SERVICE_COMPLAINT,         // Phàn nàn về chất lượng dịch vụ
-            DRIVER_COMPLAINT,          // Phản ánh thái độ tài xế
-            GENERAL_INQUIRY,           // Câu hỏi chung
-            OTHER                      // Khác
+            TRANSPORT_ISSUE,       // Vấn đề xe đưa đón (xe đến trễ, không đến, lái xe nguy hiểm)
+            TECHNICAL_ISSUE,       // Lỗi kỹ thuật (app treo, GPS sai, không nhận được thông báo, lỗi tài khoản)
+            PAYMENT_ISSUE,         // Sự cố thanh toán hoặc không nhận được vé
+            GENERAL_INQUIRY,       // Câu hỏi chung, không thuộc vấn đề cụ thể
+            OTHER                  // Khác
         }
+
 
         public enum TicketTypeEnum
         {
