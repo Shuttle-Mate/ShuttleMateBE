@@ -22,9 +22,10 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public DateTime? CodeGeneratedTime { get; set; }
         public bool? Violate { get; set; } = false;
         public Guid? SchoolId { get; set; }
+        public TimeOnly? SchoolTime { get; set; }
         public Guid? ParentId { get; set; }
         public virtual User Parent { get; set; }
-        public virtual School School { get; set; }
+        public virtual User School { get; set; }
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public virtual ICollection<Shuttle> Shuttles { get; set; } = new List<Shuttle>();
         public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
@@ -34,5 +35,9 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual ICollection<NotificationRecipient> NotificationRecipients { get; set; } = new List<NotificationRecipient>();
         public virtual ICollection<SystemLogs> SystemLogs { get; set; } = new List<SystemLogs>();
         public virtual ICollection<UserPromotion> UserPromotions { get; set; } = new List<UserPromotion>();
+        public virtual ICollection<Route> Routes { get; set; } = new List<Route>();
+        public virtual ICollection<User> Students { get; set; } = new List<User>();
+
+
     }
 }
