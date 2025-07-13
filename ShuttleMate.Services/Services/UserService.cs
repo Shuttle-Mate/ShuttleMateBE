@@ -382,8 +382,8 @@ namespace ShuttleMate.Services.Services
 
             User user = await _unitOfWork.GetRepository<User>()
          .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
-            School school = await _unitOfWork.GetRepository<School>()
-         .Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Trường học không tồn tại!");
+            User school = await _unitOfWork.GetRepository<User>()
+         .Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && x.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() == "SCHOOL" && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Trường học không tồn tại!");
 
             //if (model.FullName.Length < 8)
             //{

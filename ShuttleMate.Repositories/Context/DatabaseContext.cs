@@ -15,7 +15,6 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<User> Users => Set<User>();
         public virtual DbSet<Role> Roles => Set<Role>();
         public virtual DbSet<UserRole> UserRoles => Set<UserRole>();
-        public virtual DbSet<School> Schools => Set<School>();
         public virtual DbSet<Shuttle> Shuttles => Set<Shuttle>();
         public virtual DbSet<Route> Routes => Set<Route>();
         public virtual DbSet<Stop> Stops => Set<Stop>();
@@ -48,9 +47,10 @@ namespace ShuttleMate.Repositories.Context
                 entity.ToTable("Users");
                 // Khóa ngoại School
                 entity.HasOne(t => t.School)
-                    .WithMany(r => r.Users)
+                    .WithMany(s=>s.Students) 
                     .HasForeignKey(t => t.SchoolId)
                     .OnDelete(DeleteBehavior.NoAction);
+
                 // Khóa ngoại Parent
                 entity.HasOne(t => t.Parent)
                     .WithMany()
@@ -71,10 +71,6 @@ namespace ShuttleMate.Repositories.Context
             modelBuilder.Entity<UserRole>()
                 .HasKey(ur => new { ur.UserId, ur.RoleId });
 
-            modelBuilder.Entity<School>(entity =>
-            {
-                entity.ToTable("Schools");
-            });
 
             modelBuilder.Entity<Shuttle>(entity =>
             {
@@ -90,10 +86,10 @@ namespace ShuttleMate.Repositories.Context
             {
                 entity.ToTable("Routes");
                 // Khóa ngoại School
-                entity.HasOne(t => t.School)
+                entity.HasOne(t => t.User)
                     .WithMany(r => r.Routes)
                     .HasForeignKey(t => t.SchoolId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.NoAction);
             });
 
             modelBuilder.Entity<RouteStop>()
