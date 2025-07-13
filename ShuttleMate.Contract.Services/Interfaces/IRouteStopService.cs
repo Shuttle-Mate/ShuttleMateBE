@@ -11,7 +11,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
     public interface IRouteStopService
     {
         Task AssignStopsToRouteAsync(AssignStopsToRouteModel model);
-        Task<List<ResponseShuttleModel>> GetAll();
+        //Task<List<ResponseShuttleModel>> GetAll();
 
     }
 }

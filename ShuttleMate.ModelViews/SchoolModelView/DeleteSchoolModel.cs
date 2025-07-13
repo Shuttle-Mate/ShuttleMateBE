@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShuttleMate.Contract.Services.Interfaces
+namespace ShuttleMate.ModelViews.SchoolModelView
 {
-    public interface ISchoolService
+    public class DeleteSchoolModel
     {
-
+        public Guid Id { get; set; }
     }
 }

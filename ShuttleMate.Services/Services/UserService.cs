@@ -195,7 +195,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
         }
-        public async Task<IEnumerable<AdminResponseUserModel>> GetAllAsync(Guid? roleId = null, string? name = null, bool? gender = null)
+        public async Task<IEnumerable<AdminResponseUserModel>> GetAllAsync(string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
         {
             var userRepo = _unitOfWork.GetRepository<User>();
 
@@ -204,9 +204,9 @@ namespace ShuttleMate.Services.Services
         .ThenInclude(ur => ur.Role)
         .AsQueryable();
 
-            if (roleId.HasValue)
+            if (!string.IsNullOrWhiteSpace(roleName))
             {
-                query = query.Where(u => u.UserRoles.Any(ur => ur.RoleId == roleId));
+                query = query.Where(u => u.UserRoles.Any(ur => ur.Role.Name.ToUpper().Contains(roleName)));
             }
             if (!string.IsNullOrWhiteSpace(name))
             {
@@ -216,28 +216,40 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(u => u.Gender == gender);
             }
-
+            if (Violate != null)
+            {
+                query = query.Where(u => u.Violate == Violate);
+            }
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                query = query.Where(u => u.Email.Contains(email));
+            }
+            if (!string.IsNullOrWhiteSpace(phone))
+            {
+                query = query.Where(u => u.PhoneNumber.Contains(phone));
+            }
+            if (schoolId != null)
+            {
+                query = query.Where(u => u.SchoolId==schoolId);
+            }
+            if (parentId != null)
+            {
+                query = query.Where(u => u.ParentId == parentId);
+            }
             var users = await query
                 .Select(u => new AdminResponseUserModel
                 {
                     Id = u.Id,
-                    RoleName = u.UserRoles.Select(ur => ur.Role.Name).FirstOrDefault(),
+                    RoleName = u.UserRoles.Select(ur => ur.Role.Name).FirstOrDefault().ToUpper(),
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
                     ProfileImageUrl = u.ProfileImageUrl,
                     Address = u.Address,
                     EmailVerified = u.EmailVerified,
-                    IdentificationNumber = u.IdentificationNumber,
-                    EmailCode = u.EmailCode,
-                    CodeGeneratedTime = u.CodeGeneratedTime,
-                    CreatedBy = u.CreatedBy,
                     Violate = u.Violate,
-                    LastUpdatedBy = u.LastUpdatedBy,
-                    DeletedBy = u.DeletedBy,
-                    CreatedTime = u.CreatedTime,
-                    LastUpdatedTime = u.LastUpdatedTime,
-                    DeletedTime = u.DeletedTime
+                    DeletedTime = u.DeletedTime,
+                    Email = u.Email,
                 })
                 .ToListAsync();
 
@@ -370,8 +382,8 @@ namespace ShuttleMate.Services.Services
 
             User user = await _unitOfWork.GetRepository<User>()
          .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
-            School school = await _unitOfWork.GetRepository<School>()
-         .Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Trường học không tồn tại!");
+            User school = await _unitOfWork.GetRepository<User>()
+         .Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && x.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() == "SCHOOL" && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Trường học không tồn tại!");
 
             //if (model.FullName.Length < 8)
             //{

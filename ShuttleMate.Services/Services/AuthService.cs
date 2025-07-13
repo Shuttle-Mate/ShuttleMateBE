@@ -196,6 +196,7 @@ namespace ShuttleMate.Services.Services
             string roleName = _unitOfWork.GetRepository<Role>().Entities.Where(x => x.Id == roleUser.RoleId).Select(x => x.Name).FirstOrDefault()
              ?? "unknow";
             var tokenResponse = _tokenService.GenerateTokens(user, roleName);
+
             //var token = Authentication.CreateToken(user.Id.ToString(), _jwtSettings);
             var loginResponse = new LoginResponse
             {
@@ -301,6 +302,6 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<User>().UpdateAsync(users);
             await _unitOfWork.SaveAsync();
         }
-       
+
     }
 }

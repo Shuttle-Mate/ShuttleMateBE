@@ -39,7 +39,7 @@ namespace ShuttleMate.Services.Services
 
             Route route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.RouteName == model.RouteName || x.RouteCode == model.RouteCode);
 
-            School school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường học!");
+            User school = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && x.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() == "SCHOOL" && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường học!");
 
             if (route != null)
             {
@@ -82,7 +82,7 @@ namespace ShuttleMate.Services.Services
         {
             var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == routeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
 
-            return  _mapper.Map<ResponseRouteModel>(route);
+            return _mapper.Map<ResponseRouteModel>(route);
         }
 
         public async Task UpdateRoute(UpdateRouteModel model)
@@ -96,7 +96,7 @@ namespace ShuttleMate.Services.Services
             var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
 
             //route = _mapper.Map<Route>(model);
-            _mapper.Map(model,route);
+            _mapper.Map(model, route);
             route.LastUpdatedBy = userId;
             route.LastUpdatedTime = DateTime.Now;
             await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
