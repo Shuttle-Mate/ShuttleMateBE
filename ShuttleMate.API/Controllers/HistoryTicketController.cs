@@ -13,7 +13,7 @@ using System.Text.Json;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/history-ticket")]
     [ApiController]
     public class HistoryTicketController : ControllerBase
     {

@@ -10,7 +10,7 @@ using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/ticket-type")]
     [ApiController]
     public class TicketTypeController : ControllerBase
     {
