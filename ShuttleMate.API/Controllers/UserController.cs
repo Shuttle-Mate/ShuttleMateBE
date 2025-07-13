@@ -174,7 +174,7 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Xóa phụ huynh(Student)
         /// </summary>
-        [HttpDelete]
+        [HttpDelete("remove-parent")]
         public async Task<IActionResult> RemoveParent()
         {
             await _userService.RemoveParent();
@@ -182,6 +182,19 @@ namespace ShuttleMate.API.Controllers
                  statusCode: StatusCodes.Status200OK,
                  code: ResponseCodeConstants.SUCCESS,
                  message: "Xóa phụ huynh thành công!"
+             ));
+        }
+        /// <summary>
+        /// Xóa học sinh(Student)
+        /// </summary>
+        [HttpDelete("remove-student")]
+        public async Task<IActionResult> RemoveStudent(RemoveStudentModel model)
+        {
+            await _userService.RemoveStudent(model);
+            return Ok(new BaseResponseModel<string>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 message: "Xóa học sinh thành công!"
              ));
         }
     }

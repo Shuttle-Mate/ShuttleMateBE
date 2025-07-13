@@ -68,7 +68,25 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
             if (email != null)
             {
-                await _emailService.SendEmailAsync(email, "Thông báo từ ShuttleMate", $"Học sinh{user.FullName} đã xóa bạn khỏi vai trò phụ huynh!</div>");
+                await _emailService.SendEmailAsync(email, "Thông báo từ ShuttleMate", $"Học sinh {user.FullName} đã xóa bạn khỏi vai trò phụ huynh!</div>");
+            }
+        }
+        public async Task RemoveStudent(RemoveStudentModel model)
+        {
+            //// Lấy userId từ HttpContext
+            //string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            //Guid.TryParse(userId, out Guid cb);
+
+            User user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.StudentId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy học sinh!");
+            string email = user.Parent.Email;
+            user.ParentId = null;
+
+            await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+            await _unitOfWork.SaveAsync();
+            if (email != null)
+            {
+                await _emailService.SendEmailAsync(user.Email, "Thông báo từ ShuttleMate", $"Phụ huynh đã xóa bạn khỏi khỏi danh sách học sinh!</div>");
             }
         }
 

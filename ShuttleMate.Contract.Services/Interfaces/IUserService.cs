@@ -18,5 +18,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<UserResponseModel> GetById(Guid userId);
         Task<IEnumerable<ReponseYourChild>> GetYourChild(Guid Id);
         Task RemoveParent();
+        Task RemoveStudent(RemoveStudentModel model);
     }
 }
