@@ -171,5 +171,18 @@ namespace ShuttleMate.API.Controllers
                  message: "Cập nhật tài khoản thành công!"
              ));
         }
+        /// <summary>
+        /// Xóa phụ huynh(Student)
+        /// </summary>
+        [HttpDelete]
+        public async Task<IActionResult> RemoveParent()
+        {
+            await _userService.RemoveParent();
+            return Ok(new BaseResponseModel<string>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 message: "Xóa phụ huynh thành công!"
+             ));
+        }
     }
 }

@@ -17,5 +17,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task CreateUserAdmin(CreateUserAdminModel model);
         Task<UserResponseModel> GetById(Guid userId);
         Task<IEnumerable<ReponseYourChild>> GetYourChild(Guid Id);
+        Task RemoveParent();
     }
 }
