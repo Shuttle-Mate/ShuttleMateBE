@@ -99,7 +99,6 @@ namespace ShuttleMate.Services.Services
         public async Task DeleteAsync(Guid id)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-            Guid.TryParse(userId, out Guid cb);
 
             var feedback = await _unitOfWork.GetRepository<Feedback>().GetByIdAsync(id)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Đánh giá không tồn tại.");

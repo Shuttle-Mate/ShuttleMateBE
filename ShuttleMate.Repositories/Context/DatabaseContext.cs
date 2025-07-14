@@ -18,6 +18,7 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<Shuttle> Shuttles => Set<Shuttle>();
         public virtual DbSet<Route> Routes => Set<Route>();
         public virtual DbSet<Stop> Stops => Set<Stop>();
+        public virtual DbSet<Ward> Wards => Set<Ward>();
         public virtual DbSet<DepartureTime> DepartureTimes => Set<DepartureTime>();
         public virtual DbSet<StopEstimate> StopEstimate => Set<StopEstimate>();
         public virtual DbSet<Attendance> Attendances => Set<Attendance>();
@@ -113,6 +114,16 @@ namespace ShuttleMate.Repositories.Context
             modelBuilder.Entity<Stop>(entity =>
             {
                 entity.ToTable("Stops");
+
+                entity.HasOne(s => s.Ward)
+                    .WithMany(w => w.Stops)
+                    .HasForeignKey(s => s.WardId)
+                    .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            modelBuilder.Entity<Ward>(entity =>
+            {
+                entity.ToTable("Wards");
             });
 
             modelBuilder.Entity<DepartureTime>(entity =>
