@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ShuttleMate.Contract.Repositories.Base;
+﻿using ShuttleMate.Contract.Repositories.Base;
 
 namespace ShuttleMate.Contract.Repositories.Entities
 {
     public class Stop : BaseEntity
     {
         public string Name { get; set; }
+        public string Address { get; set; }
         public double Lat {  get; set; }
         public double Lng { get; set; }
         public string RefId { get; set; }

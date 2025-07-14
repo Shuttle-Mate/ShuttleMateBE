@@ -1,18 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ShuttleMate.ModelViews.StopModelViews
+﻿namespace ShuttleMate.ModelViews.StopModelViews
 {
     public class ResponseStopModel
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
-        public string Ward { get; set; }
-        public decimal Lat { get; set; }
-        public decimal Lng { get; set; }
-        public int StopOrder { get; set; }
+        public string Address { get; set; }
+        public double Lat { get; set; }
+        public double Lng { get; set; }
+        public Guid WardId { get; set; }
+        public string WardName { get; set; }
     }
 }

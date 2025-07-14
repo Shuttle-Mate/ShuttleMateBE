@@ -1,6 +1,6 @@
 ﻿namespace ShuttleMate.ModelViews.StopModelViews
 {
-    public class UpdateStopModel
+    public class CreateStopModel
     {
         public string RefId { get; set; }
         public string Name { get; set; }
