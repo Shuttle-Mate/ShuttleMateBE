@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using ShuttleMate.Contract.Repositories.Entities;
@@ -13,7 +14,9 @@ using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.AuthModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
+using static System.Net.WebRequestMethods;
 
 namespace ShuttleMate.Services.Services
 {
@@ -34,6 +37,57 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _apiKey = configuration["VietMap:ApiKey"] ?? throw new Exception("API key is missing from configuration.");
             _emailService = emailService;
+        }
+
+        public async Task<IEnumerable<ReponseYourChild>> GetYourChild(Guid Id)
+        {
+            var user = _unitOfWork.GetRepository<User>();
+            var query = user.Entities.Where(x => x.ParentId == Id && !x.DeletedTime.HasValue).AsQueryable();
+            var users = await query
+            .Select(u => new ReponseYourChild
+            {
+                Id = u.Id,
+                Gender = u.Gender,
+                FullName = u.FullName,
+            })
+            .ToListAsync();
+            return users;
+        }
+        public async Task RemoveParent()
+        {
+            // Lấy userId từ HttpContext
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            Guid.TryParse(userId, out Guid cb);
+
+            User user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy học sinh!");
+            string email = user.Parent.Email;
+            user.ParentId = null;
+
+            await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+            await _unitOfWork.SaveAsync();
+            if (email != null)
+            {
+                await _emailService.SendEmailAsync(email, "Thông báo từ ShuttleMate", $"Học sinh {user.FullName} đã xóa bạn khỏi vai trò phụ huynh!</div>");
+            }
+        }
+        public async Task RemoveStudent(RemoveStudentModel model)
+        {
+            //// Lấy userId từ HttpContext
+            //string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            //Guid.TryParse(userId, out Guid cb);
+
+            User user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.StudentId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy học sinh!");
+            string email = user.Parent.Email;
+            user.ParentId = null;
+
+            await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+            await _unitOfWork.SaveAsync();
+            if (email != null)
+            {
+                await _emailService.SendEmailAsync(user.Email, "Thông báo từ ShuttleMate", $"Phụ huynh đã xóa bạn khỏi khỏi danh sách học sinh!</div>");
+            }
         }
 
         public async Task CreateUserAdmin(CreateUserAdminModel model)
@@ -230,7 +284,7 @@ namespace ShuttleMate.Services.Services
             }
             if (schoolId != null)
             {
-                query = query.Where(u => u.SchoolId==schoolId);
+                query = query.Where(u => u.SchoolId == schoolId);
             }
             if (parentId != null)
             {
