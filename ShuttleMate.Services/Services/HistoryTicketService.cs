@@ -149,11 +149,11 @@ namespace ShuttleMate.Services.Services
             }
             if (string.IsNullOrWhiteSpace(status))
             {
-                query = query.Where(u => u.Status.ToString().ToUpper() == status.ToUpper());
+                query = query.Where(u => u.Status.ToString().ToUpper() == status!.ToUpper());
             }
             if (string.IsNullOrWhiteSpace(ticketType))
             {
-                query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType.ToUpper());
+                query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType!.ToUpper());
             }
             if (PurchaseAt.HasValue)
             {
@@ -190,6 +190,8 @@ namespace ShuttleMate.Services.Services
                     RouteName = u.TicketType.Route.RouteName,
                     TicketType = u.TicketType.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
+                    ChildName = u.User.FullName,
+                    
                 })
                 .ToListAsync();
 
