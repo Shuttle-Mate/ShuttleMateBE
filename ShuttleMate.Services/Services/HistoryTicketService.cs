@@ -128,16 +128,24 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForParentAsync(string? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, string? ticketType = null)
         {
+            // Lấy userId từ HttpContext
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            Guid.TryParse(userId, out Guid cb);
             var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
 
             var query = historyTicketRepo.Entities.Where(x => !x.DeletedTime.HasValue)
                 .Include(u => u.User)
                 .Include(u => u.TicketType)
-                .Where(x => x.UserId == studentId)
+                .Where(x => x.User.ParentId == cb)
                 .AsQueryable();
             if (ticketId.HasValue)
             {
                 query = query.Where(u => u.TicketId == ticketId);
+            }
+            if (studentId.HasValue)
+            {
+                query = query.Where(u => u.User.Id == studentId);
             }
             if (string.IsNullOrWhiteSpace(status))
             {
