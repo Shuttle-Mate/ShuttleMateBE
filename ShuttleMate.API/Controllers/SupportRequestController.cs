@@ -26,7 +26,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="status">Trạng thái: IN_PROGRESS, RESPONSED, RESOLVED, CANCELLED (tùy chọn).</param>
         /// <param name="search">Từ khóa tìm kiếm trong tiêu đề hoặc nội dung (tùy chọn).</param>
         /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
-        /// <param name="page">Trang (mặc định 1).</param>
+        /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         //[Authorize(Roles = "Admin, Operator")]
         [HttpGet]
@@ -35,7 +35,7 @@ namespace ShuttleMate.API.Controllers
         [FromQuery] string? status,
         [FromQuery] string? search,
         [FromQuery] bool sortAsc = false,
-        [FromQuery] int page = 1,
+        [FromQuery] int page = 0,
         [FromQuery] int pageSize = 10)
         {
             return Ok(new BaseResponseModel<BasePaginatedList<ResponseSupportRequestModel>>(
