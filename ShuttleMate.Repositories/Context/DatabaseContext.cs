@@ -79,12 +79,7 @@ namespace ShuttleMate.Repositories.Context
 
             modelBuilder.Entity<Shuttle>(entity =>
             {
-                //entity.ToTable("Shuttles");
-                //// Khóa ngoại Operator/Driver
-                //entity.HasOne(t => t.User)
-                //    .WithMany(r => r.Shuttles)
-                //    .HasForeignKey(t => t.OperatorId)
-                //    .OnDelete(DeleteBehavior.Cascade);
+                entity.ToTable("Shuttles");
             });
 
             modelBuilder.Entity<Route>(entity =>

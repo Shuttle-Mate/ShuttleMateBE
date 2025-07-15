@@ -22,12 +22,17 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.WriteIndented = true;
     });// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
+builder.Services.AddSwaggerGen(c =>
 {
-    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+    var baseDir = AppContext.BaseDirectory;
 
-}); 
+    var apiXml = Path.Combine(baseDir, "ShuttleMate.API.xml");
+    var modelXml = Path.Combine(baseDir, "ShuttleMate.ModelViews.xml");
+
+    if (File.Exists(apiXml)) c.IncludeXmlComments(apiXml);
+    if (File.Exists(modelXml)) c.IncludeXmlComments(modelXml);
+});
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddConfig(builder.Configuration);
 builder.Services.AddHttpClient();
