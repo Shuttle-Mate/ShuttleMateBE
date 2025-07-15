@@ -22,10 +22,10 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public DateTime? CodeGeneratedTime { get; set; }
         public bool? Violate { get; set; } = false;
         public Guid? SchoolId { get; set; }
-        public TimeOnly? SchoolTime { get; set; }
+        //public TimeOnly? SchoolTime { get; set; }
         public Guid? ParentId { get; set; }
         public virtual User Parent { get; set; }
-        public virtual User School { get; set; }
+        public virtual School School { get; set; }
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public virtual ICollection<Shuttle> Shuttles { get; set; } = new List<Shuttle>();
         public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
@@ -36,8 +36,11 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual ICollection<SystemLogs> SystemLogs { get; set; } = new List<SystemLogs>();
         public virtual ICollection<UserPromotion> UserPromotions { get; set; } = new List<UserPromotion>();
         public virtual ICollection<Route> Routes { get; set; } = new List<Route>();
-        public virtual ICollection<User> Students { get; set; } = new List<User>();
-
-
+        public virtual ICollection<School> Schools { get; set; } = new List<School>(); // SCHOOL
+        public virtual ICollection<DepartureTime> DepartureTimes { get; set; } = new List<DepartureTime>();
+        // 1. Các bản ghi override mà người dùng là người bị thay thế
+        public virtual ICollection<ScheduleOverride> OriginalScheduleOverrides { get; set; } = new List<ScheduleOverride>();
+        // 2. Các bản ghi override mà người dùng là người được gắn vào (thay thế)
+        public virtual ICollection<ScheduleOverride> OverrideScheduleOverrides { get; set; } = new List<ScheduleOverride>();
     }
 }
