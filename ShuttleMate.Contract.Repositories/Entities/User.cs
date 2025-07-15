@@ -42,5 +42,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual ICollection<ScheduleOverride> OriginalScheduleOverrides { get; set; } = new List<ScheduleOverride>();
         // 2. Các bản ghi override mà người dùng là người được gắn vào (thay thế)
         public virtual ICollection<ScheduleOverride> OverrideScheduleOverrides { get; set; } = new List<ScheduleOverride>();
+        public virtual ICollection<WithdrawalRequest> WithdrawalRequests { get; set; } = new List<WithdrawalRequest>();
     }
 }

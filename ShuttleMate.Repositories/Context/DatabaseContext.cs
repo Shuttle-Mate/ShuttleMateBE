@@ -41,6 +41,7 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<RouteStop> RouteStops => Set<RouteStop>();
         public virtual DbSet<ScheduleOverride> ScheduleOverrides => Set<ScheduleOverride>();
         public virtual DbSet<School> Schools => Set<School>();
+        public virtual DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
 
         #endregion
 
@@ -373,6 +374,16 @@ namespace ShuttleMate.Repositories.Context
             modelBuilder.Entity<NotificationTemplate>(entity =>
             {
                 entity.ToTable("NotificationTemplates");
+            });
+
+            modelBuilder.Entity<WithdrawalRequest>(entity =>
+            {
+                entity.ToTable("WithdrawalRequests");
+
+                entity.HasOne(x => x.User)
+                    .WithMany(x => x.WithdrawalRequests)
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

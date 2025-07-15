@@ -100,6 +100,12 @@ namespace ShuttleMate.Contract.Repositories.Enum
             OTHER                  // Khác
         }
 
+        public enum WithdrawalRequestStatusEnum
+        {
+            IN_PROGRESS,         // Đang chờ duyệt
+            COMPLETED,           // Đã hoàn thành
+            REJECTED,            // Bị từ chối
+        }
 
         public enum TicketTypeEnum
         {
