@@ -37,7 +37,12 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual ICollection<UserPromotion> UserPromotions { get; set; } = new List<UserPromotion>();
         public virtual ICollection<Route> Routes { get; set; } = new List<Route>();
         public virtual ICollection<User> Students { get; set; } = new List<User>();
-
-
+        public virtual ICollection<DepartureTime> DepartureTimes { get; set; } = new List<DepartureTime>();
+        // 1. Các bản ghi override mà người dùng là người bị thay thế
+        public virtual ICollection<ScheduleOverride> OriginalScheduleOverrides { get; set; } = new List<ScheduleOverride>();
+        // 2. Các bản ghi override mà người dùng là người được gắn vào (thay thế)
+        public virtual ICollection<ScheduleOverride> OverrideScheduleOverrides { get; set; } = new List<ScheduleOverride>();
+        // 3. Các bản ghi override do người dùng tạo
+        public virtual ICollection<ScheduleOverride> CreatedScheduleOverrides { get; set; } = new List<ScheduleOverride>();
     }
 }

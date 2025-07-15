@@ -12,12 +12,12 @@ namespace ShuttleMate.Contract.Repositories.Entities
     {
         public string RouteCode { get; set; }
         public string RouteName { get; set; }
-        public string OperatingTime { get; set; }
-        public decimal Price { get; set; }
-        public string OutBound { get; set; }
-        public string InBound { get; set; }
-        public decimal TotalDistance { get; set; }
-        public string RunningTime { get; set; }
+        public string? OperatingTime { get; set; }
+        public decimal? Price { get; set; }
+        public string? OutBound { get; set; }
+        public string? InBound { get; set; }
+        public decimal? TotalDistance { get; set; }
+        public string? RunningTime { get; set; }
         public int AmountOfTrip { get; set; }
         public string Description { get; set; }
         public bool IsActive { get; set; }
@@ -28,6 +28,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
         public virtual ICollection<TicketType> TicketTypes { get; set; } = new List<TicketType>();
         public virtual ICollection<RouteStop> RouteStops { get; set; } = new List<RouteStop>();
-
+        public virtual ICollection<ScheduleOverride> ScheduleOverrides { get; set; } = new List<ScheduleOverride>();
     }
 }
