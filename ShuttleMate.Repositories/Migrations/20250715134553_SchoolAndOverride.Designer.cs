@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ShuttleMate.Repositories.Context;
 
@@ -11,9 +12,11 @@ using ShuttleMate.Repositories.Context;
 namespace ShuttleMate.Repositories.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20250715134553_SchoolAndOverride")]
+    partial class SchoolAndOverride
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -150,9 +153,6 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Property<DateTimeOffset?>("DeletedTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<Guid>("DriverId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("LastUpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
@@ -161,6 +161,9 @@ namespace ShuttleMate.Repositories.Migrations
 
                     b.Property<string>("MetaData")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("OperatorId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("RouteId")
                         .HasColumnType("uniqueidentifier");
@@ -1548,68 +1551,6 @@ namespace ShuttleMate.Repositories.Migrations
                     b.ToTable("Wards", (string)null);
                 });
 
-            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.WithdrawalRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("BankAccount")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BankAccountName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("BankName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset>("CreatedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("DeletedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset?>("DeletedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("LastUpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset>("LastUpdatedTime")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("MetaData")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OrderCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RejectReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("WithdrawalRequests", (string)null);
-                });
-
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Attendance", b =>
                 {
                     b.HasOne("ShuttleMate.Contract.Repositories.Entities.HistoryTicket", "HistoryTicket")
@@ -1976,17 +1917,6 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.WithdrawalRequest", b =>
-                {
-                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.User", "User")
-                        .WithMany("WithdrawalRequests")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.DepartureTime", b =>
                 {
                     b.Navigation("StopEstimates");
@@ -2099,8 +2029,6 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Navigation("UserPromotions");
 
                     b.Navigation("UserRoles");
-
-                    b.Navigation("WithdrawalRequests");
                 });
 
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Ward", b =>

@@ -32,7 +32,7 @@ namespace ShuttleMate.Services.Services
             string? status,
             string? search,
             bool sortAsc = false,
-            int page = 1,
+            int page = 0,
             int pageSize = 10)
         {
             var query = _unitOfWork.GetRepository<SupportRequest>()
@@ -65,7 +65,7 @@ namespace ShuttleMate.Services.Services
             var totalCount = await query.CountAsync();
 
             var pagedItems = await query
-                .Skip((page - 1) * pageSize)
+                .Skip(page * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 

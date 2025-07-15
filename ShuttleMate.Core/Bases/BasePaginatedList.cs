@@ -21,9 +21,9 @@
             Items = items;
         }
 
-        public bool HasPreviousPage => CurrentPage > 1;
+        public bool HasPreviousPage => CurrentPage > 0;
 
-        public bool HasNextPage => CurrentPage < TotalPages;
+        public bool HasNextPage => CurrentPage + 1 < TotalPages;
 
     }
 }
