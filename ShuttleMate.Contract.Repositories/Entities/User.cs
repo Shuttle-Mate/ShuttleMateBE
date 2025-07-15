@@ -27,7 +27,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual User Parent { get; set; }
         public virtual School School { get; set; }
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-        public virtual ICollection<Shuttle> Shuttles { get; set; } = new List<Shuttle>();
         public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
         public virtual ICollection<SupportRequest> SupportRequests { get; set; } = new List<SupportRequest>();
         public virtual ICollection<ChatBotLog> ChatBotLogs { get; set; } = new List<ChatBotLog>();
@@ -42,5 +41,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual ICollection<ScheduleOverride> OriginalScheduleOverrides { get; set; } = new List<ScheduleOverride>();
         // 2. Các bản ghi override mà người dùng là người được gắn vào (thay thế)
         public virtual ICollection<ScheduleOverride> OverrideScheduleOverrides { get; set; } = new List<ScheduleOverride>();
+        public virtual ICollection<WithdrawalRequest> WithdrawalRequests { get; set; } = new List<WithdrawalRequest>();
     }
 }
