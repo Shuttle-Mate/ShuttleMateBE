@@ -8,5 +8,7 @@
         void BeginTransaction();
         void CommitTransaction();
         void RollBack();
+        void Detach(object entity);
+
     }
 }

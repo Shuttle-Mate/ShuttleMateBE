@@ -2,12 +2,14 @@
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.RouteStopModelViews;
+using ShuttleMate.ModelViews.ShuttleModelViews;
 using ShuttleMate.ModelViews.StopModelViews;
 using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/route-stop")]
     [ApiController]
     public class RouteStopController : ControllerBase
     {
@@ -26,6 +28,16 @@ namespace ShuttleMate.API.Controllers
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 message: "Gắn trạm dừng vào tuyến thành công!"
+            ));
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetStopWithRoute([FromQuery] RouteStopQuery req)
+        {
+            var res = await _routeStopService.SearchStopWithRoutes(req);
+            return Ok(new BaseResponseModel<BasePaginatedList<StopWithRouteResponseModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: res
             ));
         }
     }
