@@ -11,9 +11,11 @@ using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.Pagination;
 using ShuttleMate.ModelViews.RouteModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
+using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
 {
@@ -65,6 +67,70 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có xe nào tồn tại!");
             }
             return _mapper.Map<List<ResponseShuttleModel>>(shuttles);
+        }
+
+        public async Task<BasePaginatedList<ResponseShuttleModel>> GetAllPaging(GetShuttleQuery req)
+        {
+            string searchKeyword = req.SearchKeyword ?? "";
+            var page = req.Page > 0 ? req.Page : 0;
+            var pageSize = req.PageSize > 0 ? req.PageSize : 10;
+
+            var query = _unitOfWork.GetRepository<Shuttle>().Entities
+                        .Where(x => !x.DeletedTime.HasValue);
+
+            if (!string.IsNullOrWhiteSpace(searchKeyword))
+            {
+                query = query.Where(x =>
+                    x.Name.ToLower().Contains(searchKeyword.ToLower()) ||
+                    x.Model.ToLower().Contains(searchKeyword.ToLower()) ||
+                    x.Color.ToLower().Contains(searchKeyword.ToLower()) ||
+                    x.Brand.ToLower().Contains(searchKeyword.ToLower()));
+            }
+
+            query = req.SortBy switch
+            {
+                ShuttleSortByEnum.Name => query.OrderBy(c => c.Name),
+                ShuttleSortByEnum.Brand => query.OrderBy(c => c.Brand),
+                ShuttleSortByEnum.InsuranceExpiryDate => query.OrderBy(c => c.InsuranceExpiryDate),
+                _ => query.OrderBy(c => c.SeatCount)
+                           .OrderBy(c => c.LastUpdatedTime)
+                           .ThenBy(c => c.Name)
+            };
+
+            if (req.IsActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == req.IsActive.Value);
+            }
+
+            if (req.IsAvailable.HasValue)
+            {
+                query = query.Where(x => x.IsAvailable == req.IsAvailable.Value);
+            }
+
+            var totalCount = query.Count();
+
+            //Paging
+            var shuttles = await query
+                .Skip(req.Page * req.PageSize)
+                .Take(req.PageSize)
+                .ToListAsync();
+
+            if (!shuttles.Any())
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có xe nào tồn tại!");
+            }
+
+            var result = _mapper.Map<List<ResponseShuttleModel>>(shuttles);
+
+            return new BasePaginatedList<ResponseShuttleModel>(result, totalCount, page, pageSize);
+            //return new BasePaginatedList<ResponseShuttleModel>
+            //{
+            //    Items = _mapper.Map<List<ResponseShuttleModel>>(shuttles),
+            //    Page = req.Page,
+            //    PageSize = req.PageSize,
+            //    TotalRecords = totalCount
+            //};
+            //return _mapper.Map<List<ResponseShuttleModel>>(shuttles);
         }
 
         public async Task<ResponseShuttleModel> GetById(Guid shuttleId)

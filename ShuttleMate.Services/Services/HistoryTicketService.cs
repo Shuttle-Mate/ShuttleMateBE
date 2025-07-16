@@ -128,24 +128,32 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForParentAsync(string? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, string? ticketType = null)
         {
+            // Lấy userId từ HttpContext
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            Guid.TryParse(userId, out Guid cb);
             var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
 
             var query = historyTicketRepo.Entities.Where(x => !x.DeletedTime.HasValue)
                 .Include(u => u.User)
                 .Include(u => u.TicketType)
-                .Where(x => x.UserId == studentId)
+                .Where(x => x.User.ParentId == cb)
                 .AsQueryable();
             if (ticketId.HasValue)
             {
                 query = query.Where(u => u.TicketId == ticketId);
             }
+            if (studentId.HasValue)
+            {
+                query = query.Where(u => u.User.Id == studentId);
+            }
             if (string.IsNullOrWhiteSpace(status))
             {
-                query = query.Where(u => u.Status.ToString().ToUpper() == status.ToUpper());
+                query = query.Where(u => u.Status.ToString().ToUpper() == status!.ToUpper());
             }
             if (string.IsNullOrWhiteSpace(ticketType))
             {
-                query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType.ToUpper());
+                query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType!.ToUpper());
             }
             if (PurchaseAt.HasValue)
             {
@@ -182,6 +190,8 @@ namespace ShuttleMate.Services.Services
                     RouteName = u.TicketType.Route.RouteName,
                     TicketType = u.TicketType.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
+                    ChildName = u.User.FullName,
+                    
                 })
                 .ToListAsync();
 
@@ -270,7 +280,8 @@ namespace ShuttleMate.Services.Services
                 TicketTypeEnum.SINGLE_RIDE => "Chuyến 1 chiều",
                 TicketTypeEnum.DAY_PASS => "Chuyến trong ngày",
                 TicketTypeEnum.WEEKLY => "Chuyến 1 tuần",
-                TicketTypeEnum.SEMESTER => "Chuyến 1 học kì",
+                TicketTypeEnum.SEMESTER_ONE => "Chuyến học kì 1",
+                TicketTypeEnum.SEMESTER_TWO => "Chuyến học kì 2",
                 TicketTypeEnum.MONTHLY => "Chuyến 1 tháng",
                 _ => "Không xác định"
             };

@@ -100,6 +100,12 @@ namespace ShuttleMate.Contract.Repositories.Enum
             OTHER                  // Khác
         }
 
+        public enum WithdrawalRequestStatusEnum
+        {
+            IN_PROGRESS,         // Đang chờ duyệt
+            COMPLETED,           // Đã hoàn thành
+            REJECTED,            // Bị từ chối
+        }
 
         public enum TicketTypeEnum
         {
@@ -107,7 +113,8 @@ namespace ShuttleMate.Contract.Repositories.Enum
             DAY_PASS,
             WEEKLY,
             MONTHLY,
-            SEMESTER
+            SEMESTER_ONE,
+            SEMESTER_TWO
         }
 
         public enum PaymentMethodEnum
@@ -139,6 +146,12 @@ namespace ShuttleMate.Contract.Repositories.Enum
             OPERATOR,
             DRIVER,
             SCHOOL
+        }
+        public enum ShuttleSortByEnum
+        {
+            Name, // Sắp xếp theo tên xe
+            Brand, // Sắp xếp theo hãng xe
+            InsuranceExpiryDate
         }
     }
 }

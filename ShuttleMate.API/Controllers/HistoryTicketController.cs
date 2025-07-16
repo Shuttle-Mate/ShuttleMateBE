@@ -13,7 +13,7 @@ using System.Text.Json;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/history-ticket")]
     [ApiController]
     public class HistoryTicketController : ControllerBase
     {
@@ -27,7 +27,7 @@ namespace ShuttleMate.API.Controllers
         /// Lấy tất cả các vé của chính mình(người dùng)
         /// </summary>
         /// <param name="status">trạng thái(UNPAID, PAID, CANCELLED, USED) (tuỳ chọn)</param>
-        /// <param name="ticketType">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER) (tuỳ chọn).</param>
+        /// <param name="ticketType">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO) (tuỳ chọn).</param>
         /// <param name="PurchaseAt">Thời gian đặt vé (tuỳ chọn).</param>
         /// <param name="CreateTime">true là tăng dần, false là giảm dần.(tuỳ chọn).</param>
         /// <param name="ValidFrom">tra theo thời gian có hiệu lực tuỳ chọn).</param>
@@ -53,7 +53,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="ValidFrom">tra theo thời gian có hiệu lực (tuỳ chọn).</param>
         /// <param name="ValidUntil">tra theo thời gian hết hiệu lực (tuỳ chọn).</param>
         /// <param name="ticketId">tra theo vé</param>
-        /// <param name="ticketType">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER) (tuỳ chọn).</param>
+        /// <param name="ticketType">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO) (tuỳ chọn).</param>
         /// <param name="studentId">Id của học sinh (tuỳ chọn).</param>
         [HttpGet("student")]
         public async Task<IActionResult> GetAllForParentAsync(string? ticketType = null, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null)
@@ -76,7 +76,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="ValidUntil">tra theo thời gian hết hiệu lực (tuỳ chọn).</param>
         /// <param name="ticketId">tra theo vé (tuỳ chọn).</param>
         /// <param name="userId">tra theo người mua (tuỳ chọn).</param>
-        /// <param name="ticketType">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER) (tuỳ chọn).</param>
+        /// <param name="ticketType">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO) (tuỳ chọn).</param>
         [HttpGet]
         public async Task<IActionResult> GetAllForAdminAsync(string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null)
         {

@@ -10,7 +10,7 @@ using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/ticket-type")]
     [ApiController]
     public class TicketTypeController : ControllerBase
     {
@@ -23,7 +23,7 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy tất cả các vé.
         /// </summary>
-        /// <param name="type">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER)(tuỳ chọn).</param>
+        /// <param name="type">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO)(tuỳ chọn).</param>
         /// <param name="routeName">Tên tuyến (tuỳ chọn).</param>
         /// <param name="price">Sắp xếp theo giá: true là tăng dần, false là giảm dần (tuỳ chọn).</param>
         /// <param name="lowerBound">Cận dưới: khi chỉ có một cận thì >= nó, khi có hai cận thì >= nó và bé hơn hoặc = cận trên (tuỳ chọn).</param>
@@ -52,7 +52,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Type(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER)
+        /// Type(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO)
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateTicketType(CreateTicketTypeModel model)

@@ -2,6 +2,7 @@
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.Pagination;
 using ShuttleMate.ModelViews.RouteModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
 using ShuttleMate.Services.Services;
@@ -28,11 +29,26 @@ namespace ShuttleMate.API.Controllers
                 message: "Tạo xe thành công!"
             ));
         }
+        //[HttpGet]
+        //public async Task<IActionResult> GetAllShuttle()
+        //{
+        //    var res = await _shuttleService.GetAll();
+        //    return Ok(new BaseResponseModel<List<ResponseShuttleModel>>(
+        //        statusCode: StatusCodes.Status200OK,
+        //        code: ResponseCodeConstants.SUCCESS,
+        //        data: res
+        //    ));
+        //}
+        /// <summary>
+        /// Lấy tất cả xe theo phân trang
+        /// </summary>
+        /// <param name="req">Thông tin truy vấn xe</param>
+
         [HttpGet]
-        public async Task<IActionResult> GetAllShuttle()
+        public async Task<IActionResult> GetAllShuttlePaging([FromQuery] GetShuttleQuery req)
         {
-            var res = await _shuttleService.GetAll();
-            return Ok(new BaseResponseModel<List<ResponseShuttleModel>>(
+            var res = await _shuttleService.GetAllPaging(req);
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseShuttleModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: res

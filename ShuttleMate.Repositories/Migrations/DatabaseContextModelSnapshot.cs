@@ -150,6 +150,9 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Property<DateTimeOffset?>("DeletedTime")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("LastUpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
@@ -160,6 +163,9 @@ namespace ShuttleMate.Repositories.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("RouteId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ShuttleId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<TimeOnly>("Time")
@@ -583,7 +589,6 @@ namespace ShuttleMate.Repositories.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("InBound")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
@@ -599,14 +604,12 @@ namespace ShuttleMate.Repositories.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("OperatingTime")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("OutBound")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal>("Price")
+                    b.Property<decimal?>("Price")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("RouteCode")
@@ -618,18 +621,22 @@ namespace ShuttleMate.Repositories.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RunningTime")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("SchoolId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("TotalDistance")
+                    b.Property<decimal?>("TotalDistance")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex("SchoolId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Routes", (string)null);
                 });
@@ -676,11 +683,75 @@ namespace ShuttleMate.Repositories.Migrations
                     b.ToTable("RouteStops", (string)null);
                 });
 
-            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Shuttle", b =>
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.ScheduleOverride", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("DeletedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LastUpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("LastUpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("MetaData")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("OriginalUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OverrideUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("RouteId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ShuttleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<TimeOnly?>("Time")
+                        .HasColumnType("time");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OriginalUserId");
+
+                    b.HasIndex("OverrideUserId");
+
+                    b.HasIndex("RouteId");
+
+                    b.HasIndex("ShuttleId");
+
+                    b.ToTable("ScheduleOverrides", (string)null);
+                });
+
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.School", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -693,6 +764,91 @@ namespace ShuttleMate.Repositories.Migrations
 
                     b.Property<DateTimeOffset?>("DeletedTime")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateOnly?>("EndSemOne")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("EndSemTwo")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastUpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("LastUpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("MetaData")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("SchoolTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateOnly?>("StartSemOne")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("StartSemTwo")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Schools", (string)null);
+                });
+
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Shuttle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Brand")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("DeletedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTime>("InspectionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("InsuranceExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("bit");
 
                     b.Property<string>("LastUpdatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -707,12 +863,28 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Property<string>("MetaData")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("OperatorId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("NextInspectionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("RegistrationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("SeatCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("VehicleType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("OperatorId");
 
                     b.ToTable("Shuttles", (string)null);
                 });
@@ -772,6 +944,10 @@ namespace ShuttleMate.Repositories.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
@@ -790,11 +966,11 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Property<DateTimeOffset>("LastUpdatedTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<decimal>("Lat")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<double>("Lat")
+                        .HasColumnType("float");
 
-                    b.Property<decimal>("Lng")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<double>("Lng")
+                        .HasColumnType("float");
 
                     b.Property<string>("MetaData")
                         .HasColumnType("nvarchar(max)");
@@ -803,11 +979,16 @@ namespace ShuttleMate.Repositories.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Ward")
+                    b.Property<string>("RefId")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("WardId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("WardId");
 
                     b.ToTable("Stops", (string)null);
                 });
@@ -1233,9 +1414,6 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Property<Guid?>("SchoolId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<TimeOnly?>("SchoolTime")
-                        .HasColumnType("time");
-
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1333,6 +1511,104 @@ namespace ShuttleMate.Repositories.Migrations
                     b.ToTable("UserRoles", (string)null);
                 });
 
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Ward", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("DeletedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LastUpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("LastUpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("MetaData")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Wards", (string)null);
+                });
+
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.WithdrawalRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("BankAccount")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BankAccountName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("DeletedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LastUpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("LastUpdatedTime")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("MetaData")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OrderCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RejectReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("WithdrawalRequests", (string)null);
+                });
+
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Attendance", b =>
                 {
                     b.HasOne("ShuttleMate.Contract.Repositories.Entities.HistoryTicket", "HistoryTicket")
@@ -1363,7 +1639,23 @@ namespace ShuttleMate.Repositories.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.Shuttle", "Shuttle")
+                        .WithMany("DepartureTimes")
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.User", "User")
+                        .WithMany("DepartureTimes")
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Route");
+
+                    b.Navigation("Shuttle");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Feedback", b =>
@@ -1428,13 +1720,17 @@ namespace ShuttleMate.Repositories.Migrations
 
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Route", b =>
                 {
-                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.User", "User")
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.School", "School")
                         .WithMany("Routes")
                         .HasForeignKey("SchoolId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.Navigation("User");
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.User", null)
+                        .WithMany("Routes")
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("School");
                 });
 
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.RouteStop", b =>
@@ -1456,15 +1752,43 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Navigation("Stop");
                 });
 
-            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Shuttle", b =>
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.ScheduleOverride", b =>
                 {
-                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.User", "User")
-                        .WithMany("Shuttles")
-                        .HasForeignKey("OperatorId")
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.User", "OriginalUser")
+                        .WithMany("OriginalScheduleOverrides")
+                        .HasForeignKey("OriginalUserId");
+
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.User", "OverrideUser")
+                        .WithMany("OverrideScheduleOverrides")
+                        .HasForeignKey("OverrideUserId")
+                        .IsRequired();
+
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.Route", "Route")
+                        .WithMany("ScheduleOverrides")
+                        .HasForeignKey("RouteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.Shuttle", "Shuttle")
+                        .WithMany("ScheduleOverrides")
+                        .HasForeignKey("ShuttleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OriginalUser");
+
+                    b.Navigation("OverrideUser");
+
+                    b.Navigation("Route");
+
+                    b.Navigation("Shuttle");
+                });
+
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.School", b =>
+                {
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.User", null)
+                        .WithMany("Schools")
+                        .HasForeignKey("UserId");
                 });
 
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.ShuttleLocationRecord", b =>
@@ -1476,6 +1800,17 @@ namespace ShuttleMate.Repositories.Migrations
                         .IsRequired();
 
                     b.Navigation("Trip");
+                });
+
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Stop", b =>
+                {
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.Ward", "Ward")
+                        .WithMany("Stops")
+                        .HasForeignKey("WardId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Ward");
                 });
 
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.StopEstimate", b =>
@@ -1585,7 +1920,7 @@ namespace ShuttleMate.Repositories.Migrations
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.User", "School")
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.School", "School")
                         .WithMany("Students")
                         .HasForeignKey("SchoolId")
                         .OnDelete(DeleteBehavior.NoAction);
@@ -1633,6 +1968,17 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.WithdrawalRequest", b =>
+                {
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.User", "User")
+                        .WithMany("WithdrawalRequests")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.DepartureTime", b =>
                 {
                     b.Navigation("StopEstimates");
@@ -1669,13 +2015,26 @@ namespace ShuttleMate.Repositories.Migrations
 
                     b.Navigation("RouteStops");
 
+                    b.Navigation("ScheduleOverrides");
+
                     b.Navigation("TicketTypes");
 
                     b.Navigation("Trips");
                 });
 
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.School", b =>
+                {
+                    b.Navigation("Routes");
+
+                    b.Navigation("Students");
+                });
+
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Shuttle", b =>
                 {
+                    b.Navigation("DepartureTimes");
+
+                    b.Navigation("ScheduleOverrides");
+
                     b.Navigation("Trips");
                 });
 
@@ -1707,17 +2066,21 @@ namespace ShuttleMate.Repositories.Migrations
                 {
                     b.Navigation("ChatBotLogs");
 
+                    b.Navigation("DepartureTimes");
+
                     b.Navigation("Feedbacks");
 
                     b.Navigation("HistoryTickets");
 
                     b.Navigation("NotificationRecipients");
 
+                    b.Navigation("OriginalScheduleOverrides");
+
+                    b.Navigation("OverrideScheduleOverrides");
+
                     b.Navigation("Routes");
 
-                    b.Navigation("Shuttles");
-
-                    b.Navigation("Students");
+                    b.Navigation("Schools");
 
                     b.Navigation("SupportRequests");
 
@@ -1726,6 +2089,13 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Navigation("UserPromotions");
 
                     b.Navigation("UserRoles");
+
+                    b.Navigation("WithdrawalRequests");
+                });
+
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Ward", b =>
+                {
+                    b.Navigation("Stops");
                 });
 #pragma warning restore 612, 618
         }

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ShuttleMate.Core.Bases;
+using ShuttleMate.ModelViews.Pagination;
 using ShuttleMate.ModelViews.ShuttleModelViews;
 
 namespace ShuttleMate.Contract.Services.Interfaces
@@ -11,6 +13,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
     {
         Task CreateShuttle(ShuttleModel model);
         Task<List<ResponseShuttleModel>> GetAll();
+        Task<BasePaginatedList<ResponseShuttleModel>> GetAllPaging(GetShuttleQuery req);
         Task<ResponseShuttleModel> GetById(Guid shuttleId);
         Task UpdateShuttle(UpdateShuttleModel model);
         Task DeleteShuttle(Guid shuttleId);

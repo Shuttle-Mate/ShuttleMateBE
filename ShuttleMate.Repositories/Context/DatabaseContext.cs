@@ -18,6 +18,7 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<Shuttle> Shuttles => Set<Shuttle>();
         public virtual DbSet<Route> Routes => Set<Route>();
         public virtual DbSet<Stop> Stops => Set<Stop>();
+        public virtual DbSet<Ward> Wards => Set<Ward>();
         public virtual DbSet<DepartureTime> DepartureTimes => Set<DepartureTime>();
         public virtual DbSet<StopEstimate> StopEstimate => Set<StopEstimate>();
         public virtual DbSet<Attendance> Attendances => Set<Attendance>();
@@ -38,6 +39,10 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<ResponseSupport> ResponseSupports => Set<ResponseSupport>();
         public virtual DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
         public virtual DbSet<RouteStop> RouteStops => Set<RouteStop>();
+        public virtual DbSet<ScheduleOverride> ScheduleOverrides => Set<ScheduleOverride>();
+        public virtual DbSet<School> Schools => Set<School>();
+        public virtual DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
+
         #endregion
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -75,18 +80,13 @@ namespace ShuttleMate.Repositories.Context
             modelBuilder.Entity<Shuttle>(entity =>
             {
                 entity.ToTable("Shuttles");
-                // Khóa ngoại Operator/Driver
-                entity.HasOne(t => t.User)
-                    .WithMany(r => r.Shuttles)
-                    .HasForeignKey(t => t.OperatorId)
-                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<Route>(entity =>
             {
                 entity.ToTable("Routes");
                 // Khóa ngoại School
-                entity.HasOne(t => t.User)
+                entity.HasOne(t => t.School)
                     .WithMany(r => r.Routes)
                     .HasForeignKey(t => t.SchoolId)
                     .OnDelete(DeleteBehavior.NoAction);
@@ -113,6 +113,47 @@ namespace ShuttleMate.Repositories.Context
             modelBuilder.Entity<Stop>(entity =>
             {
                 entity.ToTable("Stops");
+
+                entity.HasOne(s => s.Ward)
+                    .WithMany(w => w.Stops)
+                    .HasForeignKey(s => s.WardId)
+                    .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            modelBuilder.Entity<Ward>(entity =>
+            {
+                entity.ToTable("Wards");
+            });
+
+            modelBuilder.Entity<ScheduleOverride>(entity =>
+            {
+                entity.ToTable("ScheduleOverrides");
+                // Khóa ngoại Route
+                entity.HasOne(t => t.Route)
+                    .WithMany(r => r.ScheduleOverrides)
+                    .HasForeignKey(t => t.RouteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                // Khóa ngoại OriginalUser
+                entity.HasOne(t => t.OriginalUser)
+                    .WithMany(r => r.OriginalScheduleOverrides)
+                    .HasForeignKey(t => t.OriginalUserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull);
+                // Khóa ngoại OverrideUser
+                entity.HasOne(t => t.OverrideUser)
+                    .WithMany(r => r.OverrideScheduleOverrides)
+                    .HasForeignKey(t => t.OverrideUserId)
+                    .OnDelete(DeleteBehavior.ClientSetNull);
+                // Khóa ngoại Shuttle
+                entity.HasOne(t => t.Shuttle)
+                    .WithMany(r => r.ScheduleOverrides)
+                    .HasForeignKey(t => t.ShuttleId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+            });
+
+            modelBuilder.Entity<School>(entity =>
+            {
+                entity.ToTable("Schools");
             });
 
             modelBuilder.Entity<DepartureTime>(entity =>
@@ -120,6 +161,16 @@ namespace ShuttleMate.Repositories.Context
                 entity.ToTable("DepartureTimes");
                 // Khóa ngoại Route
                 entity.HasOne(t => t.Route)
+                    .WithMany(r => r.DepartureTimes)
+                    .HasForeignKey(t => t.RouteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                // Khóa ngoại User
+                entity.HasOne(t => t.User)
+                    .WithMany(r => r.DepartureTimes)
+                    .HasForeignKey(t => t.RouteId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                // Khóa ngoại Shuttle
+                entity.HasOne(t => t.Shuttle)
                     .WithMany(r => r.DepartureTimes)
                     .HasForeignKey(t => t.RouteId)
                     .OnDelete(DeleteBehavior.Cascade);
@@ -318,6 +369,16 @@ namespace ShuttleMate.Repositories.Context
             modelBuilder.Entity<NotificationTemplate>(entity =>
             {
                 entity.ToTable("NotificationTemplates");
+            });
+
+            modelBuilder.Entity<WithdrawalRequest>(entity =>
+            {
+                entity.ToTable("WithdrawalRequests");
+
+                entity.HasOne(x => x.User)
+                    .WithMany(x => x.WithdrawalRequests)
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

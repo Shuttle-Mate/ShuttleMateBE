@@ -13,6 +13,10 @@ namespace ShuttleMate.API.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
+        public UserController(IUserService userService)
+        {
+            _userService = userService;
+        }
         /// <summary>
         ///Rolename: STUDENT, PARENT, OPERATOR, DRIVER, SCHOOL
         /// </summary>
@@ -26,10 +30,7 @@ namespace ShuttleMate.API.Controllers
                 message: "Đăng kí thành công!"
             ));
         }
-        public UserController(IUserService userService)
-        {
-            _userService = userService;
-        }
+
         /// <summary>
         /// Lấy tất cả người dùng(Admin)
         /// </summary>
@@ -44,6 +45,21 @@ namespace ShuttleMate.API.Controllers
             var users = await _userService.GetAllAsync(name, gender, roleName, Violate, email, phone, schoolId, parentId);
 
             return Ok(new BaseResponseModel<IEnumerable<AdminResponseUserModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: users
+            ));
+        }
+        /// <summary>
+        /// Lấy tất cả con của phụ huynh(Parent)
+        /// </summary>
+        /// <param name="Id">Id của phụ huynh</param>
+        [HttpGet("get-child")]
+        public async Task<IActionResult> GetYourChild(Guid Id)
+        {
+            var users = await _userService.GetYourChild(Id);
+
+            return Ok(new BaseResponseModel<IEnumerable<ReponseYourChild>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: users
@@ -153,6 +169,32 @@ namespace ShuttleMate.API.Controllers
                  statusCode: StatusCodes.Status200OK,
                  code: ResponseCodeConstants.SUCCESS,
                  message: "Cập nhật tài khoản thành công!"
+             ));
+        }
+        /// <summary>
+        /// Xóa phụ huynh(Student)
+        /// </summary>
+        [HttpDelete("remove-parent")]
+        public async Task<IActionResult> RemoveParent()
+        {
+            await _userService.RemoveParent();
+            return Ok(new BaseResponseModel<string>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 message: "Xóa phụ huynh thành công!"
+             ));
+        }
+        /// <summary>
+        /// Xóa học sinh(Student)
+        /// </summary>
+        [HttpDelete("remove-student")]
+        public async Task<IActionResult> RemoveStudent(RemoveStudentModel model)
+        {
+            await _userService.RemoveStudent(model);
+            return Ok(new BaseResponseModel<string>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 message: "Xóa học sinh thành công!"
              ));
         }
     }

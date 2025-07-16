@@ -16,5 +16,8 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task AssignParentForParent(AssignParentForStudentModel model);
         Task CreateUserAdmin(CreateUserAdminModel model);
         Task<UserResponseModel> GetById(Guid userId);
+        Task<IEnumerable<ReponseYourChild>> GetYourChild(Guid Id);
+        Task RemoveParent();
+        Task RemoveStudent(RemoveStudentModel model);
     }
 }
