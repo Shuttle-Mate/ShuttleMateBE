@@ -34,7 +34,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual ICollection<NotificationRecipient> NotificationRecipients { get; set; } = new List<NotificationRecipient>();
         public virtual ICollection<SystemLogs> SystemLogs { get; set; } = new List<SystemLogs>();
         public virtual ICollection<UserPromotion> UserPromotions { get; set; } = new List<UserPromotion>();
-        public virtual ICollection<Route> Routes { get; set; } = new List<Route>();
         public virtual ICollection<School> Schools { get; set; } = new List<School>(); // SCHOOL
         public virtual ICollection<DepartureTime> DepartureTimes { get; set; } = new List<DepartureTime>();
         // 1. Các bản ghi override mà người dùng là người bị thay thế
