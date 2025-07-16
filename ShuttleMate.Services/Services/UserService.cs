@@ -201,14 +201,12 @@ namespace ShuttleMate.Services.Services
                         IsActive = true,
                         Name = model.Name,
                         PhoneNumber = model.PhoneNumber,
-
                         CreatedTime = DateTime.Now,
                         LastUpdatedTime = DateTime.Now,
                     };
-                    await _unitOfWork.GetRepository<School>().InsertAsync(school);
-
-                    user.SchoolId = school.Id;
+                    newUser.SchoolId = school.Id;
                     // Thêm người dùng  vào cơ sở dữ liệu
+                    await _unitOfWork.GetRepository<School>().InsertAsync(school);
                     await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
 
                     UserRole userRoleSchool = new UserRole()
