@@ -61,19 +61,19 @@ namespace ShuttleMate.API.Controllers
                 code: ResponseCodeConstants.SUCCESS,
                 data: await _schoolService.GetById(id)));
         }
-        /// <summary>
-        /// Tạo trường mới.
-        /// </summary>
-        [HttpPost]
-        public async Task<IActionResult> CreateSchool(CreateSchoolModel model)
-        {
-            await _schoolService.CreateSchool(model);
-            return Ok(new BaseResponseModel<string>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                message: "Tạo trường thành công!"
-            ));
-        }
+        ///// <summary>
+        ///// Tạo trường mới.
+        ///// </summary>
+        //[HttpPost]
+        //public async Task<IActionResult> CreateSchool(CreateSchoolModel model)
+        //{
+        //    await _schoolService.CreateSchool(model);
+        //    return Ok(new BaseResponseModel<string>(
+        //        statusCode: StatusCodes.Status200OK,
+        //        code: ResponseCodeConstants.SUCCESS,
+        //        message: "Tạo trường thành công!"
+        //    ));
+        //}
         /// <summary>
         /// Cập nhật một trường.
         /// </summary>

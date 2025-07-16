@@ -194,6 +194,20 @@ namespace ShuttleMate.Services.Services
                     {
                         throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Vai trò không tồn tại!");
                     }
+                    var school = new School
+                    {
+                        Id = Guid.NewGuid(),
+                        Email = model.Email,
+                        IsActive = true,
+                        Name = model.Name,
+                        PhoneNumber = model.PhoneNumber,
+
+                        CreatedTime = DateTime.Now,
+                        LastUpdatedTime = DateTime.Now,
+                    };
+                    await _unitOfWork.GetRepository<School>().InsertAsync(school);
+
+                    user.SchoolId = school.Id;
                     // Thêm người dùng  vào cơ sở dữ liệu
                     await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
 
@@ -203,6 +217,7 @@ namespace ShuttleMate.Services.Services
                         RoleId = roleSchool.Id,
                     };
                     await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRoleSchool);
+
                     break;
                 default:
                     throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vui lòng chọn đúng vai trò!!");
