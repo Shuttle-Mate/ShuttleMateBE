@@ -12,6 +12,7 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.AuthModelViews;
+using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
@@ -262,7 +263,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
         }
-        public async Task<IEnumerable<AdminResponseUserModel>> GetAllAsync(string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
+        public async Task<BasePaginatedList<AdminResponseUserModel>> GetAllAsync(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
         {
             var userRepo = _unitOfWork.GetRepository<User>();
 
@@ -319,8 +320,13 @@ namespace ShuttleMate.Services.Services
                     Email = u.Email,
                 })
                 .ToListAsync();
+            var totalCount = await query.CountAsync();
 
-            return users;
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            return new BasePaginatedList<AdminResponseUserModel>(users, totalCount, page, pageSize);
         }
         public async Task<UserInforModel> GetInfor()
         {

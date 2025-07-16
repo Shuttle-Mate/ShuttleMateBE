@@ -1,4 +1,5 @@
-﻿using ShuttleMate.ModelViews.HistoryTicketModelView;
+﻿using ShuttleMate.Core.Bases;
+using ShuttleMate.ModelViews.HistoryTicketModelView;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,9 +12,9 @@ namespace ShuttleMate.Contract.Services.Interfaces
     public interface IHistoryTicketService
     {
         Task<CreateHistoryTicketResponse> CreateHistoryTicket(CreateHistoryTicketModel model);
-        Task<IEnumerable<HistoryTicketResponseModel>> GetAllForUserAsync(string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, string? ticketType = null);
-        Task<IEnumerable<HistoryTicketResponseModel>> GetAllForParentAsync(string? status= null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, string? ticketType = null);
-        Task<IEnumerable<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null);
+        Task<BasePaginatedList<HistoryTicketResponseModel>> GetAllForUserAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, string? ticketType = null);
+        Task<BasePaginatedList<HistoryTicketResponseModel>> GetAllForParentAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, string? ticketType = null);
+        Task<BasePaginatedList<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null);
         Task PayOSCallback(PayOSWebhookRequest request);
         Task<string> CreateZaloPayOrder(CreateZaloPayOrderModel model);
         Task<string> ResponseHistoryTicketStatus(Guid historyTicketId);
