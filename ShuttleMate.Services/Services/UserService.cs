@@ -12,6 +12,7 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.AuthModelViews;
+using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
@@ -194,7 +195,19 @@ namespace ShuttleMate.Services.Services
                     {
                         throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Vai trò không tồn tại!");
                     }
+                    var school = new School
+                    {
+                        Id = Guid.NewGuid(),
+                        Email = model.Email,
+                        IsActive = true,
+                        Name = model.Name,
+                        PhoneNumber = model.PhoneNumber,
+                        CreatedTime = DateTime.Now,
+                        LastUpdatedTime = DateTime.Now,
+                    };
+                    newUser.SchoolId = school.Id;
                     // Thêm người dùng  vào cơ sở dữ liệu
+                    await _unitOfWork.GetRepository<School>().InsertAsync(school);
                     await _unitOfWork.GetRepository<User>().InsertAsync(newUser);
 
                     UserRole userRoleSchool = new UserRole()
@@ -203,6 +216,7 @@ namespace ShuttleMate.Services.Services
                         RoleId = roleSchool.Id,
                     };
                     await _unitOfWork.GetRepository<UserRole>().InsertAsync(userRoleSchool);
+
                     break;
                 default:
                     throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vui lòng chọn đúng vai trò!!");
@@ -249,7 +263,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
         }
-        public async Task<IEnumerable<AdminResponseUserModel>> GetAllAsync(string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
+        public async Task<BasePaginatedList<AdminResponseUserModel>> GetAllAsync(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
         {
             var userRepo = _unitOfWork.GetRepository<User>();
 
@@ -306,8 +320,13 @@ namespace ShuttleMate.Services.Services
                     Email = u.Email,
                 })
                 .ToListAsync();
+            var totalCount = await query.CountAsync();
 
-            return users;
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            return new BasePaginatedList<AdminResponseUserModel>(users, totalCount, page, pageSize);
         }
         public async Task<UserInforModel> GetInfor()
         {

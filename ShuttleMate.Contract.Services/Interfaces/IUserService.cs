@@ -1,4 +1,5 @@
-﻿using ShuttleMate.ModelViews.AuthModelViews;
+﻿using ShuttleMate.Core.Bases;
+using ShuttleMate.ModelViews.AuthModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
 
 namespace ShuttleMate.Contract.Services.Interfaces
@@ -11,7 +12,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<UserInforModel> GetInfor();
         Task RemoveUserToRoleAsync(Guid userId);
         Task UpdateProfiel(UpdateProfileModel model);
-        Task<IEnumerable<AdminResponseUserModel>> GetAllAsync(string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null);
+        Task<BasePaginatedList<AdminResponseUserModel>> GetAllAsync(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null);
         Task AssignParent(AssignParentModel model);
         Task AssignParentForParent(AssignParentForStudentModel model);
         Task CreateUserAdmin(CreateUserAdminModel model);

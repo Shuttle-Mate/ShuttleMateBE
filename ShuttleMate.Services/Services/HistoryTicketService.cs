@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Azure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -59,7 +60,7 @@ namespace ShuttleMate.Services.Services
         }
 
         #region payment PAYOS
-        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForUserAsync(string? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, string? ticketType = null)
+        public async Task<BasePaginatedList<HistoryTicketResponseModel>> GetAllForUserAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, string? ticketType = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -77,11 +78,11 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(u => u.TicketId == ticketId);
             }
-            if (string.IsNullOrWhiteSpace(status) )
+            if (!string.IsNullOrWhiteSpace(status) )
             {
                 query = query.Where(u => u.Status.ToString().ToUpper() == status.ToUpper());
             }
-            if (string.IsNullOrWhiteSpace(ticketType))
+            if (!string.IsNullOrWhiteSpace(ticketType))
             {
                 query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType.ToUpper());
             }
@@ -124,9 +125,18 @@ namespace ShuttleMate.Services.Services
                 })
                 .ToListAsync();
 
-            return historyTickets;
+
+
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new BasePaginatedList<HistoryTicketResponseModel>(historyTickets, totalCount, page, pageSize);
         }
-        public async Task<IEnumerable<HistoryTicketResponseModel>> GetAllForParentAsync(string? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, string? ticketType = null)
+        public async Task<BasePaginatedList<HistoryTicketResponseModel>> GetAllForParentAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, string? ticketType = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -147,11 +157,11 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(u => u.User.Id == studentId);
             }
-            if (string.IsNullOrWhiteSpace(status))
+            if (!string.IsNullOrWhiteSpace(status))
             {
                 query = query.Where(u => u.Status.ToString().ToUpper() == status!.ToUpper());
             }
-            if (string.IsNullOrWhiteSpace(ticketType))
+            if (!string.IsNullOrWhiteSpace(ticketType))
             {
                 query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType!.ToUpper());
             }
@@ -195,9 +205,16 @@ namespace ShuttleMate.Services.Services
                 })
                 .ToListAsync();
 
-            return historyTickets;
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new BasePaginatedList<HistoryTicketResponseModel>(historyTickets, totalCount, page, pageSize);
         }
-        public async Task<IEnumerable<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(string? status, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null)
+        public async Task<BasePaginatedList<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null)
         {
             var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
 
@@ -213,11 +230,11 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(u => u.TicketId == ticketId);
             }
-            if (string.IsNullOrWhiteSpace(status))
+            if (!string.IsNullOrWhiteSpace(status))
             {
                 query = query.Where(u => u.Status.ToString().ToUpper() == status.ToUpper());
             }
-            if (string.IsNullOrWhiteSpace(ticketType))
+            if (!string.IsNullOrWhiteSpace(ticketType))
             {
                 query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType.ToUpper());
             }
@@ -260,7 +277,14 @@ namespace ShuttleMate.Services.Services
                 })
                 .ToListAsync();
 
-            return historyTickets;
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new BasePaginatedList<HistoryTicketAdminResponseModel>(historyTickets, totalCount, page, pageSize);
         }
         static string ConvertStatusToString(HistoryTicketStatus status)
         {

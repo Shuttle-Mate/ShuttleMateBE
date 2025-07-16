@@ -29,12 +29,14 @@ namespace ShuttleMate.API.Controllers
         /// <param name="lowerBound">Cận dưới: khi chỉ có một cận thì >= nó, khi có hai cận thì >= nó và bé hơn hoặc = cận trên (tuỳ chọn).</param>
         /// <param name="upperBound">Cận trên: khi chỉ có một cận thì >= cận dưới, khi có hai cận thì >= nó và bé hơn hoặc = nó (tuỳ chọn).</param>
         /// <param name="routeId">Lọc theo tuyến (tuỳ chọn).</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         [HttpGet]
-        public async Task<IActionResult> GetAllTicketTypes(string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid? routeId = null)
+        public async Task<IActionResult> GetAllTicketTypes(int page = 0, int pageSize = 10, string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid? routeId = null)
         {
-            var tickets = await _ticketTypeService.GetAllAsync(type, routeName, price, lowerBound, upperBound, routeId);
+            var tickets = await _ticketTypeService.GetAllAsync(page, pageSize, type, routeName, price, lowerBound, upperBound, routeId);
 
-            return Ok(new BaseResponseModel<IEnumerable<TicketTypeResponseModel>>(
+            return Ok(new BaseResponseModel<BasePaginatedList<TicketTypeResponseModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: tickets

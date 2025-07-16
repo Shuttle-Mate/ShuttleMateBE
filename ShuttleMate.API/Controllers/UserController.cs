@@ -39,12 +39,14 @@ namespace ShuttleMate.API.Controllers
         /// <param name="schoolId">lọc theo id trường (tuỳ chọn).</param>
         /// <param name="parentId">Lọc theo id phụ huynh.(tuỳ chọn).</param>
         /// <param name="roleName"> STUDENT, PARENT, OPERATOR, DRIVER, SCHOOL</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         [HttpGet("get-all-users")]
-        public async Task<IActionResult> GetAllUsers(string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
+        public async Task<IActionResult> GetAllUsers(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
         {
-            var users = await _userService.GetAllAsync(name, gender, roleName, Violate, email, phone, schoolId, parentId);
+            var users = await _userService.GetAllAsync(page, pageSize, name, gender, roleName, Violate, email, phone, schoolId, parentId);
 
-            return Ok(new BaseResponseModel<IEnumerable<AdminResponseUserModel>>(
+            return Ok(new BaseResponseModel<BasePaginatedList<AdminResponseUserModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: users

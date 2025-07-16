@@ -8,6 +8,7 @@ using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.TicketTypeModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
 using System;
@@ -36,14 +37,14 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _emailService = emailService;
         }
-        public async Task<IEnumerable<TicketTypeResponseModel>> GetAllAsync(string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid ? routeId = null)
+        public async Task<BasePaginatedList<TicketTypeResponseModel>> GetAllAsync(int page = 0, int pageSize = 10, string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid ? routeId = null)
         {
             var ticketRepo = _unitOfWork.GetRepository<TicketType>();
 
             var query = ticketRepo.Entities.Where(x => !x.DeletedTime.HasValue)
-        .Include(u => u.Route)
-        .AsQueryable();
-            if (string.IsNullOrWhiteSpace(type))
+                .Include(u => u.Route)
+                .AsQueryable();
+            if (!string.IsNullOrWhiteSpace(type))
             {
                 query = query.Where(u => u.Type.ToString().ToUpper() == type);
             }
@@ -88,8 +89,14 @@ namespace ShuttleMate.Services.Services
                     Type = u.Type.ToString().ToUpper()
                 })
                 .ToListAsync();
+            var totalCount = await query.CountAsync();
 
-            return tickets;
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new BasePaginatedList<TicketTypeResponseModel>(tickets, totalCount, page, pageSize);
         }
         static string ConvertStatusToString(TicketTypeEnum status)
         {
