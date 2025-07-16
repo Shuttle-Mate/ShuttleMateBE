@@ -8,11 +8,12 @@ namespace ShuttleMate.API.Controllers
     [ApiController]
     public class SchoolController : ControllerBase
     {
-        private readonly IUserService _userService;
-        public SchoolController(IUserService userService)
+        private readonly ISchoolService _schoolService;
+        public SchoolController(ISchoolService schoolService)
         {
-            _userService = userService;
+            _schoolService = schoolService;
         }
 
+       
     }
 }
