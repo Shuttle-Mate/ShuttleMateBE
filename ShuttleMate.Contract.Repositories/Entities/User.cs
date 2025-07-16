@@ -27,7 +27,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual User Parent { get; set; }
         public virtual School School { get; set; }
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-        public virtual ICollection<Shuttle> Shuttles { get; set; } = new List<Shuttle>();
         public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
         public virtual ICollection<SupportRequest> SupportRequests { get; set; } = new List<SupportRequest>();
         public virtual ICollection<ChatBotLog> ChatBotLogs { get; set; } = new List<ChatBotLog>();

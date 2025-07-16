@@ -10,6 +10,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
 {
     public class Shuttle : BaseEntity
     {
+        public string Name { get; set; } = string.Empty; // tên xe
         public string LicensePlate {  get; set; }
         public string VehicleType { get; set; } = string.Empty; //loại phương tiện
         public string Color { get; set; } = string.Empty; // màu xe

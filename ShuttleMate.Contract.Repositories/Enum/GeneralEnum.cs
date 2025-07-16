@@ -147,5 +147,11 @@ namespace ShuttleMate.Contract.Repositories.Enum
             DRIVER,
             SCHOOL
         }
+        public enum ShuttleSortByEnum
+        {
+            Name, // Sắp xếp theo tên xe
+            Brand, // Sắp xếp theo hãng xe
+            InsuranceExpiryDate
+        }
     }
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ShuttleMate.Repositories.Context;
 
@@ -11,9 +12,11 @@ using ShuttleMate.Repositories.Context;
 namespace ShuttleMate.Repositories.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20250715181812_AddShuttleName")]
+    partial class AddShuttleName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -880,13 +883,18 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Property<int>("SeatCount")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("VehicleType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Shuttles", (string)null);
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Shuttles");
                 });
 
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.ShuttleLocationRecord", b =>
@@ -1791,6 +1799,13 @@ namespace ShuttleMate.Repositories.Migrations
                         .HasForeignKey("UserId");
                 });
 
+            modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Shuttle", b =>
+                {
+                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.User", null)
+                        .WithMany("Shuttles")
+                        .HasForeignKey("UserId");
+                });
+
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.ShuttleLocationRecord", b =>
                 {
                     b.HasOne("ShuttleMate.Contract.Repositories.Entities.Trip", "Trip")
@@ -2081,6 +2096,8 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Navigation("Routes");
 
                     b.Navigation("Schools");
+
+                    b.Navigation("Shuttles");
 
                     b.Navigation("SupportRequests");
 
