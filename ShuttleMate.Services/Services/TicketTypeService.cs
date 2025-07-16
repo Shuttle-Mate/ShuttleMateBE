@@ -99,7 +99,8 @@ namespace ShuttleMate.Services.Services
                 TicketTypeEnum.MONTHLY => "Vé tháng",
                 TicketTypeEnum.WEEKLY => "Vé tuần",
                 TicketTypeEnum.SINGLE_RIDE => "Vé 1 chiều",
-                TicketTypeEnum.SEMESTER => "Vé 1 học kì",
+                TicketTypeEnum.SEMESTER_ONE => "Vé học kì 1",
+                TicketTypeEnum.SEMESTER_TWO => "Vé học kì 2",
                 _ => "Không xác định"
             };
         }
@@ -176,17 +177,30 @@ namespace ShuttleMate.Services.Services
                     await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketTypeMONTHLY);
                     await _unitOfWork.SaveAsync();
                     break;
-                case "SEMESTER":
-                    var newTicketTypeSEMESTER = new TicketType
+                case "SEMESTER_ONE":
+                    var newTicketTypeSEMESTER_ONE = new TicketType
                     {
                         Id = Guid.NewGuid(),
                         CreatedTime = DateTime.Now,
                         Price = model.Price,
                         RouteId = model.RouteId,
-                        Type = TicketTypeEnum.SEMESTER,
+                        Type = TicketTypeEnum.SEMESTER_ONE,
                         LastUpdatedTime = DateTime.Now,
                     };
-                    await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketTypeSEMESTER);
+                    await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketTypeSEMESTER_ONE);
+                    await _unitOfWork.SaveAsync();
+                    break;
+                case "SEMESTER_TWO":
+                    var newTicketTypeSEMESTER_TWO = new TicketType
+                    {
+                        Id = Guid.NewGuid(),
+                        CreatedTime = DateTime.Now,
+                        Price = model.Price,
+                        RouteId = model.RouteId,
+                        Type = TicketTypeEnum.SEMESTER_TWO,
+                        LastUpdatedTime = DateTime.Now,
+                    };
+                    await _unitOfWork.GetRepository<TicketType>().InsertAsync(newTicketTypeSEMESTER_TWO);
                     await _unitOfWork.SaveAsync();
                     break;
                 default:
@@ -219,8 +233,11 @@ namespace ShuttleMate.Services.Services
                 case "MONTHLY":
                     ticketType.Type = TicketTypeEnum.MONTHLY;
                     break;
-                case "SEMESTER":
-                    ticketType.Type = TicketTypeEnum.SEMESTER;
+                case "SEMESTER_ONE":
+                    ticketType.Type = TicketTypeEnum.SEMESTER_ONE;
+                    break;
+                case "SEMESTER_TWO":
+                    ticketType.Type = TicketTypeEnum.SEMESTER_TWO;
                     break;
                 default:
                     throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy loại vé!");

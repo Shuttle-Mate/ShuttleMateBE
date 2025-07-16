@@ -280,7 +280,8 @@ namespace ShuttleMate.Services.Services
                 TicketTypeEnum.SINGLE_RIDE => "Chuyến 1 chiều",
                 TicketTypeEnum.DAY_PASS => "Chuyến trong ngày",
                 TicketTypeEnum.WEEKLY => "Chuyến 1 tuần",
-                TicketTypeEnum.SEMESTER => "Chuyến 1 học kì",
+                TicketTypeEnum.SEMESTER_ONE => "Chuyến học kì 1",
+                TicketTypeEnum.SEMESTER_TWO => "Chuyến học kì 2",
                 TicketTypeEnum.MONTHLY => "Chuyến 1 tháng",
                 _ => "Không xác định"
             };

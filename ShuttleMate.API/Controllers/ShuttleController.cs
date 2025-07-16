@@ -48,7 +48,7 @@ namespace ShuttleMate.API.Controllers
         public async Task<IActionResult> GetAllShuttlePaging([FromQuery] GetShuttleQuery req)
         {
             var res = await _shuttleService.GetAllPaging(req);
-            return Ok(new BaseResponseModel<PaginationResp<ResponseShuttleModel>>(
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseShuttleModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: res

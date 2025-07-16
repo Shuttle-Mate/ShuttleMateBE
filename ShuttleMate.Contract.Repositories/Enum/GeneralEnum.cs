@@ -113,7 +113,8 @@ namespace ShuttleMate.Contract.Repositories.Enum
             DAY_PASS,
             WEEKLY,
             MONTHLY,
-            SEMESTER
+            SEMESTER_ONE,
+            SEMESTER_TWO
         }
 
         public enum PaymentMethodEnum
