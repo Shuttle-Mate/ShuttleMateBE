@@ -34,6 +34,21 @@ namespace ShuttleMate.API.Controllers
             statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: await _schoolService.GetAllAsync(page, pageSize, search, isActive, sortAsc)));
+        } 
+        /// <summary>
+        /// Lấy danh sách học sinh trong trường bạn quản lí.
+        /// </summary>
+        /// <param name="search">Tìm kiếm theo tên, địa chỉ, email hoặc sđt của trường.</param>
+        /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
+        [HttpGet("list-student")]
+        public async Task<IActionResult> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null, bool sortAsc = false)
+        {
+            return Ok(new BaseResponseModel<BasePaginatedList<ListStudentInSchoolResponse>>(
+            statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: await _schoolService.GetAllStudentInSchool(page, pageSize, search, sortAsc)));
         }
         /// <summary>
         /// Lấy chi tiết trường.
@@ -70,6 +85,19 @@ namespace ShuttleMate.API.Controllers
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 message: "Cập nhật trường thành công!"
+            ));
+        }
+        /// <summary>
+        /// Gán quản lí cho trường.
+        /// </summary>
+        [HttpPatch("assign-school")]
+        public async Task<IActionResult> AssignSchoolForManager(AssignSchoolForManagerModel model)
+        {
+            await _schoolService.AssignSchoolForManager(model);
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "Gán trường với quản lí trường thành công!"
             ));
         }
 

@@ -9,9 +9,11 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.StopModelViews;
+using ShuttleMate.Services.Services.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -72,7 +74,63 @@ namespace ShuttleMate.Services.Services
 
             return new BasePaginatedList<SchoolResponseModel>(result, totalCount, page, pageSize);
         }
+        public async Task<BasePaginatedList<ListStudentInSchoolResponse>> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null,  bool sortAsc = false)
+        {
+            // Lấy userId từ HttpContext
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
+            Guid.TryParse(userId, out Guid cb);
+
+            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue); 
+
+            var query = _unitOfWork.GetRepository<User>()
+                .GetQueryable()
+                .Include(x => x.Routes)
+                .Include(x => x.School)
+                .Where(x =>  x.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() == "STUDENT" 
+                            && x.SchoolId == user!.SchoolId
+                            &&!x.DeletedTime.HasValue);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var lowered = search.Trim().ToLower();
+                query = query.Where(x =>
+                    x.FullName.ToLower().Contains(lowered) ||
+                    x.Address.ToLower().Contains(lowered) ||
+                    x.PhoneNumber.ToLower().Contains(lowered) ||
+                    x.Email.ToLower().Contains(lowered));
+            }
+
+            query = sortAsc
+                ? query.OrderBy(x => x.CreatedTime)
+                : query.OrderByDescending(x => x.CreatedTime);
+
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = _mapper.Map<List<ListStudentInSchoolResponse>>(pagedItems);
+
+            return new BasePaginatedList<ListStudentInSchoolResponse>(result, totalCount, page, pageSize);
+        }
+
+        public async Task AssignSchoolForManager(AssignSchoolForManagerModel model)
+        {
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.UserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
+            if (user.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() != "SCHOOL") {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không đúng role school!");
+            }
+
+            user.SchoolId = school.Id;
+
+            await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+            await _unitOfWork.SaveAsync();
+
+        }
         public async Task<SchoolResponseModel> GetById(Guid id)
         {
             var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
