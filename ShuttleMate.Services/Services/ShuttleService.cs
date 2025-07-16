@@ -69,10 +69,10 @@ namespace ShuttleMate.Services.Services
             return _mapper.Map<List<ResponseShuttleModel>>(shuttles);
         }
 
-        public async Task<PaginationResp<ResponseShuttleModel>> GetAllPaging(GetShuttleQuery req)
+        public async Task<BasePaginatedList<ResponseShuttleModel>> GetAllPaging(GetShuttleQuery req)
         {
             string searchKeyword = req.SearchKeyword ?? "";
-            var page = req.Page > 0 ? req.Page : 1;
+            var page = req.Page > 0 ? req.Page : 0;
             var pageSize = req.PageSize > 0 ? req.PageSize : 10;
 
             var query = _unitOfWork.GetRepository<Shuttle>().Entities
@@ -111,7 +111,7 @@ namespace ShuttleMate.Services.Services
 
             //Paging
             var shuttles = await query
-                .Skip((req.Page - 1) * req.PageSize)
+                .Skip(req.Page * req.PageSize)
                 .Take(req.PageSize)
                 .ToListAsync();
 
@@ -120,13 +120,16 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có xe nào tồn tại!");
             }
 
-            return new PaginationResp<ResponseShuttleModel>
-            {
-                Items = _mapper.Map<List<ResponseShuttleModel>>(shuttles),
-                Page = req.Page,
-                PageSize = req.PageSize,
-                TotalRecords = totalCount
-            };
+            var result = _mapper.Map<List<ResponseShuttleModel>>(shuttles);
+
+            return new BasePaginatedList<ResponseShuttleModel>(result, totalCount, page, pageSize);
+            //return new BasePaginatedList<ResponseShuttleModel>
+            //{
+            //    Items = _mapper.Map<List<ResponseShuttleModel>>(shuttles),
+            //    Page = req.Page,
+            //    PageSize = req.PageSize,
+            //    TotalRecords = totalCount
+            //};
             //return _mapper.Map<List<ResponseShuttleModel>>(shuttles);
         }
 
