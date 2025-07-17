@@ -149,9 +149,9 @@ namespace ShuttleMate.Contract.Repositories.Enum
         }
         public enum ShuttleSortByEnum
         {
-            Name, // Sắp xếp theo tên xe
-            Brand, // Sắp xếp theo hãng xe
-            InsuranceExpiryDate
+            NAME, // Sắp xếp theo tên xe
+            BRAND, // Sắp xếp theo hãng xe
+            INSURANCE_EXPIRY_DATE, // Sắp xếp theo ngày hết hạn bảo hiểm
         }
     }
 }
