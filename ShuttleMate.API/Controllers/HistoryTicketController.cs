@@ -36,7 +36,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         [HttpGet("my")]
-        public async Task<IActionResult> GetAllForUserAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, string? ticketType = null)
+        public async Task<IActionResult> GetAllForUserAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateOnly? ValidFrom = null, DateOnly? ValidUntil = null, Guid? ticketId = null, string? ticketType = null)
         {
             var tickets = await _historyTicketService.GetAllForUserAsync(page, pageSize, status, PurchaseAt, CreateTime, ValidFrom, ValidUntil, ticketId, ticketType);
 
@@ -60,7 +60,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         [HttpGet("student")]
-        public async Task<IActionResult> GetAllForParentAsync(int page = 0, int pageSize = 10, string? ticketType = null, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null)
+        public async Task<IActionResult> GetAllForParentAsync(int page = 0, int pageSize = 10, string? ticketType = null, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateOnly? ValidFrom = null, DateOnly? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null)
         {
             var tickets = await _historyTicketService.GetAllForParentAsync(page, pageSize, status, PurchaseAt, CreateTime, ValidFrom, ValidUntil, ticketId, studentId, ticketType);
 
@@ -84,7 +84,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         [HttpGet]
-        public async Task<IActionResult> GetAllForAdminAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null)
+        public async Task<IActionResult> GetAllForAdminAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateOnly? ValidFrom = null, DateOnly? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null)
         {
             var tickets = await _historyTicketService.GetAllForAdminAsync(page, pageSize, status, PurchaseAt, CreateTime, ValidFrom, ValidUntil, userId, ticketId, ticketType);
 
