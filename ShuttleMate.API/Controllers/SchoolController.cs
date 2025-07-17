@@ -51,6 +51,21 @@ namespace ShuttleMate.API.Controllers
                 data: await _schoolService.GetAllStudentInSchool(page, pageSize, search, sortAsc)));
         }
         /// <summary>
+        /// Lấy danh sách tuyến đãn đến trường bạn quản lí.
+        /// </summary>
+        /// <param name="search">Tìm kiếm theo code, tên, OutBound, InBound của tuyến.</param>
+        /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
+        [HttpGet("list-route")]
+        public async Task<IActionResult> GetAllRouteToSchool(int page = 0, int pageSize = 10, string? search = null, bool sortAsc = false)
+        {
+            return Ok(new BaseResponseModel<BasePaginatedList<RouteToSchoolResponseModel>>(
+            statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: await _schoolService.GetAllRouteToSchool(page, pageSize, search, sortAsc)));
+        }
+        /// <summary>
         /// Lấy chi tiết trường.
         /// </summary>
         [HttpGet("{id}")]

@@ -7,6 +7,7 @@ using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.HistoryTicketModelView;
 using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.StopModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
@@ -117,6 +118,60 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ListStudentInSchoolResponse>(result, totalCount, page, pageSize);
         }
 
+        public async Task<BasePaginatedList<RouteToSchoolResponseModel>> GetAllRouteToSchool(int page = 0, int pageSize = 10, string? search = null, bool? isActive = null, bool sortAsc = false)
+        {
+            var query = _unitOfWork.GetRepository<Route>()
+                .GetQueryable()
+                .Include(x => x.School)
+                .Include(x => x.Trips)
+                .Where(x => x.IsActive == true && !x.DeletedTime.HasValue);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var lowered = search.Trim().ToLower();
+                query = query.Where(x =>
+                    x.RouteCode.ToLower().Contains(lowered) ||
+                    x.RouteName.ToLower().Contains(lowered) ||
+                    x.InBound.ToLower().Contains(lowered) ||
+                    x.OutBound.ToLower().Contains(lowered));
+            }
+
+            if (isActive != null)
+            {
+                query = query.Where(x => x.IsActive == isActive);
+            }
+
+            query = sortAsc
+                ? query.OrderBy(x => x.CreatedTime)
+                : query.OrderByDescending(x => x.CreatedTime);
+
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var routes = await query
+                .Select(u => new RouteToSchoolResponseModel
+                {
+                    OutBound = u.OutBound,
+                    RouteName = u.RouteName,
+                    RouteCode = u.RouteCode,
+                    InBound = u.InBound,
+                    AmountOfTrip = u.AmountOfTrip,
+                    Description = u.Description,
+                    OperatingTime = u.OperatingTime,
+                    Price = u.Price,
+                    RunningTime = u.RunningTime,
+                    SchoolId = u.SchoolId,
+                    SchoolName = u.School.Name,
+                    TotalDistance = u.TotalDistance,                 
+                })
+                .ToListAsync();
+
+            return new BasePaginatedList<RouteToSchoolResponseModel>(routes, totalCount, page, pageSize);
+        }
         public async Task AssignSchoolForManager(AssignSchoolForManagerModel model)
         {
             var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
