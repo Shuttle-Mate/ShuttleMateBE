@@ -312,10 +312,6 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<CreateHistoryTicketResponse> CreateHistoryTicket(CreateHistoryTicketModel model)
         {
-            if (model.ValidFrom < DateOnly.FromDateTime(DateTime.Now))
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
-            }
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
@@ -340,26 +336,41 @@ namespace ShuttleMate.Services.Services
             switch (ticketType.Type)
             {
                 case TicketTypeEnum.SINGLE_RIDE:
+                    if (model.ValidFrom < DateOnly.FromDateTime(DateTime.Now))
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
+                    }
                     historyTicket.ValidUntil = model.ValidFrom;
                     break;
                 case TicketTypeEnum.DAY_PASS:
+                    if (model.ValidFrom < DateOnly.FromDateTime(DateTime.Now))
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
+                    }
                     historyTicket.ValidUntil = model.ValidFrom;
                     break;
                 case TicketTypeEnum.WEEKLY:
+                    if (model.ValidFrom < DateOnly.FromDateTime(DateTime.Now))
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
+                    }
                     historyTicket.ValidUntil = model.ValidFrom.AddDays(7);
                     break;
                 case TicketTypeEnum.MONTHLY:
+                    if (model.ValidFrom < DateOnly.FromDateTime(DateTime.Now))
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
+                    }
                     historyTicket.ValidUntil = model.ValidFrom.AddMonths(1);
                     break;
                 case TicketTypeEnum.SEMESTER_ONE:
-                    historyTicket.ValidUntil = model.ValidFrom;
+                    historyTicket.ValidFrom = ticketType.Route.School.StartSemOne ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
+                    historyTicket.ValidUntil = ticketType.Route.School.EndSemOne ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
                     break;
                 case TicketTypeEnum.SEMESTER_TWO:
-                    historyTicket.ValidUntil = model.ValidFrom;
-                    break;
+                    historyTicket.ValidFrom = ticketType.Route.School.StartSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
+                    historyTicket.ValidUntil = ticketType.Route.School.EndSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!"); break;
             }
-
-            
 
             await _unitOfWork.GetRepository<HistoryTicket>().InsertAsync(historyTicket);
             await _unitOfWork.SaveAsync();

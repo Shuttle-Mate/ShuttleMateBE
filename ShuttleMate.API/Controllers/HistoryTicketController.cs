@@ -109,7 +109,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Mua vé (PAYOS)
+        /// Mua vé (PAYOS): ValidFrom ko áp dụng cho vé loại SEMESTER_ONE, SEMESTER_TWO
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateHistoryTicket(CreateHistoryTicketModel model)
