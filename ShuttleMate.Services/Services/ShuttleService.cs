@@ -71,9 +71,9 @@ namespace ShuttleMate.Services.Services
 
         public async Task<BasePaginatedList<ResponseShuttleModel>> GetAllPaging(GetShuttleQuery req)
         {
-            string searchKeyword = req.SearchKeyword ?? "";
-            var page = req.Page > 0 ? req.Page : 0;
-            var pageSize = req.PageSize > 0 ? req.PageSize : 10;
+            string searchKeyword = req.search ?? "";
+            var page = req.page > 0 ? req.page : 0;
+            var pageSize = req.pageSize > 0 ? req.pageSize : 10;
 
             var query = _unitOfWork.GetRepository<Shuttle>().Entities
                         .Where(x => !x.DeletedTime.HasValue);
@@ -87,32 +87,52 @@ namespace ShuttleMate.Services.Services
                     x.Brand.ToLower().Contains(searchKeyword.ToLower()));
             }
 
-            query = req.SortBy switch
+            if (!string.IsNullOrWhiteSpace(req.sortBy) && Enum.TryParse<ShuttleSortByEnum>(req.sortBy,true, out var sortByEnum))
             {
-                ShuttleSortByEnum.Name => query.OrderBy(c => c.Name),
-                ShuttleSortByEnum.Brand => query.OrderBy(c => c.Brand),
-                ShuttleSortByEnum.InsuranceExpiryDate => query.OrderBy(c => c.InsuranceExpiryDate),
-                _ => query.OrderBy(c => c.SeatCount)
-                           .OrderBy(c => c.LastUpdatedTime)
-                           .ThenBy(c => c.Name)
-            };
-
-            if (req.IsActive.HasValue)
+                query = sortByEnum switch
+                {
+                    ShuttleSortByEnum.NAME => query.OrderBy(c => c.Name),
+                    ShuttleSortByEnum.BRAND => query.OrderBy(c => c.Brand),
+                    ShuttleSortByEnum.INSURANCE_EXPIRY_DATE => query.OrderBy(c => c.InsuranceExpiryDate),
+                    _ => query.OrderBy(c => c.SeatCount)
+                               .ThenBy(c => c.LastUpdatedTime)
+                               .ThenBy(c => c.Name)
+                };
+            }
+            else
             {
-                query = query.Where(x => x.IsActive == req.IsActive.Value);
+                // Default sorting if no sortBy is provided
+                query = query.OrderBy(c => c.SeatCount)
+                             .ThenBy(c => c.LastUpdatedTime)
+                             .ThenBy(c => c.Name);
             }
 
-            if (req.IsAvailable.HasValue)
+            //query = req.sortBy switch
+            //{
+            //    ShuttleSortByEnum.Name => query.OrderBy(c => c.Name),
+            //    ShuttleSortByEnum.Brand => query.OrderBy(c => c.Brand),
+            //    ShuttleSortByEnum.InsuranceExpiryDate => query.OrderBy(c => c.InsuranceExpiryDate),
+            //    _ => query.OrderBy(c => c.SeatCount)
+            //               .OrderBy(c => c.LastUpdatedTime)
+            //               .ThenBy(c => c.Name)
+            //};
+
+            if (req.isActive.HasValue)
             {
-                query = query.Where(x => x.IsAvailable == req.IsAvailable.Value);
+                query = query.Where(x => x.IsActive == req.isActive.Value);
+            }
+
+            if (req.isAvailable.HasValue)
+            {
+                query = query.Where(x => x.IsAvailable == req.isAvailable.Value);
             }
 
             var totalCount = query.Count();
 
             //Paging
             var shuttles = await query
-                .Skip(req.Page * req.PageSize)
-                .Take(req.PageSize)
+                .Skip(req.page * req.pageSize)
+                .Take(req.pageSize)
                 .ToListAsync();
 
             if (!shuttles.Any())

@@ -16,18 +16,18 @@ namespace ShuttleMate.ModelViews.ShuttleModelViews
         /// <summary>
         /// Từ khoá tìm kiếm (lọc theo tên, màu, hãng, model). Tùy chọn.
         /// </summary>
-        public string? SearchKeyword { get; set; } = null!;
+        public string? search { get; set; } = null!;
         /// <summary>
-        /// Tiêu chí sắp xếp: Name = 0, Brand = 1, InsuranceExpiryDate = 2, SeatCount (default).
+        /// Tiêu chí sắp xếp: NAME, BRAND, INSURANCE_EXPIRY_DATE, SeatCount (default).
         /// </summary>
-        public ShuttleSortByEnum? SortBy { get; set; } = null!;
+        public string? sortBy { get; set; } = null!;
         /// <summary>
         /// Lọc theo trạng thái hoạt động (IsActive). Tùy chọn.
         /// </summary>
-        public bool? IsActive { get; set; } = null!;
+        public bool? isActive { get; set; } = null!;
         /// <summary>
         /// Lọc theo tình trạng sẵn sàng (IsAvailable). Tùy chọn.
         /// </summary>
-        public bool? IsAvailable { get; set; } = null!;
+        public bool? isAvailable { get; set; } = null!;
     }
 }
