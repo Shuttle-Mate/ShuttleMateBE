@@ -26,6 +26,7 @@ namespace ShuttleMate.Contract.Repositories.IUOW
         Task UpdateAsync(T obj);
         Task DeleteAsync(object id);
         Task DeleteAsync(T entity);
+        Task DeleteAsync(params object[] keyValues);
         Task DeleteRangeAsync(IEnumerable<T> entities);
         Task SaveAsync();
         Task<T> FindAsync(Expression<Func<T, bool>> predicate);

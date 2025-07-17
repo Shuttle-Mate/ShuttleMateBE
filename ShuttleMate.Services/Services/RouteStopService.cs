@@ -5,12 +5,14 @@ using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.RouteStopModelViews;
 using ShuttleMate.ModelViews.StopModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 
@@ -50,12 +52,21 @@ namespace ShuttleMate.Services.Services
 
                 foreach (var old in oldStops)
                 {
-                    old.DeletedTime = DateTime.UtcNow;
-                    old.DeletedBy = userId;
+                    //old.DeletedTime = DateTime.UtcNow;
+                    //old.DeletedBy = userId;
                     //_unitOfWork.DbContext.Entry(old).State = EntityState.Detached; // Ngắt tracking
+                    await routeStopRepo.DeleteAsync(old.RouteId, old.StopId);
+                    await _unitOfWork.SaveAsync();
+                    //_unitOfWork.Detach(old);
                 }
 
                 await routeStopRepo.UpdateRangeAsync(oldStops);
+                await _unitOfWork.SaveAsync();
+
+                foreach (var old in oldStops)
+                {
+                    _unitOfWork.Detach(old);
+                }
 
                 // Gắn Stop mới với StopOrder
                 int order = 1;
@@ -89,6 +100,53 @@ namespace ShuttleMate.Services.Services
                 //_unitOfWork.RollBack();
                 throw;
             }
+        }
+
+        public async Task<BasePaginatedList<StopWithRouteResponseModel>> SearchStopWithRoutes(RouteStopQuery req)
+        {
+            string stopName = req.SearchStopName ?? "";
+            var page = req.page > 0 ? req.page : 0;
+            var pageSize = req.pageSize > 0 ? req.pageSize : 10;
+
+            var query = _unitOfWork.GetRepository<Stop>().Entities
+                .Where(rs => !rs.DeletedTime.HasValue)
+                .Include(rs => rs.RouteStops)
+                    .ThenInclude(rs => rs.Route)
+                .Select(s => new StopWithRouteResponseModel
+                {
+                    StopId = s.Id,
+                    StopName = s.Name,
+                    Address = s.Address,
+                    Routes = s.RouteStops
+                    .Select(rs => new RouteResponseModel
+                    {
+                        RouteId = rs.Route.Id,
+                        RouteCode = rs.Route.RouteCode,
+                        RouteName = rs.Route.RouteName
+                    })
+                    .Distinct()
+                    .ToList()
+                });
+
+            if (!string.IsNullOrWhiteSpace(stopName))
+            {
+                query = query.Where(x => x.StopName.ToLower().Contains(stopName.ToLower()));
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var stops = await query
+                .OrderBy(x => x.StopName)
+                .Skip(req.page * req.pageSize)
+                .Take(req.pageSize)
+                .ToListAsync();
+
+            if (!stops.Any())
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có trạm nào tồn tại!");
+            }
+
+            return new BasePaginatedList<StopWithRouteResponseModel>(stops, totalCount, page, pageSize);
         }
     }
 }

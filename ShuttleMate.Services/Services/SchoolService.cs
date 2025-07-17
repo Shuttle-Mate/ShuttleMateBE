@@ -86,7 +86,6 @@ namespace ShuttleMate.Services.Services
 
             var query = _unitOfWork.GetRepository<User>()
                 .GetQueryable()
-                .Include(x => x.Routes)
                 .Include(x => x.School)
                 .Where(x =>  x.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() == "STUDENT" 
                             && x.SchoolId == user!.SchoolId
