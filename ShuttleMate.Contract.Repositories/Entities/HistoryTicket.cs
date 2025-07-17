@@ -15,8 +15,8 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public Guid UserId { get; set; }
         public Guid TicketId { get; set; }
         public DateTime PurchaseAt { get; set; }
-        public DateTime ValidFrom { get; set; }
-        public DateTime ValidUntil { get; set; }
+        public DateOnly ValidFrom { get; set; }
+        public DateOnly ValidUntil { get; set; }
         public virtual User User { get; set; }
         public virtual TicketType TicketType { get; set; }
         public HistoryTicketStatus Status { get; set; }

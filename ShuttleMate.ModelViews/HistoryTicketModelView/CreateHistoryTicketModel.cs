@@ -9,7 +9,7 @@ namespace ShuttleMate.ModelViews.HistoryTicketModelView
     public class CreateHistoryTicketModel
     {
         public Guid TicketId { get; set; }
-        public DateTime ValidFrom { get; set; }
-        public DateTime ValidUntil { get; set; }
+        public DateOnly ValidFrom { get; set; }
+        //public DateOnly ValidUntil { get; set; }
     }
 }

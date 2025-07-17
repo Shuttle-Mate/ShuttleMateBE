@@ -60,7 +60,7 @@ namespace ShuttleMate.Services.Services
         }
 
         #region payment PAYOS
-        public async Task<BasePaginatedList<HistoryTicketResponseModel>> GetAllForUserAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, string? ticketType = null)
+        public async Task<BasePaginatedList<HistoryTicketResponseModel>> GetAllForUserAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateOnly? ValidFrom = null, DateOnly? ValidUntil = null, Guid? ticketId = null, string? ticketType = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -78,7 +78,7 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(u => u.TicketId == ticketId);
             }
-            if (!string.IsNullOrWhiteSpace(status) )
+            if (!string.IsNullOrWhiteSpace(status))
             {
                 query = query.Where(u => u.Status.ToString().ToUpper() == status.ToUpper());
             }
@@ -92,11 +92,11 @@ namespace ShuttleMate.Services.Services
             }
             if (ValidFrom.HasValue)
             {
-                query = query.Where(u => u.ValidFrom.Date == ValidFrom.Value.Date);
+                query = query.Where(u => u.ValidFrom == ValidFrom.Value);
             }
             if (ValidUntil.HasValue)
             {
-                query = query.Where(u => u.ValidUntil.Date == ValidUntil.Value.Date);
+                query = query.Where(u => u.ValidUntil == ValidUntil.Value);
             }
             if (CreateTime == true)
             {
@@ -106,7 +106,7 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.OrderByDescending(x => x.CreatedTime);
             }
-            
+
 
             var historyTickets = await query
                 .Select(u => new HistoryTicketResponseModel
@@ -136,7 +136,7 @@ namespace ShuttleMate.Services.Services
 
             return new BasePaginatedList<HistoryTicketResponseModel>(historyTickets, totalCount, page, pageSize);
         }
-        public async Task<BasePaginatedList<HistoryTicketResponseModel>> GetAllForParentAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, string? ticketType = null)
+        public async Task<BasePaginatedList<HistoryTicketResponseModel>> GetAllForParentAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateOnly? ValidFrom = null, DateOnly? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, string? ticketType = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -171,11 +171,11 @@ namespace ShuttleMate.Services.Services
             }
             if (ValidFrom.HasValue)
             {
-                query = query.Where(u => u.ValidFrom.Date == ValidFrom.Value.Date);
+                query = query.Where(u => u.ValidFrom == ValidFrom.Value);
             }
             if (ValidUntil.HasValue)
             {
-                query = query.Where(u => u.ValidUntil.Date == ValidUntil.Value.Date);
+                query = query.Where(u => u.ValidUntil == ValidUntil.Value);
             }
             if (CreateTime == true)
             {
@@ -201,7 +201,7 @@ namespace ShuttleMate.Services.Services
                     TicketType = u.TicketType.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
                     ChildName = u.User.FullName,
-                    
+
                 })
                 .ToListAsync();
 
@@ -214,7 +214,7 @@ namespace ShuttleMate.Services.Services
 
             return new BasePaginatedList<HistoryTicketResponseModel>(historyTickets, totalCount, page, pageSize);
         }
-        public async Task<BasePaginatedList<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateTime? ValidFrom = null, DateTime? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null)
+        public async Task<BasePaginatedList<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateOnly? ValidFrom = null, DateOnly? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null)
         {
             var historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
 
@@ -244,11 +244,11 @@ namespace ShuttleMate.Services.Services
             }
             if (ValidFrom.HasValue)
             {
-                query = query.Where(u => u.ValidFrom.Date == ValidFrom.Value.Date);
+                query = query.Where(u => u.ValidFrom == ValidFrom.Value);
             }
             if (ValidUntil.HasValue)
             {
-                query = query.Where(u => u.ValidUntil.Date == ValidUntil.Value.Date);
+                query = query.Where(u => u.ValidUntil == ValidUntil.Value);
             }
             if (CreateTime == true)
             {
@@ -312,17 +312,9 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<CreateHistoryTicketResponse> CreateHistoryTicket(CreateHistoryTicketModel model)
         {
-            if (model.ValidFrom < DateTime.Now)
+            if (model.ValidFrom < DateOnly.FromDateTime(DateTime.Now))
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
-            }
-            if (model.ValidUntil < DateTime.Now)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
-            }
-            if (model.ValidFrom > model.ValidUntil)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Thời gian bắt đầu phải lớn hơn thời gian kết thúc");
             }
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -336,7 +328,7 @@ namespace ShuttleMate.Services.Services
             {
                 Id = Guid.NewGuid(),
                 ValidFrom = model.ValidFrom,
-                ValidUntil = model.ValidUntil,
+                ValidUntil = model.ValidFrom,
                 CreatedTime = DateTime.Now,
                 TicketId = model.TicketId,
                 Status = HistoryTicketStatus.UNPAID,
@@ -345,6 +337,29 @@ namespace ShuttleMate.Services.Services
                 LastUpdatedTime = DateTime.Now,
                 CreatedBy = userId
             };
+            switch (ticketType.Type)
+            {
+                case TicketTypeEnum.SINGLE_RIDE:
+                    historyTicket.ValidUntil = model.ValidFrom;
+                    break;
+                case TicketTypeEnum.DAY_PASS:
+                    historyTicket.ValidUntil = model.ValidFrom;
+                    break;
+                case TicketTypeEnum.WEEKLY:
+                    historyTicket.ValidUntil = model.ValidFrom.AddDays(7);
+                    break;
+                case TicketTypeEnum.MONTHLY:
+                    historyTicket.ValidUntil = model.ValidFrom.AddMonths(1);
+                    break;
+                case TicketTypeEnum.SEMESTER_ONE:
+                    historyTicket.ValidUntil = model.ValidFrom;
+                    break;
+                case TicketTypeEnum.SEMESTER_TWO:
+                    historyTicket.ValidUntil = model.ValidFrom;
+                    break;
+            }
+
+            
 
             await _unitOfWork.GetRepository<HistoryTicket>().InsertAsync(historyTicket);
             await _unitOfWork.SaveAsync();
@@ -680,11 +695,11 @@ namespace ShuttleMate.Services.Services
         public async Task<string> CreateZaloPayOrder(CreateZaloPayOrderModel model)
         {
             // Kiểm tra các điều kiện nhập liệu
-            if (model.ValidFrom < DateTime.Now)
+            if (model.ValidFrom < DateOnly.FromDateTime(DateTime.Now))
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
             }
-            if (model.ValidUntil < DateTime.Now)
+            if (model.ValidUntil < DateOnly.FromDateTime(DateTime.Now))
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
             }

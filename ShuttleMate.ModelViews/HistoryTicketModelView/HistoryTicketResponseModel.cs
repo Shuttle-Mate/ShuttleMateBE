@@ -19,8 +19,8 @@ namespace ShuttleMate.ModelViews.HistoryTicketModelView
         public string ChildName { get; set; }
 
         public DateTime PurchaseAt { get; set; }
-        public DateTime ValidFrom { get; set; }
-        public DateTime ValidUntil { get; set; }
+        public DateOnly ValidFrom { get; set; }
+        public DateOnly ValidUntil { get; set; }
         public string Status { get; set; }
     }
 }
