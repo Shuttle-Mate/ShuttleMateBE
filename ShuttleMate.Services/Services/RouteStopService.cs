@@ -105,8 +105,8 @@ namespace ShuttleMate.Services.Services
         public async Task<BasePaginatedList<StopWithRouteResponseModel>> SearchStopWithRoutes(RouteStopQuery req)
         {
             string stopName = req.SearchStopName ?? "";
-            var page = req.Page > 0 ? req.Page : 0;
-            var pageSize = req.PageSize > 0 ? req.PageSize : 10;
+            var page = req.page > 0 ? req.page : 0;
+            var pageSize = req.pageSize > 0 ? req.pageSize : 10;
 
             var query = _unitOfWork.GetRepository<Stop>().Entities
                 .Where(rs => !rs.DeletedTime.HasValue)
@@ -137,8 +137,8 @@ namespace ShuttleMate.Services.Services
 
             var stops = await query
                 .OrderBy(x => x.StopName)
-                .Skip(req.Page * req.PageSize)
-                .Take(req.PageSize)
+                .Skip(req.page * req.pageSize)
+                .Take(req.pageSize)
                 .ToListAsync();
 
             if (!stops.Any())
