@@ -228,6 +228,7 @@ namespace ShuttleMate.API
             services.AddScoped<IResponseSupportService, ResponseSupportService>();
             services.AddScoped<ISchoolService, SchoolService>();
             services.AddScoped<IWardService, WardService>();
+            services.AddScoped<ITripService, TripService>();
         }
 
         public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)
