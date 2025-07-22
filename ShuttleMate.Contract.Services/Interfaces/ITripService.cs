@@ -11,7 +11,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
 {
     public interface ITripService
     {
-        Task CreateTrip(TripModel model);
+        Task StartTrip(TripModel model);
         //Task<List<ResponseShuttleModel>> GetAll();
         Task<BasePaginatedList<ResponseTripModel>> GetAllPaging(GetTripQuery req);
         Task<ResponseTripModel> GetById(Guid tripId);
