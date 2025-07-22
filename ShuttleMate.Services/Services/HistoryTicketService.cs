@@ -71,7 +71,7 @@ namespace ShuttleMate.Services.Services
 
             var query = historyTicketRepo.Entities.Where(x => !x.DeletedTime.HasValue)
                 .Include(u => u.User)
-                .Include(u => u.TicketType)
+                .Include(u => u.Ticket)
                 .Where(x => x.UserId == cb)
                 .AsQueryable();
             if (ticketId.HasValue)
@@ -84,7 +84,7 @@ namespace ShuttleMate.Services.Services
             }
             if (!string.IsNullOrWhiteSpace(ticketType))
             {
-                query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType.ToUpper());
+                query = query.Where(x => x.Ticket.Type.ToString().ToUpper() == ticketType.ToUpper());
             }
             if (PurchaseAt.HasValue)
             {
@@ -118,9 +118,9 @@ namespace ShuttleMate.Services.Services
                     TicketId = u.TicketId,
                     UserId = u.UserId,
                     Status = u.Status.ToString().ToUpper(),
-                    Price = u.TicketType.Price,
-                    RouteName = u.TicketType.Route.RouteName,
-                    TicketType = u.TicketType.Type.ToString().ToUpper(),
+                    Price = u.Ticket.Price,
+                    RouteName = u.Ticket.Route.RouteName,
+                    TicketType = u.Ticket.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
                 })
                 .ToListAsync();
@@ -146,7 +146,7 @@ namespace ShuttleMate.Services.Services
 
             var query = historyTicketRepo.Entities.Where(x => !x.DeletedTime.HasValue)
                 .Include(u => u.User)
-                .Include(u => u.TicketType)
+                .Include(u => u.Ticket)
                 .Where(x => x.User.ParentId == cb)
                 .AsQueryable();
             if (ticketId.HasValue)
@@ -163,7 +163,7 @@ namespace ShuttleMate.Services.Services
             }
             if (!string.IsNullOrWhiteSpace(ticketType))
             {
-                query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType!.ToUpper());
+                query = query.Where(x => x.Ticket.Type.ToString().ToUpper() == ticketType!.ToUpper());
             }
             if (PurchaseAt.HasValue)
             {
@@ -196,9 +196,9 @@ namespace ShuttleMate.Services.Services
                     TicketId = u.TicketId,
                     UserId = u.UserId,
                     Status = u.Status.ToString().ToUpper(),
-                    Price = u.TicketType.Price,
-                    RouteName = u.TicketType.Route.RouteName,
-                    TicketType = u.TicketType.Type.ToString().ToUpper(),
+                    Price = u.Ticket.Price,
+                    RouteName = u.Ticket.Route.RouteName,
+                    TicketType = u.Ticket.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
                     ChildName = u.User.FullName,
 
@@ -220,7 +220,7 @@ namespace ShuttleMate.Services.Services
 
             var query = historyTicketRepo.Entities.Where(x => !x.DeletedTime.HasValue)
                 .Include(u => u.User)
-                .Include(u => u.TicketType)
+                .Include(u => u.Ticket)
                 .AsQueryable();
             if (userId.HasValue)
             {
@@ -236,7 +236,7 @@ namespace ShuttleMate.Services.Services
             }
             if (!string.IsNullOrWhiteSpace(ticketType))
             {
-                query = query.Where(x => x.TicketType.Type.ToString().ToUpper() == ticketType.ToUpper());
+                query = query.Where(x => x.Ticket.Type.ToString().ToUpper() == ticketType.ToUpper());
             }
             if (PurchaseAt.HasValue)
             {
@@ -269,9 +269,9 @@ namespace ShuttleMate.Services.Services
                     TicketId = u.TicketId,
                     UserId = u.UserId,
                     Status = u.Status.ToString().ToUpper(),
-                    Price = u.TicketType.Price,
-                    RouteName = u.TicketType.Route.RouteName,
-                    TicketType = u.TicketType.Type.ToString().ToUpper(),
+                    Price = u.Ticket.Price,
+                    RouteName = u.Ticket.Route.RouteName,
+                    TicketType = u.Ticket.Type.ToString().ToUpper(),
                     FullNameOfUser = u.User.FullName,
                     OrderCode = u.Transaction.OrderCode,
                 })
@@ -317,7 +317,7 @@ namespace ShuttleMate.Services.Services
 
             Guid.TryParse(userId, out Guid cb);
 
-            var ticketType = await _unitOfWork.GetRepository<TicketType>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+            var ticketType = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
 
             var historyTicket = new HistoryTicket
@@ -671,13 +671,13 @@ namespace ShuttleMate.Services.Services
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td>{historyTicket.TicketType.Route.RouteName}</td>
-                                        <td>{ConvertStatusTicketTypeToString(historyTicket.TicketType.Type)}</td>
-                                        <td>{historyTicket.TicketType.Price:N0} đ</td>
+                                        <td>{historyTicket.Ticket.Route.RouteName}</td>
+                                        <td>{ConvertStatusTicketTypeToString(historyTicket.Ticket.Type)}</td>
+                                        <td>{historyTicket.Ticket.Price:N0} đ</td>
                                     </tr>
                                 </tbody>
                             </table>
-                            <p><strong>Tổng tiền:</strong> {historyTicket.TicketType.Price:N0} đ</p>
+                            <p><strong>Tổng tiền:</strong> {historyTicket.Ticket.Price:N0} đ</p>
                         </div>
 
                         <div class='footer'>
@@ -723,7 +723,7 @@ namespace ShuttleMate.Services.Services
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             Guid.TryParse(userId, out Guid cb);
 
-            var ticketType = await _unitOfWork.GetRepository<TicketType>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+            var ticketType = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "User không tồn tại!");
 
             // Tạo HistoryTicket

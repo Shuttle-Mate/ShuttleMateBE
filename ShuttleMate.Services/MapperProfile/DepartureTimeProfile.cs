@@ -8,9 +8,9 @@ namespace ShuttleMate.Services.MapperProfile
     {
         public DepartureTimeProfile()
         {
-            CreateMap<DepartureTime, ResponseDepartureTimeModel>().ReverseMap();
-            CreateMap<DepartureTime, CreateDepartureTimeModel>().ReverseMap();
-            CreateMap<DepartureTime, UpdateDepartureTimeModel>().ReverseMap();
+            CreateMap<Schedule, ResponseDepartureTimeModel>().ReverseMap();
+            CreateMap<Schedule, CreateDepartureTimeModel>().ReverseMap();
+            CreateMap<Schedule, UpdateDepartureTimeModel>().ReverseMap();
         }
     }
 }

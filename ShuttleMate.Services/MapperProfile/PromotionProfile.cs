@@ -10,16 +10,7 @@ namespace ShuttleMate.Services.MapperProfile
         public PromotionProfile()
         {
             CreateMap<Promotion, ResponsePromotionModel>()
-                .ForMember(dest => dest.Type, opt => opt.MapFrom(src => ConvertPromotionTypeToVietnameseString(src.Type)))
-                .ForMember(dest => dest.TicketTypes, opt => opt.MapFrom(src =>
-                    src.TicketPromotions.Select(tp => new ResponseTicketPromotionModel
-                    {
-                        TicketId = tp.TicketId,
-                        Type = tp.TicketType != null
-                            ? tp.TicketType.Type.ToString().ToUpper()
-                            : string.Empty
-                    }).ToList()
-                    ));
+                .ForMember(dest => dest.Type, opt => opt.MapFrom(src => ConvertPromotionTypeToVietnameseString(src.Type)));
 
             CreateMap<Promotion, CreatePromotionModel>().ReverseMap();
         }

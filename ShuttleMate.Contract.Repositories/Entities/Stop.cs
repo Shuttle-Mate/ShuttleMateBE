@@ -11,7 +11,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public string RefId { get; set; }
         public Guid WardId { get; set; }
         public virtual Ward Ward { get; set; }
-        public virtual ICollection<StopEstimate> StopEstimates { get; set; } = new List<StopEstimate>();
         public virtual ICollection<RouteStop> RouteStops { get; set; } = new List<RouteStop>();
+        public virtual ICollection<StopEstimate> StopEstimates { get; set; } = new List<StopEstimate>();
     }
 }

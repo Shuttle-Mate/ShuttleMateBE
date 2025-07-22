@@ -36,7 +36,7 @@ namespace ShuttleMate.Services.Services
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            Attendance attendance = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Status == AttendanceStatusEnum.CheckedIn);
+            Attendance attendance = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Status == AttendanceStatusEnum.CHECKED_IN);
             if (attendance != null)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vé này đã CheckIn nhưng chưa được CheckOut!!");
@@ -44,7 +44,7 @@ namespace ShuttleMate.Services.Services
             
             var checkin = _mapper.Map<Attendance>(model);
             checkin.CheckInTime = DateTime.UtcNow;
-            checkin.Status = AttendanceStatusEnum.CheckedIn;
+            checkin.Status = AttendanceStatusEnum.CHECKED_IN;
             checkin.CreatedBy = userId;
             checkin.LastUpdatedBy = userId;
             //checkin.CheckOutTime = null;
@@ -62,13 +62,13 @@ namespace ShuttleMate.Services.Services
             }
             var checkout = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy hoặc vé chưa checkin!");
 
-            if (checkout.Status == AttendanceStatusEnum.CheckedOut)
+            if (checkout.Status == AttendanceStatusEnum.CHECKED_OUT)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vé này đã được CheckOut!!");
             }
 
             _mapper.Map(model, checkout);
-            checkout.Status = AttendanceStatusEnum.CheckedOut;
+            checkout.Status = AttendanceStatusEnum.CHECKED_OUT;
             checkout.CheckOutTime = DateTime.UtcNow;
             checkout.LastUpdatedBy = userId;
             checkout.LastUpdatedTime = DateTime.UtcNow;

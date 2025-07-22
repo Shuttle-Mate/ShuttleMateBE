@@ -49,7 +49,7 @@ namespace ShuttleMate.Services.Services
 
         public async Task<IEnumerable<ResponseStopEstimateModel>> GetByRouteIdAsync(Guid routeId)
         {
-            var departureTimes = await _unitOfWork.GetRepository<DepartureTime>()
+            var departureTimes = await _unitOfWork.GetRepository<Schedule>()
                 .FindAllAsync(d => d.RouteId == routeId && !d.DeletedTime.HasValue);
 
             if (!departureTimes.Any())
@@ -59,7 +59,7 @@ namespace ShuttleMate.Services.Services
 
             var stopEstimates = await _unitOfWork.GetRepository<StopEstimate>()
                 .FindAllAsync(se => !se.DeletedTime.HasValue &&
-                    departureTimes.Select(dt => dt.Id).Contains(se.DepartureTimeId));
+                    departureTimes.Select(dt => dt.Id).Contains(se.ScheduleId));
 
             if (!stopEstimates.Any())
             {
@@ -81,7 +81,7 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến xe không tồn tại.");
             }
 
-            var departureTimes = await _unitOfWork.GetRepository<DepartureTime>().FindAllAsync(d => d.RouteId == routeId && !d.DeletedTime.HasValue);
+            var departureTimes = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(d => d.RouteId == routeId && !d.DeletedTime.HasValue);
             if (!departureTimes.Any())
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không có thời gian khởi hành nào cho tuyến xe này.");
@@ -103,7 +103,7 @@ namespace ShuttleMate.Services.Services
                         var stopEstimate = new StopEstimate
                         {
                             StopId = stop.Id,
-                            DepartureTimeId = departureTime.Id,
+                            ScheduleId = departureTime.Id,
                             ExpectedTime = estimatedTime.Value
                         };
 
@@ -114,7 +114,7 @@ namespace ShuttleMate.Services.Services
             }
         }
 
-        private async Task<TimeOnly?> CalculateStopEstimateAsync(Route route, DepartureTime departureTime, Stop stop)
+        private async Task<TimeOnly?> CalculateStopEstimateAsync(Route route, Schedule departureTime, Stop stop)
         {
             var waypoints = route.RouteStops.Select(rs => $"{rs.Stop.Lat},{rs.Stop.Lng}").ToList();
 
@@ -154,7 +154,7 @@ namespace ShuttleMate.Services.Services
 
             if (estimatedTimeInSeconds.HasValue)
             {
-                var departureDateTime = DateTime.Today.Add(departureTime.Time.ToTimeSpan());
+                var departureDateTime = DateTime.Today.Add(departureTime.DepartureTime.ToTimeSpan());
 
                 var expectedDateTime = departureDateTime.AddSeconds(estimatedTimeInSeconds.Value);
 
