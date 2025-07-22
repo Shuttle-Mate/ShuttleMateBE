@@ -35,6 +35,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual ICollection<SystemLogs> SystemLogs { get; set; } = new List<SystemLogs>();
         public virtual ICollection<UserPromotion> UserPromotions { get; set; } = new List<UserPromotion>();
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+        public virtual ICollection<UserSchoolShift> UserSchoolShifts { get; set; } = new List<UserSchoolShift>();
         public virtual ICollection<WithdrawalRequest> WithdrawalRequests { get; set; } = new List<WithdrawalRequest>();
     }
 }

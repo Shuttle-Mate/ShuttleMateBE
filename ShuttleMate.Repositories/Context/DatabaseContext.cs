@@ -23,6 +23,7 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<Schedule> Schedules => Set<Schedule>();
         public virtual DbSet<ScheduleOverride> ScheduleOverrides => Set<ScheduleOverride>();
         public virtual DbSet<School> Schools => Set<School>();
+        public virtual DbSet<SchoolShift> SchoolShifts => Set<SchoolShift>();
         public virtual DbSet<Shuttle> Shuttles => Set<Shuttle>();
         public virtual DbSet<ShuttleLocationRecord> ShuttleLocationRecords => Set<ShuttleLocationRecord>();
         public virtual DbSet<Stop> Stops => Set<Stop>();
@@ -35,6 +36,7 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<User> Users => Set<User>();
         public virtual DbSet<UserPromotion> UserPromotions => Set<UserPromotion>();
         public virtual DbSet<UserRole> UserRoles => Set<UserRole>();
+        public virtual DbSet<UserSchoolShift> UserSchoolShifts => Set<UserSchoolShift>();
         public virtual DbSet<Ward> Wards => Set<Ward>();
         public virtual DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
         #endregion
@@ -197,6 +199,15 @@ namespace ShuttleMate.Repositories.Context
                 entity.ToTable("Schools");
             });
 
+            modelBuilder.Entity<SchoolShift>(entity =>
+            {
+                entity.ToTable("SchoolShifts");
+                entity.HasOne(s => s.School)
+                    .WithMany(w => w.SchoolShifts)
+                    .HasForeignKey(s => s.SchoolId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<Shuttle>(entity =>
             {
                 entity.ToTable("Shuttles");
@@ -322,6 +333,18 @@ namespace ShuttleMate.Repositories.Context
                 entity.HasOne(up => up.Role)
                     .WithMany(p => p.UserRoles)
                     .HasForeignKey(up => up.RoleId);
+            });
+
+            modelBuilder.Entity<UserSchoolShift>(entity =>
+            {
+                entity.ToTable("UserSchoolShifts");
+                entity.HasKey(us => new { us.StudentId, us.SchoolShiftId });
+                entity.HasOne(up => up.Student)
+                    .WithMany(u => u.UserSchoolShifts)
+                    .HasForeignKey(up => up.StudentId);
+                entity.HasOne(up => up.SchoolShift)
+                    .WithMany(p => p.UserSchoolShifts)
+                    .HasForeignKey(up => up.SchoolShiftId);
             });
 
             modelBuilder.Entity<Ward>(entity =>

@@ -12,12 +12,9 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public DateOnly? EndSemOne { get; set; }
         public DateOnly? StartSemTwo { get; set; }
         public DateOnly? EndSemTwo { get; set; }
-        public TimeOnly? MorningStartTime { get; set; }
-        public TimeOnly? MorningEndTime { get; set; }
-        public TimeOnly? AfternoonStartTime { get; set; }
-        public TimeOnly? AfternoonEndTime { get; set; }
         public bool IsActive { get; set; } = true;
         public virtual ICollection<User> Students { get; set; } = new List<User>();
         public virtual ICollection<Route> Routes { get; set; } = new List<Route>();
+        public virtual ICollection<SchoolShift> SchoolShifts { get; set; } = new List<SchoolShift>();
     }
 }

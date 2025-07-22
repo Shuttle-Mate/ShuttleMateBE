@@ -147,5 +147,17 @@
             BRAND, // Sắp xếp theo hãng xe
             INSURANCE_EXPIRY_DATE, // Sắp xếp theo ngày hết hạn bảo hiểm
         }
+
+        public enum ShiftTypeEnum
+        {
+            START, // Giờ vào
+            END    // Giờ tan
+        }
+
+        public enum SessionTypeEnum
+        {
+            MORNING, // Sáng
+            AFTERNOON // Chiều
+        }
     }
 }
