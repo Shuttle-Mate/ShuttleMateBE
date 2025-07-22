@@ -11,7 +11,7 @@ namespace ShuttleMate.ModelViews.TripModelViews
     {
         public Guid RouteId { get; set; }
         public Guid ShuttleId { get; set; }
-        public TripDirectionEnum TripDirection { get; set; }
+        //public TripDirectionEnum TripDirection { get; set; }
         public DateOnly TripDate { get; set; }
         public TimeOnly StartTime { get; set; }
         public TimeOnly EndTime { get; set; }
