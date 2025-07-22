@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ShuttleMate.Contract.Repositories.Base;
-using ShuttleMate.Core.Utils;
+﻿using ShuttleMate.Contract.Repositories.Base;
 
 namespace ShuttleMate.Contract.Repositories.Entities
 {
@@ -12,6 +6,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
     {
         public string RouteCode { get; set; }
         public string RouteName { get; set; }
+        public string Description { get; set; }
         public string? OperatingTime { get; set; }
         public decimal? Price { get; set; }
         public string? OutBound { get; set; }
@@ -19,15 +14,12 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public decimal? TotalDistance { get; set; }
         public string? RunningTime { get; set; }
         public int AmountOfTrip { get; set; }
-        public string Description { get; set; }
         public bool IsActive { get; set; }
         public Guid SchoolId { get; set; }
-        public virtual School School { get; set; } // school
-        //public virtual ICollection<Stop> Stops { get; set; } = new List<Stop>();
-        public virtual ICollection<DepartureTime> DepartureTimes { get; set; } = new List<DepartureTime>();
-        public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
-        public virtual ICollection<TicketType> TicketTypes { get; set; } = new List<TicketType>();
+        public virtual School School { get; set; }
         public virtual ICollection<RouteStop> RouteStops { get; set; } = new List<RouteStop>();
+        public virtual ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
         public virtual ICollection<ScheduleOverride> ScheduleOverrides { get; set; } = new List<ScheduleOverride>();
+        public virtual ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
     }
 }

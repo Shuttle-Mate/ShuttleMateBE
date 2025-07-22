@@ -12,6 +12,8 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public string BankAccountName { get; set; }
         public string BankName { get; set; }
         public string? RejectReason { get; set; }
+        public Guid TransactionId { get; set; }
+        public virtual Transaction Transaction { get; set; }
         public Guid UserId { get; set; }
         public virtual User User { get; set; }
     }

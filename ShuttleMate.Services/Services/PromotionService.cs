@@ -129,7 +129,7 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng chọn ít nhất một loại vé.");
             }
 
-            var ticketTypes = await _unitOfWork.GetRepository<TicketType>().FindAllAsync(x => model.TicketTypeIds.Contains(x.Id));
+            var ticketTypes = await _unitOfWork.GetRepository<Ticket>().FindAllAsync(x => model.TicketTypeIds.Contains(x.Id));
 
             if (ticketTypes.Count != model.TicketTypeIds.Count)
             {
@@ -188,18 +188,18 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.GetRepository<Promotion>().InsertAsync(newPromotion);
 
-            foreach (var ticketTypeId in model.TicketTypeIds)
-            {
-                var ticketPromotion = new TicketPromotion
-                {
-                    TicketId = ticketTypeId,
-                    PromotionId = newPromotion.Id,
-                    CreatedBy = userId,
-                    LastUpdatedBy = userId
-                };
+            //foreach (var ticketTypeId in model.TicketTypeIds)
+            //{
+            //    var ticketPromotion = new TicketPromotion
+            //    {
+            //        TicketId = ticketTypeId,
+            //        PromotionId = newPromotion.Id,
+            //        CreatedBy = userId,
+            //        LastUpdatedBy = userId
+            //    };
 
-                await _unitOfWork.GetRepository<TicketPromotion>().InsertAsync(ticketPromotion);
-            }
+            //    await _unitOfWork.GetRepository<TicketPromotion>().InsertAsync(ticketPromotion);
+            //}
 
             await _unitOfWork.SaveAsync();
         }
@@ -242,7 +242,7 @@ namespace ShuttleMate.Services.Services
             if (model.TicketTypeIds == null || !model.TicketTypeIds.Any())
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng chọn ít nhất một loại vé.");
 
-            var ticketTypes = await _unitOfWork.GetRepository<TicketType>().FindAllAsync(x => model.TicketTypeIds.Contains(x.Id));
+            var ticketTypes = await _unitOfWork.GetRepository<Ticket>().FindAllAsync(x => model.TicketTypeIds.Contains(x.Id));
 
             if (ticketTypes.Count != model.TicketTypeIds.Count)
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Một hoặc nhiều loại vé không tồn tại.");
@@ -279,24 +279,24 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
 
-            var oldTicketPromotions = await _unitOfWork.GetRepository<TicketPromotion>().FindAllAsync(x => x.PromotionId == promotion.Id);
-            foreach (var old in oldTicketPromotions)
-            {
-                await _unitOfWork.GetRepository<TicketPromotion>().DeleteAsync(old);
-            }
+            //var oldTicketPromotions = await _unitOfWork.GetRepository<TicketPromotion>().FindAllAsync(x => x.PromotionId == promotion.Id);
+            //foreach (var old in oldTicketPromotions)
+            //{
+            //    await _unitOfWork.GetRepository<TicketPromotion>().DeleteAsync(old);
+            //}
 
-            foreach (var ticketTypeId in model.TicketTypeIds)
-            {
-                var newTicketPromotion = new TicketPromotion
-                {
-                    PromotionId = promotion.Id,
-                    TicketId = ticketTypeId,
-                    CreatedBy = userId,
-                    LastUpdatedBy = userId
-                };
+            //foreach (var ticketTypeId in model.TicketTypeIds)
+            //{
+            //    var newTicketPromotion = new TicketPromotion
+            //    {
+            //        PromotionId = promotion.Id,
+            //        TicketId = ticketTypeId,
+            //        CreatedBy = userId,
+            //        LastUpdatedBy = userId
+            //    };
 
-                await _unitOfWork.GetRepository<TicketPromotion>().InsertAsync(newTicketPromotion);
-            }
+            //    await _unitOfWork.GetRepository<TicketPromotion>().InsertAsync(newTicketPromotion);
+            //}
 
             await _unitOfWork.SaveAsync();
         }
