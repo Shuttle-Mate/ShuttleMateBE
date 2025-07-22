@@ -10,16 +10,16 @@ namespace ShuttleMate.Contract.Repositories.Enum
     {
         public enum TripDirectionEnum
         {
-            InBound,
-            OutBound
+            IN_BOUND,
+            OUT_BOUND
         }
 
         public enum TripStatusEnum
         {
-            Scheduled, //Scheduled but not start yet
-            InProgress,
-            Completed,
-            Cancelled//Hủy
+            SCHEDULED, //Đã lên lịch
+            IN_PROGRESS, //Đang diễn ra
+            COMPLETED, //Đã hoàn thành
+            CANCELLED,
         }
 
         public enum AttendanceStatusEnum
