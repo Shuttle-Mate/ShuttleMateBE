@@ -79,28 +79,28 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ResponseStopModel>(result, totalCount, page, pageSize);
         }
 
-        public async Task<IEnumerable<ResponseSearchStopModel>> SearchAsync(string address)
-        {
-            if (_cache.TryGetValue(address, out IEnumerable<ResponseSearchStopModel> cachedResult))
-            {
-                return cachedResult;
-            }
+        //public async Task<IEnumerable<ResponseSearchStopModel>> SearchAsync(string address)
+        //{
+        //    if (_cache.TryGetValue(address, out IEnumerable<ResponseSearchStopModel> cachedResult))
+        //    {
+        //        return cachedResult;
+        //    }
 
-            string apiUrl = $"{VietMapSearchApiUrl}?apikey={_vietMapSettings.ApiKey}&text={address}";
-            var response = await _httpClient.GetFromJsonAsync<List<ResponseVietMapSearchModelcs>>(apiUrl);
+        //    string apiUrl = $"{VietMapSearchApiUrl}?apikey={_vietMapSettings.ApiKey}&text={address}";
+        //    var response = await _httpClient.GetFromJsonAsync<List<ResponseVietMapSearchModelcs>>(apiUrl);
 
-            var result = response?
-                .Select(x => new ResponseSearchStopModel
-                {
-                    RefId = x.RefId,
-                    Address = x.Address
-                })
-                .ToList() ?? new List<ResponseSearchStopModel>();
+        //    var result = response?
+        //        .Select(x => new ResponseSearchStopModel
+        //        {
+        //            RefId = x.RefId,
+        //            Address = x.Address
+        //        })
+        //        .ToList() ?? new List<ResponseSearchStopModel>();
 
-            _cache.Set(address, result, TimeSpan.FromMinutes(10));
+        //    _cache.Set(address, result, TimeSpan.FromMinutes(10));
 
-            return result;
-        }
+        //    return result;
+        //}
 
         public async Task<ResponseStopModel> GetByIdAsync(Guid id)
         {
@@ -118,6 +118,7 @@ namespace ShuttleMate.Services.Services
         public async Task CreateAsync(CreateStopModel model)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+            model.TrimAllStrings();
 
             var existingStop = await _unitOfWork.GetRepository<Stop>().FindAsync(x => x.RefId == model.RefId && !x.DeletedTime.HasValue);
 
@@ -126,21 +127,13 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trạm dừng này đã tồn tại.");
             }
 
-            string apiUrl = $"{VietMapPlaceApiUrl}?apikey={_vietMapSettings.ApiKey}&refid={model.RefId}";
-            var response = await _httpClient.GetFromJsonAsync<ResponseVietMapPlaceModel>(apiUrl);
-
-            if (response == null || string.IsNullOrWhiteSpace(response.WardName))
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không thể lấy thông tin địa điểm từ VietMap.");
-            }
-
-            var existingWard = await _unitOfWork.GetRepository<Ward>().FindAsync(w => w.Name.ToLower() == response.WardName.ToLower());
+            var existingWard = await _unitOfWork.GetRepository<Ward>().FindAsync(w => w.Name.ToLower() == model.WardName.ToLower());
 
             if (existingWard == null)
             {
                 existingWard = new Ward
                 {
-                    Name = response.WardName
+                    Name = model.WardName
                 };
 
                 await _unitOfWork.GetRepository<Ward>().InsertAsync(existingWard);
@@ -151,9 +144,9 @@ namespace ShuttleMate.Services.Services
             {
                 Name = model.Name.Trim(),
                 RefId = model.RefId,
-                Address = response.Address,
-                Lat = response.Lat,
-                Lng = response.Lng,
+                Address = model.Address,
+                Lat = model.Lat,
+                Lng = model.Lng,
                 WardId = existingWard.Id,
                 CreatedBy = userId,
                 LastUpdatedBy = userId
@@ -166,65 +159,22 @@ namespace ShuttleMate.Services.Services
         public async Task UpdateAsync(Guid id, UpdateStopModel model)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-
-            var stopRepo = _unitOfWork.GetRepository<Stop>();
-            var wardRepo = _unitOfWork.GetRepository<Ward>();
+            model.TrimAllStrings();
 
             var stop = await _unitOfWork.GetRepository<Stop>().GetByIdAsync(id)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Trạm dừng không tồn tại.");
 
             if (stop.DeletedTime.HasValue)
-            {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Trạm dừng đã bị xóa.");
-            }
 
-            if (!string.IsNullOrWhiteSpace(model.RefId) && model.RefId != stop.RefId)
-            {
-                var duplicatedStop = await stopRepo.FindAsync(x =>
-                    x.RefId == model.RefId && x.Id != id && !x.DeletedTime.HasValue);
+            if (string.IsNullOrWhiteSpace(model.Name))
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng tên trạm.");
 
-                if (duplicatedStop != null)
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "RefId này đã tồn tại ở trạm dừng khác.");
-                }
-
-                string apiUrl = $"{VietMapPlaceApiUrl}?apikey={_vietMapSettings.ApiKey}&refid={model.RefId}";
-                var response = await _httpClient.GetFromJsonAsync<ResponseVietMapPlaceModel>(apiUrl);
-
-                if (response == null || string.IsNullOrWhiteSpace(response.WardName))
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không thể lấy thông tin địa điểm từ VietMap.");
-                }
-
-                var existingWard = await wardRepo.FindAsync(w => w.Name.ToLower() == response.WardName.ToLower());
-
-                if (existingWard == null)
-                {
-                    existingWard = new Ward
-                    {
-                        Name = response.WardName
-                    };
-
-                    await wardRepo.InsertAsync(existingWard);
-                    await _unitOfWork.SaveAsync();
-                }
-
-                stop.RefId = model.RefId;
-                stop.Address = response.Address;
-                stop.Lat = response.Lat;
-                stop.Lng = response.Lng;
-                stop.WardId = existingWard.Id;
-            }
-
-            if (!string.IsNullOrWhiteSpace(model.Name) && model.Name.Trim() != stop.Name)
-            {
-                stop.Name = model.Name.Trim();
-            }
-
+            stop.Name = model.Name;
             stop.LastUpdatedBy = userId;
             stop.LastUpdatedTime = CoreHelper.SystemTimeNow;
 
-            await stopRepo.UpdateAsync(stop);
+            await _unitOfWork.GetRepository<Stop>().UpdateAsync(stop);
             await _unitOfWork.SaveAsync();
         }
 
