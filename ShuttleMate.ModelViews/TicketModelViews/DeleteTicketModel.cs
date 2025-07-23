@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ShuttleMate.ModelViews.TicketTypeModelViews
 {
-    public class DeleteTicketTypeModel
+    public class DeleteTicketModel
     {
         public Guid Id { get; set; }
     }

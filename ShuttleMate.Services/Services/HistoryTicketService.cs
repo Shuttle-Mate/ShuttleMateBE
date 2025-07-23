@@ -120,7 +120,7 @@ namespace ShuttleMate.Services.Services
                     Status = u.Status.ToString().ToUpper(),
                     Price = u.Ticket.Price,
                     RouteName = u.Ticket.Route.RouteName,
-                    TicketType = u.Ticket.Type.ToString().ToUpper(),
+                    Ticket = u.Ticket.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
                 })
                 .ToListAsync();
@@ -198,7 +198,7 @@ namespace ShuttleMate.Services.Services
                     Status = u.Status.ToString().ToUpper(),
                     Price = u.Ticket.Price,
                     RouteName = u.Ticket.Route.RouteName,
-                    TicketType = u.Ticket.Type.ToString().ToUpper(),
+                    Ticket = u.Ticket.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
                     ChildName = u.User.FullName,
 
@@ -271,7 +271,7 @@ namespace ShuttleMate.Services.Services
                     Status = u.Status.ToString().ToUpper(),
                     Price = u.Ticket.Price,
                     RouteName = u.Ticket.Route.RouteName,
-                    TicketType = u.Ticket.Type.ToString().ToUpper(),
+                    Ticket = u.Ticket.Type.ToString().ToUpper(),
                     FullNameOfUser = u.User.FullName,
                     OrderCode = u.Transaction.OrderCode,
                 })
