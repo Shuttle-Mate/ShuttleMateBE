@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ShuttleMate.Repositories.Context;
 
@@ -11,9 +12,11 @@ using ShuttleMate.Repositories.Context;
 namespace ShuttleMate.Repositories.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20250723114623_UpdateSchedule")]
+    partial class UpdateSchedule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -687,7 +690,7 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Property<Guid>("RouteId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("SchoolShiftId")
+                    b.Property<Guid>("SchoolShiftId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ShuttleId")
@@ -1831,7 +1834,8 @@ namespace ShuttleMate.Repositories.Migrations
                     b.HasOne("ShuttleMate.Contract.Repositories.Entities.SchoolShift", "SchoolShift")
                         .WithMany("Schedules")
                         .HasForeignKey("SchoolShiftId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("ShuttleMate.Contract.Repositories.Entities.Shuttle", "Shuttle")
                         .WithMany("Schedules")
