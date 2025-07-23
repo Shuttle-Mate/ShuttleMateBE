@@ -54,11 +54,14 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status401Unauthorized, ResponseCodeConstants.UNAUTHORIZED, "Tài xế không hợp lệ");
             }
 
+            DateTime now = DateTime.Now;
+            var tripDate = DateOnly.FromDateTime(now);
+
             // kiểm tra trong ScheduleOverrides
             var scheduleOverrideRepository = _unitOfWork.GetRepository<ScheduleOverride>();
             var overrideRecord = await scheduleOverrideRepository.FindAsync(
                 predicate: so => so.ScheduleId == model.ScheduleId &&
-                                 so.Date == model.TripDate &&
+                                 so.Date == tripDate &&
                                  so.DeletedTime == null
             );
 
@@ -94,8 +97,10 @@ namespace ShuttleMate.Services.Services
             var newTrip = _mapper.Map<Trip>(model);
 
             newTrip.CreatedBy = currentUserIdString;
-
             newTrip.LastUpdatedBy = currentUserIdString;
+
+            newTrip.TripDate = DateOnly.FromDateTime(now);
+            newTrip.StartTime = TimeOnly.FromDateTime(now);
             newTrip.EndTime = null; // Assuming EndTime is nullable and not provided in the model
             newTrip.Status = TripStatusEnum.IN_PROGESS;
 
