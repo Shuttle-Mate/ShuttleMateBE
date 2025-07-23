@@ -7,6 +7,7 @@ using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.RoleModelViews;
 using ShuttleMate.ModelViews.SchoolShiftModelViews;
 using System;
 using System.Collections.Generic;
@@ -34,7 +35,22 @@ namespace ShuttleMate.Services.Services
             _emailService = emailService;
         }
 
-
+        public async Task<List<ResponseSchoolShiftListByTicketIdMode>> GetSchoolShiftListByTicketId(Guid ticketId)
+        {
+            var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == ticketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.Where(x=>x.SchoolId == ticket.Route.SchoolId).ToListAsync() ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var list = schoolShift.Select(x => new ResponseSchoolShiftListByTicketIdMode
+            {
+                Id = x.Id,
+                SchoolId = x.SchoolId,
+                SchoolName = x.School.Name,
+                SessionType = x.SessionType,
+                ShiftType = x.ShiftType,
+                Time = x.Time,
+                
+            }).ToList();
+            return list;
+        }
 
         public async Task CreateSchoolShift(CreateSchoolShiftModel model)
         {

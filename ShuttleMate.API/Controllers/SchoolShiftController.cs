@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.RoleModelViews;
 using ShuttleMate.ModelViews.SchoolShiftModelViews;
 using ShuttleMate.ModelViews.TicketTypeModelViews;
 using ShuttleMate.Services.Services;
@@ -17,6 +18,16 @@ namespace ShuttleMate.API.Controllers
         public SchoolShiftController(ISchoolShiftService schoolShiftServicee)
         {
             _schoolShiftService = schoolShiftServicee;
+        }
+        [HttpGet("list-school-shift-by-ticketid")]
+        public async Task<IActionResult> GetSchoolShiftListByTicketId(Guid ticketId)
+        {
+            var res = await _schoolShiftService.GetSchoolShiftListByTicketId(ticketId);
+            return Ok(new BaseResponseModel<List<ResponseSchoolShiftListByTicketIdMode>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: res
+            ));
         }
         /// <summary>
         /// Tạo ca học
