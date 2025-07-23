@@ -3,17 +3,17 @@ using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
-using ShuttleMate.ModelViews.DepartureTimeModelViews;
+using ShuttleMate.ModelViews.ScheduleModelViews;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/departure-time")]
+    [Route("api/schedule")]
     [ApiController]
-    public class DepartureTimeController : ControllerBase
+    public class ScheduleController : ControllerBase
     {
-        private readonly IDepartureTimeService _departureTimeService;
+        private readonly IScheduleService _departureTimeService;
 
-        public DepartureTimeController(IDepartureTimeService departureTimeService)
+        public ScheduleController(IScheduleService departureTimeService)
         {
             _departureTimeService = departureTimeService;
         }
@@ -22,7 +22,7 @@ namespace ShuttleMate.API.Controllers
         /// Tạo thời gian khởi hành của tuyến.
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> CreateDepartureTime(CreateDepartureTimeModel model)
+        public async Task<IActionResult> CreateDepartureTime(CreateScheduleModel model)
         {
             await _departureTimeService.CreateAsync(model);
             return Ok(new BaseResponseModel<string?>(
@@ -35,7 +35,7 @@ namespace ShuttleMate.API.Controllers
         /// Cập nhật thời gian khởi hành của tuyến.
         /// </summary>
         [HttpPut]
-        public async Task<IActionResult> UpdateDepartureTime(UpdateDepartureTimeModel model)
+        public async Task<IActionResult> UpdateDepartureTime(UpdateScheduleModel model)
         {
             await _departureTimeService.UpdateAsync(model);
             return Ok(new BaseResponseModel<string?>(
