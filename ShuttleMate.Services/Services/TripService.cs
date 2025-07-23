@@ -32,20 +32,7 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
         }
 
-        //public async Task StartTrip(TripModel model)
-        //{
-        //    string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-
-        //    var newTrip = _mapper.Map<Trip>(model);
-        //    newTrip.CreatedBy = userId;
-        //    newTrip.LastUpdatedBy = userId;
-        //    newTrip.EndTime = null; // Assuming EndTime is nullable and not provided in the model
-        //    newTrip.Status = TripStatusEnum.IN_PROGESS;
-        //    await _unitOfWork.GetRepository<Trip>().InsertAsync(newTrip);
-        //    await _unitOfWork.SaveAsync();
-        //}
-
-        public async Task StartTrip(TripModel model)
+        public async Task<Guid> StartTrip(Guid scheduleId)
         {
             string currentUserIdString = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
@@ -54,11 +41,27 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status401Unauthorized, ResponseCodeConstants.UNAUTHORIZED, "Tài xế không hợp lệ");
             }
 
+            DateTime now = DateTime.Now;
+            var tripDate = DateOnly.FromDateTime(now);
+
+            var tripRepository = _unitOfWork.GetRepository<Trip>();
+            var activeTrip = await tripRepository.FindAsync(
+                predicate: t => t.CreatedBy == currentUserIdString &&
+                                 t.Status == TripStatusEnum.IN_PROGESS &&
+                                 t.EndTime == null &&
+                                 t.DeletedTime == null
+            );
+
+            if (activeTrip != null)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài xế hiện đang có một chuyến đi khác đang hoạt động. Vui lòng kết thúc chuyến đi đó trước khi bắt đầu chuyến mới.");
+            }
+
             // kiểm tra trong ScheduleOverrides
             var scheduleOverrideRepository = _unitOfWork.GetRepository<ScheduleOverride>();
             var overrideRecord = await scheduleOverrideRepository.FindAsync(
-                predicate: so => so.ScheduleId == model.ScheduleId &&
-                                 so.Date == model.TripDate &&
+                predicate: so => so.ScheduleId == scheduleId &&
+                                 so.Date == tripDate &&
                                  so.DeletedTime == null
             );
 
@@ -75,7 +78,7 @@ namespace ShuttleMate.Services.Services
                 // không có bản ghi override, kiểm tra trong Schedules gốc
                 var scheduleRepository = _unitOfWork.GetRepository<Schedule>();
                 var scheduleRecord = await scheduleRepository.FindAsync(
-                    predicate: s => s.Id == model.ScheduleId &&
+                    predicate: s => s.Id == scheduleId &&
                                     s.DeletedTime == null
                 );
 
@@ -91,19 +94,21 @@ namespace ShuttleMate.Services.Services
                 }
             }
 
-            var newTrip = _mapper.Map<Trip>(model);
+            var newTrip = new Trip();
 
+            newTrip.ScheduleId = scheduleId;
             newTrip.CreatedBy = currentUserIdString;
-
             newTrip.LastUpdatedBy = currentUserIdString;
+
+            newTrip.TripDate = DateOnly.FromDateTime(now);
+            newTrip.StartTime = TimeOnly.FromDateTime(now);
             newTrip.EndTime = null; // Assuming EndTime is nullable and not provided in the model
             newTrip.Status = TripStatusEnum.IN_PROGESS;
 
-            // Nếu StartTime trong Trip entity là TimeOnly?, bạn cần đảm bảo TripModel.StartTime cũng là TimeOnly? hoặc bạn cần chuyển đổi.
-            // newTrip.StartTime = TimeOnly.FromDateTime(model.StartTime); // Giả sử model.StartTime là DateTime
-
             await _unitOfWork.GetRepository<Trip>().InsertAsync(newTrip);
             await _unitOfWork.SaveAsync();
+
+            return newTrip.Id;
         }
 
         public Task<BasePaginatedList<ResponseTripModel>> GetAllPaging(GetTripQuery req)
@@ -119,6 +124,42 @@ namespace ShuttleMate.Services.Services
         public Task UpdateTrip(UpdateTripModel model)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task EndTrip(Guid tripId)
+        {
+            string currentUserIdString = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            if (!Guid.TryParse(currentUserIdString, out Guid actualDriverId))
+            {
+                throw new ErrorException(StatusCodes.Status401Unauthorized, ResponseCodeConstants.UNAUTHORIZED, "Tài xế không hợp lệ");
+            }
+
+            var tripRepository = _unitOfWork.GetRepository<Trip>();
+            var tripToEnd = await tripRepository.GetByIdAsync(tripId);
+
+            if (tripToEnd == null)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi không tồn tại.");
+            }
+
+            if (tripToEnd.Status != TripStatusEnum.IN_PROGESS)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Chuyến đi không ở trạng thái 'Đang tiến hành' để có thể kết thúc.");
+            }
+
+            if (tripToEnd.CreatedBy != currentUserIdString)
+            {
+                throw new ErrorException(StatusCodes.Status403Forbidden, ResponseCodeConstants.FORBIDDEN, "Bạn không có quyền kết thúc chuyến đi này. Chỉ tài xế đã bắt đầu chuyến mới được phép kết thúc.");
+            }
+
+            tripToEnd.EndTime = TimeOnly.FromDateTime(DateTime.Now);
+            tripToEnd.Status = TripStatusEnum.COMPLETED;
+            tripToEnd.LastUpdatedBy = currentUserIdString;
+            tripToEnd.LastUpdatedTime = CoreHelper.SystemTimeNow;
+
+            tripRepository.Update(tripToEnd);
+            await _unitOfWork.SaveAsync();
         }
     }
 }

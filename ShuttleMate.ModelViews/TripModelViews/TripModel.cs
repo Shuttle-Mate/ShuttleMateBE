@@ -9,8 +9,8 @@ namespace ShuttleMate.ModelViews.TripModelViews
 {
     public class TripModel
     {
-        public DateOnly TripDate { get; set; }
-        public TimeOnly StartTime { get; set; }
+        //public DateOnly TripDate { get; set; }
+        //public TimeOnly StartTime { get; set; }
         //public TimeOnly? EndTime { get; set; }
         //public TripStatusEnum Status { get; set; }
         public Guid ScheduleId { get; set; }
