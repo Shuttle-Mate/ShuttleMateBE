@@ -7,7 +7,7 @@ using ShuttleMate.ModelViews.PromotionModelViews;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/promotion")]
     [ApiController]
     public class PromotionController : ControllerBase
     {
@@ -21,27 +21,59 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy toàn bộ khuyến mãi.
         /// </summary>
+        /// <param name="search">Từ khóa tìm kiếm theo tên khuyến mãi (tùy chọn).</param>
+        /// <param name="type">Loại khuyến mãi: DIRECT_DISCOUNT, PERCENTAGE_DISCOUNT, FIXED_AMOUNT_DISCOUNT (tùy chọn).</param>
+        /// <param name="isExpired">Trạng thái hết hạn: true (đã hết hạn), false (còn hiệu lực), null (tất cả) (tùy chọn).</param>
+        /// <param name="startEndDate">Lọc từ ngày kết thúc (>=) (tùy chọn).</param>
+        /// <param name="endEndDate">Lọc đến ngày kết thúc (<=) (tùy chọn).</param>
+        /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         //[Authorize(Roles = "Admin")]
         [HttpGet]
-        public async Task<IActionResult> GetAllPromotions()
+        public async Task<IActionResult> GetAllPromotions(
+        [FromQuery] string? search,
+        [FromQuery] string? type,
+        [FromQuery] bool? isExpired,
+        [FromQuery] DateTime? startEndDate,
+        [FromQuery] DateTime? endEndDate,
+        [FromQuery] bool sortAsc = false,
+        [FromQuery] int page = 0,
+        [FromQuery] int pageSize = 10)
         {
-            return Ok(new BaseResponseModel<IEnumerable<ResponsePromotionModel>>(
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponsePromotionModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _promotionService.GetAllAsync()));
+                data: await _promotionService.GetAllAsync(search, type, isExpired, startEndDate, endEndDate, sortAsc, page, pageSize)));
         }
 
         /// <summary>
-        /// Lấy toàn bộ khuyến mãi của tôi.
+        /// Lấy toàn bộ khuyến mãi của tôi (có tìm kiếm, lọc, phân trang, sắp xếp).
         /// </summary>
+        /// <param name="search">Từ khóa tìm kiếm theo tên khuyến mãi (tùy chọn).</param>
+        /// <param name="type">Loại khuyến mãi: DIRECT_DISCOUNT, PERCENTAGE_DISCOUNT, FIXED_AMOUNT_DISCOUNT (tùy chọn).</param>
+        /// <param name="isExpired">Trạng thái hết hạn: true (đã hết hạn), false (còn hiệu lực), null (tất cả) (tùy chọn).</param>
+        /// <param name="startEndDate">Lọc từ ngày kết thúc (>=) (tùy chọn).</param>
+        /// <param name="endEndDate">Lọc đến ngày kết thúc (<=) (tùy chọn).</param>
+        /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         //[Authorize(Roles = "Student", "Parent")]
         [HttpGet("my")]
-        public async Task<IActionResult> GetAllPromotionsMy()
+        public async Task<IActionResult> GetAllPromotionsMy(
+        [FromQuery] string? search,
+        [FromQuery] string? type,
+        [FromQuery] bool? isExpired,
+        [FromQuery] DateTime? startEndDate,
+        [FromQuery] DateTime? endEndDate,
+        [FromQuery] bool sortAsc = false,
+        [FromQuery] int page = 0,
+        [FromQuery] int pageSize = 10)
         {
-            return Ok(new BaseResponseModel<IEnumerable<ResponsePromotionModel>>(
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponsePromotionModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _promotionService.GetAllMyAsync()));
+                data: await _promotionService.GetAllMyAsync(search, type, isExpired, startEndDate, endEndDate, sortAsc, page, pageSize)));
         }
 
         /// <summary>
@@ -58,29 +90,29 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Lấy toàn bộ người dùng của một khuyến mãi.
+        /// Lấy toàn bộ người dùng lưu một khuyến mãi.
         /// </summary>
         //[Authorize(Roles = "Admin")]
-        [HttpGet("{promotionId}/users")]
-        public async Task<IActionResult> GetAllUsersSavedPromotion(Guid promotionId)
+        [HttpGet("{id}/users")]
+        public async Task<IActionResult> GetAllUsersSavedPromotion(Guid id)
         {
             return Ok(new BaseResponseModel<IEnumerable<ResponseUserPromotionModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _promotionService.GetAllUsersSavedAsync(promotionId)));
+                data: await _promotionService.GetAllUsersSavedAsync(id)));
         }
 
         /// <summary>
-        /// Lấy khuyến mãi bằng id.
+        /// Lấy chi tiết khuyến mãi.
         /// </summary>
         ////[Authorize(Roles = "Admin", "Student", "Parent")]
-        [HttpGet("{promotionId}")]
-        public async Task<IActionResult> GetPromotionById(Guid promotionId)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetPromotionById(Guid id)
         {
             return Ok(new BaseResponseModel<ResponsePromotionModel>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _promotionService.GetByIdAsync(promotionId)));
+                data: await _promotionService.GetByIdAsync(id)));
         }
 
         /// <summary>
@@ -101,10 +133,10 @@ namespace ShuttleMate.API.Controllers
         /// Cập nhật một khuyến mãi.
         /// </summary>
         //[Authorize(Roles = "Admin")]
-        [HttpPut("{promotionId}")]
-        public async Task<IActionResult> UpdatePromotion(Guid promotionId, UpdatePromotionModel model)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdatePromotion(Guid id, UpdatePromotionModel model)
         {
-            await _promotionService.UpdateAsync(promotionId, model);
+            await _promotionService.UpdateAsync(id, model);
             return Ok(new BaseResponseModel<string?>(
                statusCode: StatusCodes.Status200OK,
                code: ResponseCodeConstants.SUCCESS,
@@ -115,10 +147,10 @@ namespace ShuttleMate.API.Controllers
         /// Xóa một khuyến mãi.
         /// </summary>
         //[Authorize(Roles = "Admin")]
-        [HttpDelete("{promotionId}")]
-        public async Task<IActionResult> DeletePromotion(Guid promotionId)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePromotion(Guid id)
         {
-            await _promotionService.DeleteAsync(promotionId);
+            await _promotionService.DeleteAsync(id);
             return Ok(new BaseResponseModel<string?>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
@@ -129,10 +161,10 @@ namespace ShuttleMate.API.Controllers
         /// Lưu một khuyến mãi.
         /// </summary>
         //[Authorize(Roles = "Student", "Parent")]
-        [HttpPost("{promotionId}/save")]
-        public async Task<IActionResult> SavePromotion(Guid promotionId)
+        [HttpPost("{id}/save")]
+        public async Task<IActionResult> SavePromotion(Guid id)
         {
-            await _promotionService.SavePromotionAsync(promotionId);
+            await _promotionService.SavePromotionAsync(id);
             return Ok(new BaseResponseModel<string?>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
