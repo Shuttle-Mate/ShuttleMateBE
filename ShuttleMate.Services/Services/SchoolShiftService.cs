@@ -8,7 +8,9 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.RoleModelViews;
+using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.SchoolShiftModelViews;
+using ShuttleMate.Services.Services.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,6 +35,66 @@ namespace ShuttleMate.Services.Services
             _configuration = configuration;
             _contextAccessor = contextAccessor;
             _emailService = emailService;
+        }
+        public async Task<BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>> GetAllSchoolShift(int page = 0, int pageSize = 10, string? sessionType = null, string? shiftType = null, bool sortAsc = false)
+        {
+            // Lấy userId từ HttpContext
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+            Guid.TryParse(userId, out Guid cb);
+
+            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue);
+            if (user == null || user.School == null || user.School?.Id == null)
+            {
+                var emptyList = Enumerable.Empty<ResponseSchoolShiftListByTicketIdMode>();
+                var paginatedList = new BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>(
+                    emptyList.ToList(), // Danh sách rỗng
+                    0,                  // Total count = 0
+                    page,
+                    pageSize
+                );
+                return paginatedList;
+            }
+
+            var query = _unitOfWork.GetRepository<SchoolShift>()
+                .GetQueryable()
+                .Include(x => x.School)
+                .Where(x =>x.Id == user.School.Id && !x.DeletedTime.HasValue);
+
+            if (!string.IsNullOrWhiteSpace(sessionType))
+            {
+                var upper = sessionType.Trim().ToUpper();
+                query = query.Where(x => x.SessionType.ToString().ToUpper() == upper);
+            }
+            if (!string.IsNullOrWhiteSpace(shiftType))
+            {
+                var upper = shiftType.Trim().ToUpper();
+                query = query.Where(x => x.ShiftType.ToString().ToUpper() == upper);
+            }
+
+            query = sortAsc
+                ? query.OrderBy(x => x.CreatedTime)
+                : query.OrderByDescending(x => x.CreatedTime);
+
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var list = await query
+                .Select(x => new ResponseSchoolShiftListByTicketIdMode
+                {
+                    Id = x.Id,
+                    SchoolId = x.SchoolId,
+                    SchoolName = x.School.Name,
+                    SessionType = x.SessionType,
+                    ShiftType = x.ShiftType,
+                    Time = x.Time,
+                })
+                .ToListAsync();
+
+            return new BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>(list, totalCount, page, pageSize);
         }
 
         public async Task<List<ResponseSchoolShiftListByTicketIdMode>> GetSchoolShiftListByTicketId(Guid ticketId)

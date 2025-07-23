@@ -9,6 +9,7 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.HistoryTicketModelView;
 using ShuttleMate.ModelViews.SchoolModelView;
+using ShuttleMate.ModelViews.SchoolShiftModelViews;
 using ShuttleMate.ModelViews.StopModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using System;
@@ -82,13 +83,25 @@ namespace ShuttleMate.Services.Services
 
             Guid.TryParse(userId, out Guid cb);
 
-            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue); 
+            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue);
+
+            if (user == null || user.School == null || user.SchoolId == null)
+            {
+                var emptyList = Enumerable.Empty<ListStudentInSchoolResponse>();
+                var paginatedList = new BasePaginatedList<ListStudentInSchoolResponse>(
+                    emptyList.ToList(), // Danh sách rỗng
+                    0,                  // Total count = 0
+                    page,
+                    pageSize
+                );
+                return paginatedList;
+            }
 
             var query = _unitOfWork.GetRepository<User>()
                 .GetQueryable()
                 .Include(x => x.School)
                 .Where(x =>  x.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() == "STUDENT" 
-                            && x.SchoolId == user!.SchoolId
+                            && x.SchoolId == user.SchoolId
                             &&!x.DeletedTime.HasValue);
 
             if (!string.IsNullOrWhiteSpace(search))
