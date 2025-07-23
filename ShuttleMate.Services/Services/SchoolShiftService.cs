@@ -34,6 +34,8 @@ namespace ShuttleMate.Services.Services
             _emailService = emailService;
         }
 
+
+
         public async Task CreateSchoolShift(CreateSchoolShiftModel model)
         {
             var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
@@ -115,13 +117,13 @@ namespace ShuttleMate.Services.Services
         {
             var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy ca học!");
 
-                schoolShift.DeletedTime = DateTime.Now;
+            schoolShift.DeletedTime = DateTime.Now;
 
-                await _unitOfWork.GetRepository<SchoolShift>().UpdateAsync(schoolShift);
-                await _unitOfWork.SaveAsync();
-            }
-
-
+            await _unitOfWork.GetRepository<SchoolShift>().UpdateAsync(schoolShift);
+            await _unitOfWork.SaveAsync();
         }
+
+
     }
 }
+
