@@ -42,7 +42,7 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đã bị xóa.");
             }
 
-            var existingDepartures = await _unitOfWork.GetRepository<DepartureTime>()
+            var existingDepartures = await _unitOfWork.GetRepository<Schedule>()
                 .FindAllAsync(d => d.RouteId == model.RouteId && !d.DeletedTime.HasValue);
 
             if (existingDepartures.Any())
@@ -54,7 +54,7 @@ namespace ShuttleMate.Services.Services
                 .GroupBy(x => x.Time.Trim())
                 .ToDictionary(g => g.Key, g => g.Select(x => x.DayOfWeek.Trim().ToUpper()).ToList());
 
-            var newDepartureTimes = new List<DepartureTime>();
+            var newDepartureTimes = new List<Schedule>();
 
             foreach (var timeGroup in timeGroups)
             {
@@ -74,7 +74,7 @@ namespace ShuttleMate.Services.Services
                     {
                         if (binaryDayOfWeek[i] == '1' && existing.DayOfWeek[i] == '1')
                         {
-                            var timeDiff = Math.Abs((time.ToTimeSpan() - existing.Time.ToTimeSpan()).TotalMinutes);
+                            var timeDiff = Math.Abs((time.ToTimeSpan() - existing.DepartureTime.ToTimeSpan()).TotalMinutes);
                             if (timeDiff < 15)
                             {
                                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
@@ -84,10 +84,10 @@ namespace ShuttleMate.Services.Services
                     }
                 }
 
-                newDepartureTimes.Add(new DepartureTime
+                newDepartureTimes.Add(new Schedule
                 {
                     RouteId = model.RouteId,
-                    Time = time,
+                    DepartureTime = time,
                     DayOfWeek = binaryDayOfWeek,
                     CreatedBy = userId,
                     LastUpdatedBy = userId
@@ -96,11 +96,11 @@ namespace ShuttleMate.Services.Services
 
             if (newDepartureTimes.Count > 1)
             {
-                await _unitOfWork.GetRepository<DepartureTime>().InsertRangeAsync(newDepartureTimes);
+                await _unitOfWork.GetRepository<Schedule>().InsertRangeAsync(newDepartureTimes);
             }
             else if (newDepartureTimes.Count == 1)
             {
-                await _unitOfWork.GetRepository<DepartureTime>().InsertAsync(newDepartureTimes[0]);
+                await _unitOfWork.GetRepository<Schedule>().InsertAsync(newDepartureTimes[0]);
             }
 
             await _unitOfWork.SaveAsync();
@@ -124,18 +124,18 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đã bị xóa.");
             }
 
-            var departureRepo = _unitOfWork.GetRepository<DepartureTime>();
+            var departureRepo = _unitOfWork.GetRepository<Schedule>();
 
             var existingDepartures = await departureRepo.FindAllAsync(d =>
                 d.RouteId == model.RouteId && !d.DeletedTime.HasValue);
 
-            await _unitOfWork.GetRepository<DepartureTime>().DeleteRangeAsync(existingDepartures);
+            await _unitOfWork.GetRepository<Schedule>().DeleteRangeAsync(existingDepartures);
 
             var timeGroups = model.DepartureTimes
                 .GroupBy(x => x.Time.Trim())
                 .ToDictionary(g => g.Key, g => g.Select(x => x.DayOfWeek.Trim().ToUpper()).ToList());
 
-            var newDepartureTimes = new List<DepartureTime>();
+            var newDepartureTimes = new List<Schedule>();
 
             foreach (var timeGroup in timeGroups)
             {
@@ -155,7 +155,7 @@ namespace ShuttleMate.Services.Services
                     {
                         if (binaryDayOfWeek[i] == '1' && existing.DayOfWeek[i] == '1')
                         {
-                            var timeDiff = Math.Abs((time.ToTimeSpan() - existing.Time.ToTimeSpan()).TotalMinutes);
+                            var timeDiff = Math.Abs((time.ToTimeSpan() - existing.DepartureTime.ToTimeSpan()).TotalMinutes);
                             if (timeDiff < 15)
                             {
                                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
@@ -165,10 +165,10 @@ namespace ShuttleMate.Services.Services
                     }
                 }
 
-                newDepartureTimes.Add(new DepartureTime
+                newDepartureTimes.Add(new Schedule
                 {
                     RouteId = model.RouteId,
-                    Time = time,
+                    DepartureTime = time,
                     DayOfWeek = binaryDayOfWeek,
                     CreatedBy = userId,
                     LastUpdatedBy = userId

@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-using ShuttleMate.Contract.Repositories.Base;
-using ShuttleMate.Core.Utils;
+﻿using ShuttleMate.Contract.Repositories.Base;
 
 namespace ShuttleMate.Contract.Repositories.Entities
 {

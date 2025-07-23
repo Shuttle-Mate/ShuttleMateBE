@@ -1,38 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ShuttleMate.Contract.Repositories.Enum
+﻿namespace ShuttleMate.Contract.Repositories.Enum
 {
     public class GeneralEnum
     {
-        public enum TripDirectionEnum
+        public enum RouteDirectionEnum
         {
-            InBound,
-            OutBound
+            IN_BOUND,
+            OUT_BOUND
         }
 
         public enum TripStatusEnum
         {
-            Scheduled, //Scheduled but not start yet
-            InProgress,
-            Completed,
-            Cancelled//Hủy
+            SCHEDULED, //Scheduled but not start yet
+            IN_PROGESS,
+            COMPLETED,
+            CANCELLED
         }
 
         public enum AttendanceStatusEnum
         {
-            NotCheckedIn,
-            CheckedIn,
-            CheckedOut
+            NOT_CHECKED_IN,
+            CHECKED_IN,
+            CHECKED_OUT
         }
 
         public enum ChatBotRoleEnum
         {
-            User,
-            Bot
+            USER,
+            BOT
         }
 
         public enum FeedbackCategoryEnum
@@ -67,13 +61,13 @@ namespace ShuttleMate.Contract.Repositories.Enum
 
         public enum NotificationStatusEnum
         {
-            Pending,         //Đã tạo nhưng chưa gửi
-            Sent,            //Đã gửi thành công (đẩy qua push, email, v.v.)
-            Delivered,       //Đã nhận ở thiết bị người dùng (nếu có tracking)
-            Read,            //Người dùng đã mở và đọc thông báo
-            Failed,          //Gửi thất bại (VD: push token hết hạn)
-            Archived,        //Đã lưu trữ, không hiển thị trên UI
-            Canceled         //Đã hủy (VD: hủy gửi trước giờ chạy)
+            PENDING,         //Đã tạo nhưng chưa gửi
+            SENT,            //Đã gửi thành công (đẩy qua push, email, v.v.)
+            DELIVERED,       //Đã nhận ở thiết bị người dùng (nếu có tracking)
+            READ,            //Người dùng đã mở và đọc thông báo
+            FAILED,          //Gửi thất bại (VD: push token hết hạn)
+            ARCHIEVED,        //Đã lưu trữ, không hiển thị trên UI
+            CANCELLED         //Đã hủy (VD: hủy gửi trước giờ chạy)
         }
 
         public enum TypePromotionEnum
@@ -152,6 +146,18 @@ namespace ShuttleMate.Contract.Repositories.Enum
             NAME, // Sắp xếp theo tên xe
             BRAND, // Sắp xếp theo hãng xe
             INSURANCE_EXPIRY_DATE, // Sắp xếp theo ngày hết hạn bảo hiểm
+        }
+
+        public enum ShiftTypeEnum
+        {
+            START, // Giờ vào
+            END    // Giờ tan
+        }
+
+        public enum SessionTypeEnum
+        {
+            MORNING, // Sáng
+            AFTERNOON // Chiều
         }
     }
 }

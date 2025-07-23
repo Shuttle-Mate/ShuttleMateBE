@@ -122,7 +122,6 @@ namespace ShuttleMate.Services.Services
             var query = _unitOfWork.GetRepository<Route>()
                 .GetQueryable()
                 .Include(x => x.School)
-                .Include(x => x.Trips)
                 .Where(x => x.IsActive == true && !x.DeletedTime.HasValue);
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -221,7 +220,6 @@ namespace ShuttleMate.Services.Services
                 IsActive = true,
                 Name = model.Name,
                 PhoneNumber = model.PhoneNumber,
-                SchoolTime = model.SchoolTime,
                 CreatedTime = DateTime.Now,
                 LastUpdatedTime = DateTime.Now,
             };

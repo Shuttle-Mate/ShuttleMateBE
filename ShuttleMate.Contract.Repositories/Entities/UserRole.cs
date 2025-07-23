@@ -1,15 +1,12 @@
-﻿using Microsoft.AspNetCore.Identity;
-using ShuttleMate.Contract.Repositories.Base;
-using ShuttleMate.Core.Utils;
+﻿using ShuttleMate.Contract.Repositories.Base;
 
 namespace ShuttleMate.Contract.Repositories.Entities
 {
     public class UserRole : BaseEntity
     {
-
-        public virtual User User { get; set; }
-        public virtual Role Role { get; set; }
         public Guid UserId { get; set; }
+        public virtual User User { get; set; }
         public Guid RoleId { get; set; }
+        public virtual Role Role { get; set; }
     }
 }
