@@ -10,14 +10,14 @@ using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/ticket-type")]
+    [Route("api/ticket")]
     [ApiController]
-    public class TicketTypeController : ControllerBase
+    public class TicketController : ControllerBase
     {
-        private readonly ITicketTypeService _ticketTypeService;
-        public TicketTypeController(ITicketTypeService ticketTypeService)
+        private readonly ITicketService _ticketService;
+        public TicketController(ITicketService ticketService)
         {
-            _ticketTypeService = ticketTypeService;
+            _ticketService = ticketService;
         }
 
         /// <summary>
@@ -32,22 +32,22 @@ namespace ShuttleMate.API.Controllers
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         [HttpGet]
-        public async Task<IActionResult> GetAllTicketTypes(int page = 0, int pageSize = 10, string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid? routeId = null)
+        public async Task<IActionResult> GetAllTickets(int page = 0, int pageSize = 10, string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid? routeId = null)
         {
-            var tickets = await _ticketTypeService.GetAllAsync(page, pageSize, type, routeName, price, lowerBound, upperBound, routeId);
+            var tickets = await _ticketService.GetAllAsync(page, pageSize, type, routeName, price, lowerBound, upperBound, routeId);
 
-            return Ok(new BaseResponseModel<BasePaginatedList<TicketTypeResponseModel>>(
+            return Ok(new BaseResponseModel<BasePaginatedList<TicketResponseModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: tickets
             ));
         }
         [HttpGet("id")]
-        public async Task<IActionResult> GetTicketTypeById(Guid id)
+        public async Task<IActionResult> GetTicketById(Guid id)
         {
-            var ticket = await _ticketTypeService.GetById(id);
+            var ticket = await _ticketService.GetById(id);
 
-            return Ok(new BaseResponseModel<TicketTypeResponseModel>(
+            return Ok(new BaseResponseModel<TicketResponseModel>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: ticket
@@ -57,9 +57,9 @@ namespace ShuttleMate.API.Controllers
         /// Type(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO)
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> CreateTicketType(CreateTicketTypeModel model)
+        public async Task<IActionResult> CreateTicket(CreateTicketModel model)
         {
-            await _ticketTypeService.CreateTicketType(model);
+            await _ticketService.CreateTicket(model);
 
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
@@ -68,9 +68,9 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         [HttpPatch]
-        public async Task<IActionResult> UpdateTicketType(UpdateTicketTypeModel model)
+        public async Task<IActionResult> UpdateTicket(UpdateTicketModel model)
         {
-            await _ticketTypeService.UpdateTicketType(model);
+            await _ticketService.UpdateTicket(model);
 
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
@@ -79,9 +79,9 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         [HttpDelete]
-        public async Task<IActionResult> DeleteTicketType(DeleteTicketTypeModel model)
+        public async Task<IActionResult> DeleteTicket(DeleteTicketModel model)
         {
-            await _ticketTypeService.DeleteTicketType(model);
+            await _ticketService.DeleteTicket(model);
 
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,

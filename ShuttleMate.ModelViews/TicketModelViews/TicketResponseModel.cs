@@ -7,9 +7,11 @@ using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.ModelViews.TicketTypeModelViews
 {
-    public class CreateTicketTypeModel
+    public class TicketResponseModel
     {
-        public Guid RouteId { get; set; }
+        public Guid Id { get; set; }
+
+        public string RouteName { get; set; }
         public string Type { get; set; }
         public decimal Price { get; set; }
     }

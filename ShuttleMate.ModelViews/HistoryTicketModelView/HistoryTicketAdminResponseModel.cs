@@ -16,7 +16,7 @@ namespace ShuttleMate.ModelViews.HistoryTicketModelView
         public Guid TicketId { get; set; }
         public string RouteName { get; set; }
         public decimal Price { get; set; }
-        public string TicketType { get; set; }
+        public string Ticket { get; set; }
         public DateTime PurchaseAt { get; set; }
         public DateOnly ValidFrom { get; set; }
         public DateOnly ValidUntil { get; set; }
