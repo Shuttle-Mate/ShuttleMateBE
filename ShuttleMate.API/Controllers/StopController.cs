@@ -39,17 +39,17 @@ namespace ShuttleMate.API.Controllers
                 data: await _stopService.GetAllAsync(search, wardId, sortAsc, page, pageSize)));
         }
 
-        /// <summary>
-        /// Tìm kiếm địa chỉ để tạo trạm dừng.
-        /// </summary>
-        [HttpGet("search")]
-        public async Task<IActionResult> SearchAddress([FromQuery] string address)
-        {
-            return Ok(new BaseResponseModel<IEnumerable<ResponseSearchStopModel>>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                data: await _stopService.SearchAsync(address)));
-        }
+        ///// <summary>
+        ///// Tìm kiếm địa chỉ để tạo trạm dừng.
+        ///// </summary>
+        //[HttpGet("search")]
+        //public async Task<IActionResult> SearchAddress([FromQuery] string address)
+        //{
+        //    return Ok(new BaseResponseModel<IEnumerable<ResponseSearchStopModel>>(
+        //        statusCode: StatusCodes.Status200OK,
+        //        code: ResponseCodeConstants.SUCCESS,
+        //        data: await _stopService.SearchAsync(address)));
+        //}
 
         /// <summary>
         /// Lấy chi tiết trạm dừng.

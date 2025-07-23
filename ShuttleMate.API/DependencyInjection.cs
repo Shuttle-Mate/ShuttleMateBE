@@ -211,7 +211,7 @@ namespace ShuttleMate.API
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IRouteService, RouteService>();
             services.AddScoped<IStopService, StopService>();
-            services.AddScoped<IDepartureTimeService, DepartureTimeService>();
+            services.AddScoped<IScheduleService, ScheduleService>();
             services.AddScoped<IFeedbackService, FeedbackService>();
             services.AddScoped<ITicketService, TicketService>();
             services.AddScoped<IHistoryTicketService, HistoryTicketService>();
