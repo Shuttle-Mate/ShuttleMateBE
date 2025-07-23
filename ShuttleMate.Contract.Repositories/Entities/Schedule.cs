@@ -14,6 +14,8 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual Shuttle Shuttle { get; set; }
         public Guid DriverId { get; set; }
         public virtual User User { get; set; }
+        public Guid? SchoolShiftId { get; set; }
+        public virtual SchoolShift SchoolShift { get; set; }
         public virtual ICollection<ScheduleOverride> ScheduleOverrides { get; set; } = new List<ScheduleOverride>();
         public virtual ICollection<StopEstimate> StopEstimates { get; set; } = new List<StopEstimate>();
         public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();

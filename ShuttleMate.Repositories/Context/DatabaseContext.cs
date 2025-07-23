@@ -163,6 +163,10 @@ namespace ShuttleMate.Repositories.Context
                     .WithMany(r => r.Schedules)
                     .HasForeignKey(t => t.RouteId)
                     .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(t => t.SchoolShift)
+                    .WithMany(r => r.Schedules)
+                    .HasForeignKey(t => t.SchoolShiftId)
+                    .OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(t => t.Shuttle)
                     .WithMany(r => r.Schedules)
                     .HasForeignKey(t => t.ShuttleId)
