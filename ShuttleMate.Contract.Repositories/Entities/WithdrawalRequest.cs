@@ -5,7 +5,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
 {
     public class WithdrawalRequest : BaseEntity
     {
-        public string OrderCode { get; set; }
         public WithdrawalRequestStatusEnum Status { get; set; }
         public decimal Amount { get; set; }
         public string BankAccount { get; set; }
