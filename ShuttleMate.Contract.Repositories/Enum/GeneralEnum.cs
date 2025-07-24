@@ -96,7 +96,7 @@
 
         public enum WithdrawalRequestStatusEnum
         {
-            IN_PROGRESS,         // Đang chờ duyệt
+            IN_PROGRESS,         // Đang xử lí
             COMPLETED,           // Đã hoàn thành
             REJECTED,            // Bị từ chối
         }

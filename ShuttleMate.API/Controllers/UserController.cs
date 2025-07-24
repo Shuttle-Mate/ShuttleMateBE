@@ -4,11 +4,10 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.AuthModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
-using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/user")]
     [ApiController]
     public class UserController : ControllerBase
     {
@@ -172,7 +171,7 @@ namespace ShuttleMate.API.Controllers
                  data: res
              ));
         }
-        [HttpGet("get-by-id")]
+        [HttpGet("{userId}")]
         public async Task<IActionResult> GetById(Guid userId)
         {
             UserResponseModel res = await _userService.GetById(userId);
