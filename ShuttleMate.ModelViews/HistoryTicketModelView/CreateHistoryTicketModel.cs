@@ -10,6 +10,7 @@ namespace ShuttleMate.ModelViews.HistoryTicketModelView
     {
         public Guid TicketId { get; set; }
         public DateOnly ValidFrom { get; set; }
+        public List<Guid> ListSchoolShiftId { get; set; }
         //public DateOnly ValidUntil { get; set; }
     }
 }
