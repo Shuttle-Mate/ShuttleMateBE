@@ -76,7 +76,7 @@ namespace ShuttleMate.Services.Services
 
             return new BasePaginatedList<SchoolResponseModel>(result, totalCount, page, pageSize);
         }
-        public async Task<BasePaginatedList<ListStudentInSchoolResponse>> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null,  bool sortAsc = false)
+        public async Task<BasePaginatedList<ListStudentInSchoolResponse>> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null,  bool sortAsc = false, Guid? schoolShiftId = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -113,6 +113,18 @@ namespace ShuttleMate.Services.Services
                     x.PhoneNumber.ToLower().Contains(lowered) ||
                     x.Email.ToLower().Contains(lowered));
             }
+
+            if (schoolShiftId != null)
+            {
+                query = query.Where(x =>
+                    x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId) && x.HistoryTickets.Any(x =>x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)));
+            }
+
+            //if (routeId != null)
+            //{
+            //    query = query.Where(x =>
+            //        x.HistoryTickets.Any(x=>x.Ticket.RouteId == routeId && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)));
+            //}
 
             query = sortAsc
                 ? query.OrderBy(x => x.CreatedTime)
