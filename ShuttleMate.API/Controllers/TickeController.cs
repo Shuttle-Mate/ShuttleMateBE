@@ -42,7 +42,7 @@ namespace ShuttleMate.API.Controllers
                 data: tickets
             ));
         }
-        [HttpGet("id")]
+        [HttpGet("{id}")]
         public async Task<IActionResult> GetTicketById(Guid id)
         {
             var ticket = await _ticketService.GetById(id);

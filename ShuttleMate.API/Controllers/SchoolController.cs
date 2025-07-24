@@ -94,10 +94,10 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Cập nhật một trường.
         /// </summary>
-        [HttpPatch("id")]
-        public async Task<IActionResult> UpdateSchool(UpdateSchoolModel model)
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> UpdateSchool(Guid id, UpdateSchoolModel model)
         {
-            await _schoolService.UpdateSchool(model);
+            await _schoolService.UpdateSchool(id, model);
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,

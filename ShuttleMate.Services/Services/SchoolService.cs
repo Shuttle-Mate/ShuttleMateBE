@@ -251,7 +251,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<School>().InsertAsync(school);
             await _unitOfWork.SaveAsync();
         }
-        public async Task UpdateSchool(UpdateSchoolModel model)
+        public async Task UpdateSchool(Guid id, UpdateSchoolModel model)
         {
             if (model.StartSemOne > model.EndSemOne)
             {
@@ -265,7 +265,7 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Thời gian kết thúc kì 1 không được bé hơn thời gian bắt đầu kì 2!");
             }
-            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x=>x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x=>x.Id == id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
             if (school.IsActive == false)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường đã bị khóa!");

@@ -52,6 +52,25 @@ namespace ShuttleMate.API.Controllers
                 data: users
             ));
         }
+
+        /// <summary>
+        /// Lấy tất cả hs trong cùng 1 tuyến và ca học
+        /// </summary>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
+        /// <param name="routeId">Lấy id tuyền(bắt buộc).</param>
+        /// <param name="schoolShiftId">Lấy id ca học(bắt buộc).</param>
+        [HttpGet("get-student-in-route-and-shift")]
+        public async Task<IActionResult> GetStudentInRouteAndShift(int page = 0, int pageSize = 10, Guid? routeId = null, Guid? schoolShiftId = null)
+        {
+            var users = await _userService.GetStudentInRouteAndShift(page, pageSize, routeId, schoolShiftId);
+
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseStudentInRouteAndShiftModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: users
+            ));
+        }
         /// <summary>
         /// Lấy tất cả con của phụ huynh(Parent)
         /// </summary>
@@ -187,7 +206,7 @@ namespace ShuttleMate.API.Controllers
              ));
         }
         /// <summary>
-        /// Xóa học sinh(Student)
+        /// Xóa học sinh(Parent)
         /// </summary>
         [HttpDelete("remove-student")]
         public async Task<IActionResult> RemoveStudent(RemoveStudentModel model)

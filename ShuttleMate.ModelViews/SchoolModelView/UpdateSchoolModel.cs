@@ -8,7 +8,6 @@ namespace ShuttleMate.ModelViews.SchoolModelView
 {
     public class UpdateSchoolModel
     {
-        public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty; // Tên trường
         public string? Address { get; set; } // Địa chỉ trường
         public string? PhoneNumber { get; set; } // Số điện thoại liên hệ
