@@ -2,7 +2,8 @@
 {
     public class ResponseWithdrawalRequestModel
     {
-        public string OrderCode { get; set; }
+        public Guid Id { get; set; }
+        public DateTimeOffset CreatedTime { get; set; }
         public string Status { get; set; }
         public decimal Amount { get; set; }
         public string BankAccount { get; set; }

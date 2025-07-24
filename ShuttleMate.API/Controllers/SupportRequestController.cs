@@ -107,7 +107,7 @@ namespace ShuttleMate.API.Controllers
         /// Cập nhật trạng thái một yêu cầu hỗ trợ thành đã giải quyết.
         /// </summary>
         //[Authorize(Roles = "Student", "Parent")]
-        [HttpPut("{id}/resolved")]
+        [HttpPatch("{id}/resolved")]
         public async Task<IActionResult> ChangeSupportRequestStatusToResolved(Guid id)
         {
             await _supportRequestService.ResolveAsync(id);
@@ -121,7 +121,7 @@ namespace ShuttleMate.API.Controllers
         /// Hủy yêu cầu hỗ trợ.
         /// </summary>
         //[Authorize(Roles = "Student", "Parent")]
-        [HttpPut("{id}/cancelled")]
+        [HttpPatch("{id}/cancelled")]
         public async Task<IActionResult> ChangeSupportRequestStatusToCancelled(Guid id)
         {
             await _supportRequestService.CancelAsync(id);
