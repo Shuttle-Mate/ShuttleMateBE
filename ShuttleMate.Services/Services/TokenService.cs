@@ -80,7 +80,7 @@ namespace ShuttleMate.Services.Services
             //Lưu refesh vào db để check.
             user.RefeshToken = refreshTokenString;
              _unitOfWork.GetRepository<User>().Update(user);
-             _unitOfWork.SaveAsync();
+             _unitOfWork.Save();
             // Return the tokens and user information
             return new TokenResponse
             {
