@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +10,12 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.AttendanceModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -87,14 +88,39 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task<List<ResponseAttendanceModel>> GetAll()
+        public async Task<BasePaginatedList<ResponseAttendanceModel>> GetAll(GetAttendanceQuery req)
         {
-            var attendances = await _unitOfWork.GetRepository<Attendance>().Entities.Where(x => !x.DeletedTime.HasValue).OrderBy(x => x.Status).ToListAsync();
+            var page = req.page > 0 ? req.page : 0;
+            var pageSize = req.pageSize > 0 ? req.pageSize : 10;
+
+            var query = _unitOfWork.GetRepository<Attendance>().Entities
+                .Where(x => !x.DeletedTime.HasValue);
+            //.OrderBy(x => x.Status);
+
+            // Thêm filter theo tripId nếu có truyền vào
+            if (req.tripId.HasValue && req.tripId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.TripId == req.tripId.Value);
+            }
+
+            query = query.OrderBy(x => x.Status);
+
+            var totalCount = query.Count();
+
+            //Paging
+            var attendances = await query
+                .Skip(req.page * req.pageSize)
+                .Take(req.pageSize)
+                .ToListAsync();
+
             if (!attendances.Any())
             {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có thông tin điểm danh nào tồn tại!");
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có lượt điểm danh nào được ghi nhận!");
             }
-            return _mapper.Map<List<ResponseAttendanceModel>>(attendances);
+
+            var result = _mapper.Map<List<ResponseAttendanceModel>>(attendances);
+
+            return new BasePaginatedList<ResponseAttendanceModel>(result, totalCount, page, pageSize);
         }
 
         public async Task<ResponseAttendanceModel> GetById(Guid attendanceId)
@@ -141,6 +167,35 @@ namespace ShuttleMate.Services.Services
             return _mapper.Map<List<ResponseAttendanceModel>>(attendances);
         }
 
+        public async Task BulkCheckOutByTrip(Guid tripId, string checkOutLocation, string? notes = null)
+        {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            // lấy tất cả attendance của trip chưa checkout và chưa bị xóa
+            var attendances = await _unitOfWork.GetRepository<Attendance>().Entities
+                .Where(x => x.TripId == tripId 
+                    && x.Status == AttendanceStatusEnum.CHECKED_IN
+                    && !x.DeletedTime.HasValue)
+                .ToListAsync();
+
+            if (!attendances.Any())
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có học sinh nào cần checkout trên chuyến này!");
+            }
+
+            foreach (var attendance in attendances)
+            {
+                attendance.Status = AttendanceStatusEnum.CHECKED_OUT;
+                attendance.CheckOutTime = DateTime.UtcNow;
+                attendance.CheckOutLocation = checkOutLocation;
+                attendance.Notes = notes;
+                attendance.LastUpdatedBy = userId;
+                attendance.LastUpdatedTime = DateTime.UtcNow;
+            }
+
+            await _unitOfWork.GetRepository<Attendance>().UpdateRangeAsync(attendances);
+            await _unitOfWork.SaveAsync();
+        }
 
         //public Task UpdateAttendance(UpdateAttendanceModel model)
         //{
