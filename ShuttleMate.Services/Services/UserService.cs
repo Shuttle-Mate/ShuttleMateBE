@@ -306,7 +306,8 @@ namespace ShuttleMate.Services.Services
                     ParentName = u.Parent.FullName,
                     PhoneNumber = u.PhoneNumber,
                     SchoolName = u.School.Name,
-                    
+                    HistoryTicketId = u.HistoryTickets.
+                    FirstOrDefault(x=>x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now) && !x.DeletedTime.HasValue)!.Id,
                 })
                 .ToListAsync();
             var totalCount = await query.CountAsync();
