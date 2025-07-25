@@ -45,7 +45,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Checkout
+        /// Checkout từng người
         /// </summary>
         [HttpPatch]
         public async Task<IActionResult> CheckOut(CheckOutModel model)
@@ -58,13 +58,26 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
+        /// Checkout tất cả chuyến đi này
+        /// </summary>
+        [HttpPatch("check-out/trip")]
+        public async Task<IActionResult> CheckOutList(Guid tripId, string checkOutLocation, string? notes = null)
+        {
+            await _attendanceService.BulkCheckOutByTrip(tripId, checkOutLocation, notes);
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "CheckOut thành công"
+            ));
+        }
+        /// <summary>
         /// Get All cho operator/admin
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetAllAttendance()
+        public async Task<IActionResult> GetAllAttendance([FromQuery]GetAttendanceQuery query)
         {
-            var res = await _attendanceService.GetAll();
-            return Ok(new BaseResponseModel<List<ResponseAttendanceModel>>(
+            var res = await _attendanceService.GetAll(query);
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseAttendanceModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: res
