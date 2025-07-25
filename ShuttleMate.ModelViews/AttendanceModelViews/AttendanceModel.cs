@@ -21,14 +21,16 @@ namespace ShuttleMate.ModelViews.AttendanceModelViews
 
     public class CheckInModel
     {
-        public Guid TicketId { get; set; }
+        public Guid HistoryTicketId { get; set; }
+        public Guid TripId { get; set; }
         public string? CheckInLocation { get; set; }
         public string? Notes { get; set; }
     }
     public class CheckOutModel
     {
         public Guid Id { get; set; }
-        public Guid TicketId { get; set; }
+        public Guid HistoryTicketId { get; set; }
+        public Guid TripId { get; set; }
         public string? CheckOutLocation { get; set; }
         public string? Notes { get; set; }
     }
