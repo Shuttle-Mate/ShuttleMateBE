@@ -18,5 +18,6 @@ namespace ShuttleMate.ModelViews.UserModelViews
         public string PhoneNumber { get; set; }
         public string SchoolName { get; set; }
         public string ParentName { get; set; }
+        public Guid HistoryTicketId { get; set; }
     }
 }
