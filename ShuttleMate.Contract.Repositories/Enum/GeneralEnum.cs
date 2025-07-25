@@ -103,7 +103,7 @@
 
         public enum TicketTypeEnum
         {
-            SINGLE_RIDE,
+            //SINGLE_RIDE,
             DAY_PASS,
             WEEKLY,
             MONTHLY,

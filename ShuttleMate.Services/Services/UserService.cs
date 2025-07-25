@@ -15,6 +15,7 @@ using ShuttleMate.ModelViews.AuthModelViews;
 using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
+using System.Numerics;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 using static System.Net.WebRequestMethods;
@@ -263,6 +264,59 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
         }
+        public async Task<BasePaginatedList<ResponseStudentInRouteAndShiftModel>> GetStudentInRouteAndShift(int page = 0, int pageSize = 10, Guid? routeId = null, Guid? schoolShiftId = null)
+        {
+            // Lấy userId từ HttpContext
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            Guid.TryParse(userId, out Guid cb);
+            var userRepo = _unitOfWork.GetRepository<User>();
+
+            var query = userRepo.Entities
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .Include(u => u.UserSchoolShifts)
+            .ThenInclude(u => u.SchoolShift)
+            .AsQueryable();
+
+
+            if (routeId == null)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy tuyến!");
+            }
+            if (schoolShiftId == null)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy ca học!");
+            }
+            //điều kiện hs trong cùng 1 ca học
+            query = query.Where(x=>x.UserSchoolShifts.Any(x=> x.SchoolShiftId == schoolShiftId  && !x.DeletedTime.HasValue));
+            //điều kiện học sinh có vé tuyến đường này và vé còn thời gian hiệu lực
+            query = query.Where(x => x.HistoryTickets.Any(x => x.Ticket.Route.Id == routeId && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now) && !x.DeletedTime.HasValue));
+
+            var users = await query
+                .Select(u => new ResponseStudentInRouteAndShiftModel
+                {
+                    Id = u.Id,
+                    FullName = u.FullName,
+                    Gender = u.Gender,
+                    DateOfBirth = u.DateOfBirth,
+                    ProfileImageUrl = u.ProfileImageUrl,
+                    Address = u.Address,
+                    Email = u.Email,
+                    ParentName = u.Parent.FullName,
+                    PhoneNumber = u.PhoneNumber,
+                    SchoolName = u.School.Name,
+                    
+                })
+                .ToListAsync();
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            return new BasePaginatedList<ResponseStudentInRouteAndShiftModel>(users, totalCount, page, pageSize);
+        }
         public async Task<BasePaginatedList<AdminResponseUserModel>> GetAllAsync(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
         {
             var userRepo = _unitOfWork.GetRepository<User>();
@@ -318,6 +372,10 @@ namespace ShuttleMate.Services.Services
                     Violate = u.Violate,
                     DeletedTime = u.DeletedTime,
                     Email = u.Email,
+                    ParentName = u.Parent.FullName,
+                    SchoolName = u.School.Name,
+                    PhoneNumber = u.PhoneNumber,
+                    
                 })
                 .ToListAsync();
             var totalCount = await query.CountAsync();
@@ -348,7 +406,8 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
-                ProfileImageUrl = user.ProfileImageUrl
+                ProfileImageUrl = user.ProfileImageUrl,
+                
             };
             return inforModel;
         }

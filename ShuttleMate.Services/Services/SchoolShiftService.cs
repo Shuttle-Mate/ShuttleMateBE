@@ -58,7 +58,7 @@ namespace ShuttleMate.Services.Services
             var query = _unitOfWork.GetRepository<SchoolShift>()
                 .GetQueryable()
                 .Include(x => x.School)
-                .Where(x =>x.Id == user.School.Id && !x.DeletedTime.HasValue);
+                .Where(x =>x.SchoolId == user.School.Id && !x.DeletedTime.HasValue);
 
             if (!string.IsNullOrWhiteSpace(sessionType))
             {

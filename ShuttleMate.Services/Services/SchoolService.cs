@@ -76,7 +76,7 @@ namespace ShuttleMate.Services.Services
 
             return new BasePaginatedList<SchoolResponseModel>(result, totalCount, page, pageSize);
         }
-        public async Task<BasePaginatedList<ListStudentInSchoolResponse>> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null,  bool sortAsc = false)
+        public async Task<BasePaginatedList<ListStudentInSchoolResponse>> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null,  bool sortAsc = false, Guid? schoolShiftId = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -113,6 +113,18 @@ namespace ShuttleMate.Services.Services
                     x.PhoneNumber.ToLower().Contains(lowered) ||
                     x.Email.ToLower().Contains(lowered));
             }
+
+            if (schoolShiftId != null)
+            {
+                query = query.Where(x =>
+                    x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId) && x.HistoryTickets.Any(x =>x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)));
+            }
+
+            //if (routeId != null)
+            //{
+            //    query = query.Where(x =>
+            //        x.HistoryTickets.Any(x=>x.Ticket.RouteId == routeId && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)));
+            //}
 
             query = sortAsc
                 ? query.OrderBy(x => x.CreatedTime)
@@ -239,7 +251,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<School>().InsertAsync(school);
             await _unitOfWork.SaveAsync();
         }
-        public async Task UpdateSchool(UpdateSchoolModel model)
+        public async Task UpdateSchool(Guid id, UpdateSchoolModel model)
         {
             if (model.StartSemOne > model.EndSemOne)
             {
@@ -253,7 +265,7 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Thời gian kết thúc kì 1 không được bé hơn thời gian bắt đầu kì 2!");
             }
-            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x=>x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x=>x.Id == id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
             if (school.IsActive == false)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường đã bị khóa!");

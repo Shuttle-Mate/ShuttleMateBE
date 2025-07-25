@@ -30,10 +30,10 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         [HttpGet]
-        public async Task<IActionResult> GetAllRoute()
+        public async Task<IActionResult> GetAllRoute([FromQuery] GetRouteQuery query)
         {
-            var res = await _routeService.GetAll();
-            return Ok(new BaseResponseModel<List<ResponseRouteModel>>(
+            var res = await _routeService.GetAll(query);
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseRouteModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: res

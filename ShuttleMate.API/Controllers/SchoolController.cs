@@ -34,7 +34,7 @@ namespace ShuttleMate.API.Controllers
             statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: await _schoolService.GetAllAsync(page, pageSize, search, isActive, sortAsc)));
-        } 
+        }
         /// <summary>
         /// Lấy danh sách học sinh trong trường bạn quản lí.
         /// </summary>
@@ -42,13 +42,15 @@ namespace ShuttleMate.API.Controllers
         /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
+        /// <param name="schoolShiftId">Lọc hs theo id của ca học.</param>
+        /// <param name="routeId">Lọc hs theo id của tuyến.</param>
         [HttpGet("list-student")]
-        public async Task<IActionResult> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null, bool sortAsc = false)
+        public async Task<IActionResult> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null, bool sortAsc = false, Guid? schoolShiftId = null)
         {
             return Ok(new BaseResponseModel<BasePaginatedList<ListStudentInSchoolResponse>>(
             statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _schoolService.GetAllStudentInSchool(page, pageSize, search, sortAsc)));
+                data: await _schoolService.GetAllStudentInSchool(page, pageSize, search, sortAsc, schoolShiftId)));
         }
         /// <summary>
         /// Lấy danh sách tuyến đãn đến trường bạn quản lí.
@@ -92,10 +94,10 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Cập nhật một trường.
         /// </summary>
-        [HttpPatch("id")]
-        public async Task<IActionResult> UpdateSchool(UpdateSchoolModel model)
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> UpdateSchool(Guid id, UpdateSchoolModel model)
         {
-            await _schoolService.UpdateSchool(model);
+            await _schoolService.UpdateSchool(id, model);
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,

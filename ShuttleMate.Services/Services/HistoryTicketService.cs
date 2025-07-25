@@ -52,10 +52,10 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _emailService = emailService;
             _httpClient = httpClient;
-            _payOSApiUrl = configuration["PayOS:ApiUrl"];
-            _apiKey = configuration["PayOS:ApiKey"];
-            _checksumKey = configuration["PayOS:ChecksumKey"];
-            _clientKey = configuration["PayOS:ClientKey"];
+            _payOSApiUrl = configuration["PayOS:ApiUrl"]!;
+            _apiKey = configuration["PayOS:ApiKey"]!;
+            _checksumKey = configuration["PayOS:ChecksumKey"]!;
+            _clientKey = configuration["PayOS:ClientKey"]!;
             _zaloPaySettings = zaloPaySettings.Value;
 
         }
@@ -302,7 +302,7 @@ namespace ShuttleMate.Services.Services
         {
             return status switch
             {
-                TicketTypeEnum.SINGLE_RIDE => "Chuyến 1 chiều",
+                //TicketTypeEnum.SINGLE_RIDE => "Chuyến 1 chiều",
                 TicketTypeEnum.DAY_PASS => "Chuyến trong ngày",
                 TicketTypeEnum.WEEKLY => "Chuyến 1 tuần",
                 TicketTypeEnum.SEMESTER_ONE => "Chuyến học kì 1",
@@ -354,13 +354,13 @@ namespace ShuttleMate.Services.Services
 
             switch (ticket.Type)
             {
-                case TicketTypeEnum.SINGLE_RIDE:
-                    if (model.ValidFrom <= DateOnly.FromDateTime(DateTime.Now))
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
-                    }
-                    historyTicket.ValidUntil = model.ValidFrom;
-                    break;
+                //case TicketTypeEnum.SINGLE_RIDE:
+                //    if (model.ValidFrom <= DateOnly.FromDateTime(DateTime.Now))
+                //    {
+                //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
+                //    }
+                //    historyTicket.ValidUntil = model.ValidFrom;
+                //    break;
                 case TicketTypeEnum.DAY_PASS:
                     if (model.ValidFrom <= DateOnly.FromDateTime(DateTime.Now))
                     {
@@ -386,36 +386,76 @@ namespace ShuttleMate.Services.Services
                     if (ticket.Route.School.StartSemOne == null)
                     {
                         await _emailService.SendEmailAsync(
-                            ticket.Route.School.Email,
+                            ticket.Route.School.Email!,
                             "Thông báo: Cập nhật thời gian kỳ học",
                             "Kính gửi Quý Trường,<br><br>" +
                             "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
                             "Trân trọng."
                         );
 
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
                     }
                     if (ticket.Route.School.EndSemOne == null)
                     {
                         await _emailService.SendEmailAsync(
-                            ticket.Route.School.Email,
+                            ticket.Route.School.Email!,
                             "Thông báo: Cập nhật thời gian kỳ học",
                             "Kính gửi Quý Trường,<br><br>" +
                             "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
                             "Trân trọng."
                         );
 
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
+                    }
+                    if (ticket.Route.School.EndSemTwo < DateOnly.FromDateTime(DateTime.Now))
+                        {
+                            await _emailService.SendEmailAsync(
+                                ticket.Route.School.Email!,
+                                "Thông báo: Cập nhật thời gian kỳ học",
+                                "Kính gửi Quý Trường,<br><br>" +
+                                "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
+                                "Trân trọng."
+                            );
+
+                            throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
+                        }
+                    if (ticket.Route.School.StartSemOne <= DateOnly.FromDateTime(DateTime.Now))
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Vé chỉ được mua trước ngày {ticket.Route.School.StartSemOne}!");
                     }
 
                     historyTicket.ValidFrom = ticket.Route.School.StartSemOne ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
                     historyTicket.ValidUntil = ticket.Route.School.EndSemOne ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
                     break;
                 case TicketTypeEnum.SEMESTER_TWO:
-                    if (ticket.Route.School.StartSemOne == null)
+                    if (ticket.Route.School.StartSemTwo == null)
                     {
                         await _emailService.SendEmailAsync(
-                            ticket.Route.School.Email,
+                            ticket.Route.School.Email!,
+                            "Thông báo: Cập nhật thời gian kỳ học",
+                            "Kính gửi Quý Trường,<br><br>" +
+                            "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
+                            "Trân trọng."
+                        );
+
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày giờ cho vé này!");
+                    }
+                    if (ticket.Route.School.EndSemTwo == null)
+                    {
+                        await _emailService.SendEmailAsync(
+                            ticket.Route.School.Email!,
+                            "Thông báo: Cập nhật thời gian kỳ học",
+                            "Kính gửi Quý Trường,<br><br>" +
+                            "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
+                            "Trân trọng."
+                        );
+
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
+                    }
+                    if (ticket.Route.School.EndSemTwo <= DateOnly.FromDateTime(DateTime.Now))
+                    {
+                        await _emailService.SendEmailAsync(
+                            ticket.Route.School.Email!,
                             "Thông báo: Cập nhật thời gian kỳ học",
                             "Kính gửi Quý Trường,<br><br>" +
                             "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
@@ -424,19 +464,10 @@ namespace ShuttleMate.Services.Services
 
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
                     }
-                    if (ticket.Route.School.EndSemOne == null)
+                    if (ticket.Route.School.StartSemTwo <= DateOnly.FromDateTime(DateTime.Now))
                     {
-                        await _emailService.SendEmailAsync(
-                            ticket.Route.School.Email,
-                            "Thông báo: Cập nhật thời gian kỳ học",
-                            "Kính gửi Quý Trường,<br><br>" +
-                            "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
-                            "Trân trọng."
-                        );
-
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Vé chỉ được mua trước ngày {ticket.Route.School.StartSemTwo}!");
                     }
-
                     historyTicket.ValidFrom = ticket.Route.School.StartSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
                     historyTicket.ValidUntil = ticket.Route.School.EndSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!"); break;
             }
@@ -453,7 +484,7 @@ namespace ShuttleMate.Services.Services
                 buyerName = user.FullName,
                 buyerEmail = user.Email,
                 buyerPhone = user.PhoneNumber,
-                buyerAddress = user.Address,
+                buyerAddress = user.Address!,
                 cancelUrl = "https://www.google.com/?hl=vi",
                 returnUrl = "https://www.google.com/?hl=vi",
                 expiredAt = DateTimeOffset.Now.ToUnixTimeSeconds() + 600,

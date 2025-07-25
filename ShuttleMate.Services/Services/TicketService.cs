@@ -105,7 +105,7 @@ namespace ShuttleMate.Services.Services
                 TicketTypeEnum.DAY_PASS => "Vé ngày",
                 TicketTypeEnum.MONTHLY => "Vé tháng",
                 TicketTypeEnum.WEEKLY => "Vé tuần",
-                TicketTypeEnum.SINGLE_RIDE => "Vé 1 chiều",
+                //TicketTypeEnum.SINGLE_RIDE => "Vé 1 chiều",
                 TicketTypeEnum.SEMESTER_ONE => "Vé học kì 1",
                 TicketTypeEnum.SEMESTER_TWO => "Vé học kì 2",
                 _ => "Không xác định"
@@ -132,19 +132,19 @@ namespace ShuttleMate.Services.Services
             var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == model.RouteId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
             switch (model.Type)
             {
-                case "SINGLE_RIDE":
-                    var newTicketSINGLE_RIDE = new Ticket
-                    {
-                        Id = Guid.NewGuid(),
-                        CreatedTime = DateTime.Now,
-                        Price = model.Price,
-                        RouteId = model.RouteId,
-                        Type = TicketTypeEnum.SINGLE_RIDE,
-                        LastUpdatedTime = DateTime.Now,
-                    };
-                    await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketSINGLE_RIDE);
-                    await _unitOfWork.SaveAsync();
-                    break;
+                //case "SINGLE_RIDE":
+                //    var newTicketSINGLE_RIDE = new Ticket
+                //    {
+                //        Id = Guid.NewGuid(),
+                //        CreatedTime = DateTime.Now,
+                //        Price = model.Price,
+                //        RouteId = model.RouteId,
+                //        //Type = TicketTypeEnum.SINGLE_RIDE,
+                //        LastUpdatedTime = DateTime.Now,
+                //    };
+                //    await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketSINGLE_RIDE);
+                //    await _unitOfWork.SaveAsync();
+                //    break;
                 case "DAY_PASS":
                     var newTicketDAY_PASS = new Ticket
                     {
@@ -228,9 +228,9 @@ namespace ShuttleMate.Services.Services
             ticket.RouteId = model.RouteId;
             switch (model.Type)
             {
-                case "SINGLE_RIDE":
-                    ticket.Type = TicketTypeEnum.SINGLE_RIDE;
-                    break;
+                //case "SINGLE_RIDE":
+                //    ticket.Type = TicketTypeEnum.SINGLE_RIDE;
+                //    break;
                 case "DAY_PASS":
                     ticket.Type = TicketTypeEnum.DAY_PASS;
                     break;
