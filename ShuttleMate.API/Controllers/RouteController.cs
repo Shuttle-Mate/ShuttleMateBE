@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Controllers;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
-using ShuttleMate.ModelViews.RoleModelViews;
 using ShuttleMate.ModelViews.RouteModelViews;
+using ShuttleMate.ModelViews.ScheduleModelViews;
 using ShuttleMate.ModelViews.RouteStopModelViews;
 using ShuttleMate.ModelViews.StopModelViews;
 using ShuttleMate.Services.Services;
@@ -16,9 +15,12 @@ namespace ShuttleMate.API.Controllers
     public class RouteController : ControllerBase
     {
         private readonly IRouteService _routeService;
-        public RouteController(IRouteService routeService)
+        private readonly IScheduleService _scheduleService;
+
+        public RouteController(IRouteService routeService, IScheduleService scheduleService)
         {
             _routeService = routeService;
+            _scheduleService = scheduleService;
         }
 
         [HttpPost]
@@ -61,6 +63,30 @@ namespace ShuttleMate.API.Controllers
                 data: res
             ));
         }
+
+        /// <summary>
+        /// Lấy danh sách lịch trình theo tuyến.
+        /// </summary>
+        /// <param name="routeId">Id của tuyến (bắt buộc).</param>
+        /// <param name="direction">Hướng của tuyến: IN_BOUND, OUT_BOUND (tùy chọn).</param>
+        /// <param name="sortAsc">Sắp xếp giảm dần theo giờ khởi hành (true, mặc định) hoặc giảm dần (false).</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
+        //[Authorize(Roles = "Admin, Operator")]
+        [HttpGet("{routeId}/schedules")]
+        public async Task<IActionResult> GetSchedulesByRouteId(
+        [FromRoute] Guid routeId,
+        [FromQuery] string? direction,
+        [FromQuery] bool sortAsc = true,
+        [FromQuery] int page = 0,
+        [FromQuery] int pageSize = 10)
+        {
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseScheduleModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: await _scheduleService.GetAllByRouteIdAsync(routeId, direction, sortAsc, page, pageSize)));
+        }
+
         [HttpPatch]
         public async Task<IActionResult> UpdateRoute(UpdateRouteModel model)
         {

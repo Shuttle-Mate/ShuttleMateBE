@@ -171,7 +171,7 @@ namespace ShuttleMate.Repositories.Context
                     .WithMany(r => r.Schedules)
                     .HasForeignKey(t => t.ShuttleId)
                     .OnDelete(DeleteBehavior.Cascade);
-                entity.HasOne(t => t.User)
+                entity.HasOne(t => t.Driver)
                     .WithMany(r => r.Schedules)
                     .HasForeignKey(t => t.DriverId)
                     .OnDelete(DeleteBehavior.Cascade);
