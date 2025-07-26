@@ -11,6 +11,8 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.RoleModelViews;
 using ShuttleMate.ModelViews.RouteModelViews;
+using ShuttleMate.ModelViews.RouteStopModelViews;
+using ShuttleMate.ModelViews.StopModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using System;
 using System.Collections.Generic;
@@ -128,6 +130,55 @@ namespace ShuttleMate.Services.Services
             var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == routeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
 
             return _mapper.Map<ResponseRouteModel>(route);
+        }
+
+        public async Task<BasePaginatedList<StopWithOrderModel>> StopListByRoute(GetRouteStopQuery req, Guid routeId)
+        {
+            string search = req.search ?? "";
+            var page = req.page > 0 ? req.page : 0;
+            var pageSize = req.pageSize > 0 ? req.pageSize : 10;
+
+            var query = _unitOfWork.GetRepository<RouteStop>().Entities
+                .Where(rs => rs.RouteId == routeId && !rs.DeletedTime.HasValue)
+                .Include(rs => rs.Stop)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(rs =>
+                    rs.Stop.Name.ToLower().Contains(search) ||
+                    rs.Stop.Address.ToLower().Contains(search));
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var routeStops = await query
+                .OrderBy(rs => rs.StopOrder)
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            if (!routeStops.Any())
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có điểm dừng nào cho tuyến này!");
+            }
+
+            var result = routeStops
+                .Select(rs => new StopWithOrderModel
+                {
+                    Stop = new BasicStopModel
+                    {
+                        Id = rs.Stop.Id,
+                        Name = rs.Stop.Name,
+                        Address = rs.Stop.Address,
+                        Lat = rs.Stop.Lat,
+                        Lng = rs.Stop.Lng
+                    },
+                    StopOrder = rs.StopOrder
+                })
+                .ToList();
+
+            return new BasePaginatedList<StopWithOrderModel>(result, totalCount, page, pageSize);
         }
 
         public async Task UpdateRoute(UpdateRouteModel model)
