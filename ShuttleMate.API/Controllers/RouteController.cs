@@ -5,8 +5,6 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.RouteModelViews;
 using ShuttleMate.ModelViews.ScheduleModelViews;
 using ShuttleMate.ModelViews.RouteStopModelViews;
-using ShuttleMate.ModelViews.StopModelViews;
-using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
 {
