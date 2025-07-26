@@ -101,9 +101,9 @@ namespace ShuttleMate.Services.Services
             }
         }
 
-        public async Task<BasePaginatedList<StopWithRouteResponseModel>> SearchStopWithRoutes(RouteStopQuery req)
+        public async Task<BasePaginatedList<StopWithRouteResponseModel>> SearchStopWithRoutes(GetRouteStopQuery req)
         {
-            string stopName = req.SearchStopName ?? "";
+            string stopName = req.search ?? "";
             var page = req.page > 0 ? req.page : 0;
             var pageSize = req.pageSize > 0 ? req.pageSize : 10;
 

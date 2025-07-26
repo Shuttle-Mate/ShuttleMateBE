@@ -31,7 +31,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         [HttpGet]
-        public async Task<IActionResult> GetStopWithRoute([FromQuery] RouteStopQuery req)
+        public async Task<IActionResult> GetStopWithRoute([FromQuery] GetRouteStopQuery req)
         {
             var res = await _routeStopService.SearchStopWithRoutes(req);
             return Ok(new BaseResponseModel<BasePaginatedList<StopWithRouteResponseModel>>(

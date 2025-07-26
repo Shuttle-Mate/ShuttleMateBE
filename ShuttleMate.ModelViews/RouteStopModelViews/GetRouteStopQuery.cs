@@ -7,11 +7,11 @@ using ShuttleMate.ModelViews.Pagination;
 
 namespace ShuttleMate.ModelViews.RouteStopModelViews
 {
-    public class RouteStopQuery : PaginationReq
+    public class GetRouteStopQuery : PaginationReq
     {
         /// <summary>
         /// Từ khoá tìm kiếm theo tên trạm. Tùy chọn.
         /// </summary>
-        public string? SearchStopName { get; set; } = null!;
+        public string? search { get; set; } = null!;
     }
 }
