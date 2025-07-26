@@ -39,6 +39,17 @@ namespace ShuttleMate.API.Controllers
                 data: transactions
             ));
         }
+        [HttpGet("{transactionId}")]
+        public async Task<IActionResult> GetById(Guid transactionId)
+        {
+            var transactions = await _transactionService.GetById(transactionId);
+
+            return Ok(new BaseResponseModel<TransactionResponseModel>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: transactions
+            ));
+        }
         /// <summary>
         /// Lấy tất cả các giao dịch(Admin)
         /// </summary>

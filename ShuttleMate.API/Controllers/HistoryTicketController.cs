@@ -109,12 +109,26 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Mua vé (PAYOS): ValidFrom ko áp dụng cho vé loại SEMESTER_ONE, SEMESTER_TWO
+        /// Mua vé (PAYOS): ValidFrom ko áp dụng cho vé loại SEMESTER_ONE, SEMESTER_TWO(STUDENT)
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateHistoryTicket(CreateHistoryTicketModel model)
         {
             CreateHistoryTicketResponse response = await _historyTicketService.CreateHistoryTicket(model);
+
+            return Ok(new BaseResponseModel<CreateHistoryTicketResponse>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: response
+            ));
+        }
+        /// <summary>
+        /// Mua vé (PAYOS): ValidFrom ko áp dụng cho vé loại SEMESTER_ONE, SEMESTER_TWO(PARENT)
+        /// </summary>
+        [HttpPost("buy-ticket-for-parent")]
+        public async Task<IActionResult> CreateHistoryTicketForParent(CreateHistoryTicketForParentModel model)
+        {
+            CreateHistoryTicketResponse response = await _historyTicketService.CreateHistoryTicketForParent(model);
 
             return Ok(new BaseResponseModel<CreateHistoryTicketResponse>(
                 statusCode: StatusCodes.Status200OK,

@@ -20,7 +20,7 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách trường học.
+        /// Lấy danh sách trường học.(ADMIN)
         /// </summary>
         /// <param name="search">Tìm kiếm theo tên, địa chỉ, email hoặc sđt của trường.</param>
         /// <param name="isActive">lọc theo trường có kích hoạt hay không(True:có, false:ko)(tùy chọn).</param>
@@ -36,14 +36,13 @@ namespace ShuttleMate.API.Controllers
                 data: await _schoolService.GetAllAsync(page, pageSize, search, isActive, sortAsc)));
         }
         /// <summary>
-        /// Lấy danh sách học sinh trong trường bạn quản lí.
+        /// Lấy danh sách học sinh trong trường bạn quản lí.(SCHOOL)
         /// </summary>
         /// <param name="search">Tìm kiếm theo tên, địa chỉ, email hoặc sđt của trường.</param>
         /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         /// <param name="schoolShiftId">Lọc hs theo id của ca học.</param>
-        /// <param name="routeId">Lọc hs theo id của tuyến.</param>
         [HttpGet("list-student")]
         public async Task<IActionResult> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null, bool sortAsc = false, Guid? schoolShiftId = null)
         {
@@ -51,6 +50,23 @@ namespace ShuttleMate.API.Controllers
             statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: await _schoolService.GetAllStudentInSchool(page, pageSize, search, sortAsc, schoolShiftId)));
+        }
+        /// <summary>
+        /// Lấy danh sách học sinh của trường.(ADMIN)
+        /// </summary>
+        /// <param name="search">Tìm kiếm theo tên, địa chỉ, email hoặc sđt của trường.</param>
+        /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
+        /// <param name="schoolShiftId">Lọc hs theo id của ca học.</param>
+        /// <param name="schoolId">id của trường bạn muốn xem(Bắt buộc, nếu schoolId = null thì sẽ trả rỗng).</param>
+        [HttpGet("list-student/{schoolId}")]
+        public async Task<IActionResult> GetAllStudentInSchoolForAdmin(int page = 0, int pageSize = 10, string? search = null, bool sortAsc = false, Guid? schoolShiftId = null, Guid? schoolId = null)
+        {
+            return Ok(new BaseResponseModel<BasePaginatedList<ListStudentInSchoolResponse>>(
+            statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: await _schoolService.GetAllStudentInSchoolForAdmin(page, pageSize, search, sortAsc, schoolShiftId, schoolId)));
         }
         /// <summary>
         /// Lấy danh sách tuyến đãn đến trường bạn quản lí.
@@ -92,8 +108,10 @@ namespace ShuttleMate.API.Controllers
         //    ));
         //}
         /// <summary>
-        /// Cập nhật một trường.
+        /// Cập nhật một trường.(ADMIN/SCHOOL)
         /// </summary>
+        /// <param name="id">id đối với role school lấy là schoolId, đối với role admin lấy id từ list school.</param>
+
         [HttpPatch("{id}")]
         public async Task<IActionResult> UpdateSchool(Guid id, UpdateSchoolModel model)
         {
@@ -105,7 +123,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Gán quản lí cho trường.
+        /// Gán quản lí cho trường.(ADMIN)
         /// </summary>
         [HttpPatch("assign-school")]
         public async Task<IActionResult> AssignSchoolForManager(AssignSchoolForManagerModel model)
@@ -119,7 +137,7 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Xóa một trường.
+        /// Xóa một trường.(ADMIN)
         /// </summary>
         [HttpDelete]
         public async Task<IActionResult> DeleteSchool(DeleteSchoolModel model)

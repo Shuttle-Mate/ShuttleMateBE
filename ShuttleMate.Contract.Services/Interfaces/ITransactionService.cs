@@ -12,5 +12,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
     {
         Task<IEnumerable<TransactionResponseModel>> GetAllForUserAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null);
         Task<IEnumerable<TransactionAdminResponseModel>> GetAllForAdminAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null);
+        Task<TransactionResponseModel> GetById(Guid transactionId);
     }
 }

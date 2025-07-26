@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
+using ShuttleMate.Core.Bases;
+using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.HistoryTicketModelView;
 using ShuttleMate.ModelViews.TransactionModelView;
 using ShuttleMate.Services.Services.Infrastructure;
@@ -85,6 +87,29 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
 
             return transactions;
+        }
+        public async Task<TransactionResponseModel> GetById(Guid transactionId)
+        {
+            // Lấy userId từ HttpContext
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            Guid.TryParse(userId, out Guid cb);
+
+
+            var query =await  _unitOfWork.GetRepository<Transaction>().Entities.FirstOrDefaultAsync(x => x.Id == transactionId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy giao dịch!");
+
+            var transaction = new TransactionResponseModel
+            {
+                Id = query.Id,
+                Amount = query.Amount,
+                Status = query.Status.ToString().ToUpper(),
+                PaymentMethod = query.PaymentMethod.ToString().ToUpper(),
+                OrderCode = query.OrderCode,
+                Description = query.Description,
+                HistoryTicketId = query.HistoryTicketId,          
+            };
+                
+            return transaction;
         }
         public async Task<IEnumerable<TransactionAdminResponseModel>> GetAllForAdminAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null)
         {
