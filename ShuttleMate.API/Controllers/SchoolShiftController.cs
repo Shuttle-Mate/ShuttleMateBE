@@ -21,7 +21,7 @@ namespace ShuttleMate.API.Controllers
             _schoolShiftService = schoolShiftServicee;
         }
         /// <summary>
-        /// lấy tất cả ca học từ id của vé học sinh/phụ huynh đặt
+        /// lấy tất cả ca học từ id của vé học sinh/phụ huynh đặt(PARENT/STUDENT)
         /// </summary>
         /// <param name="ticketId">id của vé học sinh/phụ huynh đặt.</param>
 

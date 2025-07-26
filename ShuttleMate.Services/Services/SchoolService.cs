@@ -141,6 +141,65 @@ namespace ShuttleMate.Services.Services
 
             return new BasePaginatedList<ListStudentInSchoolResponse>(result, totalCount, page, pageSize);
         }
+        public async Task<BasePaginatedList<ListStudentInSchoolResponse>> GetAllStudentInSchoolForAdmin(int page = 0, int pageSize = 10, string? search = null, bool sortAsc = false, Guid? schoolShiftId = null, Guid? schoolId = null)
+        {
+
+            if (schoolId == null)
+            {
+                var emptyList = Enumerable.Empty<ListStudentInSchoolResponse>();
+                var paginatedList = new BasePaginatedList<ListStudentInSchoolResponse>(
+                    emptyList.ToList(), // Danh sách rỗng
+                    0,                  // Total count = 0
+                    page,
+                    pageSize
+                );
+                return paginatedList;
+            }
+
+            var query = _unitOfWork.GetRepository<User>()
+                .GetQueryable()
+                .Include(x => x.School)
+                .Where(x => x.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() == "STUDENT"
+                            && x.SchoolId == schoolId
+                            && !x.DeletedTime.HasValue);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var lowered = search.Trim().ToLower();
+                query = query.Where(x =>
+                    x.FullName.ToLower().Contains(lowered) ||
+                    x.Address.ToLower().Contains(lowered) ||
+                    x.PhoneNumber.ToLower().Contains(lowered) ||
+                    x.Email.ToLower().Contains(lowered));
+            }
+
+            if (schoolShiftId != null)
+            {
+                query = query.Where(x =>
+                    x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId) && x.HistoryTickets.Any(x => x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)));
+            }
+
+            //if (routeId != null)
+            //{
+            //    query = query.Where(x =>
+            //        x.HistoryTickets.Any(x=>x.Ticket.RouteId == routeId && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)));
+            //}
+
+            query = sortAsc
+                ? query.OrderBy(x => x.CreatedTime)
+                : query.OrderByDescending(x => x.CreatedTime);
+
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = _mapper.Map<List<ListStudentInSchoolResponse>>(pagedItems);
+
+            return new BasePaginatedList<ListStudentInSchoolResponse>(result, totalCount, page, pageSize);
+        }
 
         public async Task<BasePaginatedList<RouteToSchoolResponseModel>> GetAllRouteToSchool(int page = 0, int pageSize = 10, string? search = null, bool? isActive = null, bool sortAsc = false)
         {

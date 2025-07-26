@@ -320,10 +320,10 @@ namespace ShuttleMate.Services.Services
 
             var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
-            if( model.ListSchoolShiftId.Count == 0)
+            if (model.ListSchoolShiftId.Count == 0)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng chọn ca học của bạn!");
-            }    
+            }
             var historyTicket = new HistoryTicket
             {
                 Id = Guid.NewGuid(),
@@ -341,7 +341,19 @@ namespace ShuttleMate.Services.Services
             foreach (var schoolShiftId in model.ListSchoolShiftId)
             {
                 var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
-                var userShift = new UserSchoolShift
+
+                var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == cb && !x.DeletedTime.HasValue).ToListAsync();
+                if (userShift != null)
+                {
+                    foreach (var del in userShift)
+                    {
+                        del.DeletedTime = DateTime.Now;
+                        await _unitOfWork.GetRepository<UserSchoolShift>().UpdateAsync(del);
+                    }
+                }
+                await _unitOfWork.SaveAsync();
+
+                var userShiftNew = new UserSchoolShift
                 {
                     Id = Guid.NewGuid(),
                     SchoolShiftId = schoolShiftId,
@@ -349,7 +361,7 @@ namespace ShuttleMate.Services.Services
                     CreatedTime = DateTime.Now,
                     LastUpdatedTime = DateTime.Now
                 };
-                await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShift);
+                await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
             }
 
             switch (ticket.Type)
@@ -408,17 +420,17 @@ namespace ShuttleMate.Services.Services
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
                     }
                     if (ticket.Route.School.EndSemTwo < DateOnly.FromDateTime(DateTime.Now))
-                        {
-                            await _emailService.SendEmailAsync(
-                                ticket.Route.School.Email!,
-                                "Thông báo: Cập nhật thời gian kỳ học",
-                                "Kính gửi Quý Trường,<br><br>" +
-                                "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
-                                "Trân trọng."
-                            );
+                    {
+                        await _emailService.SendEmailAsync(
+                            ticket.Route.School.Email!,
+                            "Thông báo: Cập nhật thời gian kỳ học",
+                            "Kính gửi Quý Trường,<br><br>" +
+                            "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
+                            "Trân trọng."
+                        );
 
-                            throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
-                        }
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
+                    }
                     if (ticket.Route.School.StartSemOne <= DateOnly.FromDateTime(DateTime.Now))
                     {
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Vé chỉ được mua trước ngày {ticket.Route.School.StartSemOne}!");
@@ -563,7 +575,18 @@ namespace ShuttleMate.Services.Services
             foreach (var schoolShiftId in model.ListSchoolShiftId)
             {
                 var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
-                var userShift = new UserSchoolShift
+                var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
+                if (userShift != null)
+                {
+                    foreach (var del in userShift)
+                    {
+                        del.DeletedTime = DateTime.Now;
+                        await _unitOfWork.GetRepository<UserSchoolShift>().UpdateAsync(del);
+                    }
+                }
+                await _unitOfWork.SaveAsync();
+
+                var userShiftNew = new UserSchoolShift
                 {
                     Id = Guid.NewGuid(),
                     SchoolShiftId = schoolShiftId,
@@ -571,7 +594,7 @@ namespace ShuttleMate.Services.Services
                     CreatedTime = DateTime.Now,
                     LastUpdatedTime = DateTime.Now
                 };
-                await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShift);
+                await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
             }
 
             switch (ticket.Type)

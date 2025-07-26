@@ -11,11 +11,24 @@ namespace ShuttleMate.API.Controllers
     [ApiController]
     public class ScheduleController : ControllerBase
     {
-        private readonly IScheduleService _departureTimeService;
+        private readonly IScheduleService _scheduleService;
 
-        public ScheduleController(IScheduleService departureTimeService)
+        public ScheduleController(IScheduleService scheduleService)
         {
-            _departureTimeService = departureTimeService;
+            _scheduleService = scheduleService;
+        }
+
+        /// <summary>
+        /// Lấy danh sách lịch trình ngày hiện tại của tài xế.
+        /// </summary>
+        //[Authorize(Roles = "Driver")]
+        [HttpGet("today")]
+        public async Task<IActionResult> GetAllTodaySchedulesForDriver()
+        {
+            return Ok(new BaseResponseModel<IEnumerable<ResponseTodayScheduleForDriverModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: await _scheduleService.GetAllTodayAsync()));
         }
 
         /// <summary>
@@ -24,7 +37,7 @@ namespace ShuttleMate.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateDepartureTime(CreateScheduleModel model)
         {
-            await _departureTimeService.CreateAsync(model);
+            await _scheduleService.CreateAsync(model);
             return Ok(new BaseResponseModel<string?>(
               statusCode: StatusCodes.Status200OK,
               code: ResponseCodeConstants.SUCCESS,
@@ -37,7 +50,7 @@ namespace ShuttleMate.API.Controllers
         [HttpPut]
         public async Task<IActionResult> UpdateDepartureTime(UpdateScheduleModel model)
         {
-            await _departureTimeService.UpdateAsync(model);
+            await _scheduleService.UpdateAsync(model);
             return Ok(new BaseResponseModel<string?>(
                statusCode: StatusCodes.Status200OK,
                code: ResponseCodeConstants.SUCCESS,

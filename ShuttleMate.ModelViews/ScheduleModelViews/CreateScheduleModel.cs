@@ -10,12 +10,13 @@
     {
         public Guid ShuttleId { get; set; }
         public Guid DriverId { get; set; }
-        public List<CreateDepartureTimeModel> DepartureTimes { get; set; } = new();
+        public Guid SchoolShiftId { get; set; }
+        public string DepartureTime { get; set; }
+        public List<CreateDayOfWeekModel> DayOfWeeks { get; set; } = new();
     }
 
-    public class CreateDepartureTimeModel
+    public class CreateDayOfWeekModel
     {
-        public string Time { get; set; }
         public string DayOfWeek { get; set; }
     }
 }

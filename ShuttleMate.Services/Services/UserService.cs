@@ -291,7 +291,10 @@ namespace ShuttleMate.Services.Services
             //điều kiện hs trong cùng 1 ca học
             query = query.Where(x=>x.UserSchoolShifts.Any(x=> x.SchoolShiftId == schoolShiftId  && !x.DeletedTime.HasValue));
             //điều kiện học sinh có vé tuyến đường này và vé còn thời gian hiệu lực
-            query = query.Where(x => x.HistoryTickets.Any(x => x.Ticket.Route.Id == routeId && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now) && !x.DeletedTime.HasValue));
+            query = query.Where(x => x.HistoryTickets.Any(x => x.Ticket.Route.Id == routeId 
+            && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now) 
+            && x.Status == HistoryTicketStatus.PAID
+            && !x.DeletedTime.HasValue));
 
             var users = await query
                 .Select(u => new ResponseStudentInRouteAndShiftModel
@@ -307,7 +310,9 @@ namespace ShuttleMate.Services.Services
                     PhoneNumber = u.PhoneNumber,
                     SchoolName = u.School.Name,
                     HistoryTicketId = u.HistoryTickets.
-                    FirstOrDefault(x=>x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now) && !x.DeletedTime.HasValue)!.Id,
+                    FirstOrDefault(x=>x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now) 
+                    && x.Status == HistoryTicketStatus.PAID
+                    && !x.DeletedTime.HasValue)!.Id,
                 })
                 .ToListAsync();
             var totalCount = await query.CountAsync();
