@@ -17,5 +17,8 @@ namespace ShuttleMate.ModelViews.RouteModelViews
         /// Tiêu chí sắp xếp: CODE, NAME, PRICE (default UPDATED_AT).
         /// </summary>
         public string? sortBy { get; set; } = null!;
+        /// <summary>
+        /// Filter theo SchoolId
+        /// </summary>
     }
 }

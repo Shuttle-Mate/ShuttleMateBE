@@ -5,6 +5,8 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.RoleModelViews;
 using ShuttleMate.ModelViews.RouteModelViews;
+using ShuttleMate.ModelViews.RouteStopModelViews;
+using ShuttleMate.ModelViews.StopModelViews;
 using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
@@ -34,6 +36,16 @@ namespace ShuttleMate.API.Controllers
         {
             var res = await _routeService.GetAll(query);
             return Ok(new BaseResponseModel<BasePaginatedList<ResponseRouteModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: res
+            ));
+        }
+        [HttpGet("{routeId}/stops")]
+        public async Task<IActionResult> StopListByRoute([FromQuery] GetRouteStopQuery query, Guid routeId)
+        {
+            var res = await _routeService.StopListByRoute(query, routeId);
+            return Ok(new BaseResponseModel<BasePaginatedList<StopWithOrderModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: res
