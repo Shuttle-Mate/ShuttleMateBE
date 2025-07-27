@@ -11,8 +11,8 @@ namespace ShuttleMate.ModelViews.SchoolShiftModelViews
     {
         public Guid Id { get; set; }
         public TimeOnly Time { get; set; }
-        public ShiftTypeEnum ShiftType { get; set; }
-        public SessionTypeEnum SessionType { get; set; }
+        public string ShiftType { get; set; }
+        public string SessionType { get; set; }
         public Guid SchoolId { get; set; }
         public string SchoolName { get; set; }
     }

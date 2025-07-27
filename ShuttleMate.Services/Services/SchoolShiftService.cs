@@ -88,8 +88,8 @@ namespace ShuttleMate.Services.Services
                     Id = x.Id,
                     SchoolId = x.SchoolId,
                     SchoolName = x.School.Name,
-                    SessionType = x.SessionType,
-                    ShiftType = x.ShiftType,
+                    SessionType = x.SessionType.ToString().ToUpper(),
+                    ShiftType = x.ShiftType.ToString().ToUpper(),
                     Time = x.Time,
                 })
                 .ToListAsync();
@@ -144,8 +144,8 @@ namespace ShuttleMate.Services.Services
                     Id = x.Id,
                     SchoolId = x.SchoolId,
                     SchoolName = x.School.Name,
-                    SessionType = x.SessionType,
-                    ShiftType = x.ShiftType,
+                    SessionType = x.SessionType.ToString().ToUpper(),
+                    ShiftType = x.ShiftType.ToString().ToUpper(),
                     Time = x.Time,
                 })
                 .ToListAsync();
@@ -162,8 +162,8 @@ namespace ShuttleMate.Services.Services
                 Id = x.Id,
                 SchoolId = x.SchoolId,
                 SchoolName = x.School.Name,
-                SessionType = x.SessionType,
-                ShiftType = x.ShiftType,
+                SessionType = x.SessionType.ToString().ToUpper(),
+                ShiftType = x.ShiftType.ToString().ToUpper(),
                 Time = x.Time,
                 
             }).ToList();
@@ -174,21 +174,9 @@ namespace ShuttleMate.Services.Services
         {
             var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
 
-            if (school.SchoolShifts.Count(x => x.ShiftType == model.ShiftType && x.SessionType == SessionTypeEnum.MORNING) > 0)
+            if (school.SchoolShifts.Count(x => x.ShiftType == model.ShiftType && x.SessionType == model.SessionType && !x.DeletedTime.HasValue) > 0)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại giờ này đã được tạo!");
-            }
-            if (school.SchoolShifts.Count(x => x.ShiftType == model.ShiftType && x.SessionType == SessionTypeEnum.AFTERNOON) > 0)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại giờ này đã được tạo!");
-            }
-            if (school.SchoolShifts.Count(x => x.SessionType == model.SessionType && x.ShiftType == ShiftTypeEnum.START) > 0)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại buổi vào học này đã được tạo!");
-            }
-            if (school.SchoolShifts.Count(x => x.SessionType == model.SessionType && x.ShiftType == ShiftTypeEnum.END) > 0)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại buổi vào học này đã được tạo!");
             }
 
             var schoolShift = new SchoolShift
@@ -208,36 +196,23 @@ namespace ShuttleMate.Services.Services
         }
         public async Task UpdateSchoolShift(UpdateSchoolShiftModel model)
         {
-            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            
             var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy ca học!");
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShift.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
 
             if (schoolShift.ShiftType == model.ShiftType
                 && schoolShift.Time == model.Time
-                && schoolShift.SchoolId == model.SchoolId
                 && schoolShift.SessionType == model.SessionType)
             {
                 //bỏ qua cập nhật
             }
             else//tiếp tục cập nhật
             {
-                if (school.SchoolShifts.Count(x => x.ShiftType == model.ShiftType && x.SessionType == SessionTypeEnum.MORNING) > 0)
+                if (school.SchoolShifts.Count(x => x.ShiftType == model.ShiftType && x.SessionType == model.SessionType && !x.DeletedTime.HasValue) > 0)
                 {
                     throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại giờ này đã được tạo!");
-                }
-                if (school.SchoolShifts.Count(x => x.ShiftType == model.ShiftType && x.SessionType == SessionTypeEnum.AFTERNOON) > 0)
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại giờ này đã được tạo!");
-                }
-                if (school.SchoolShifts.Count(x => x.SessionType == model.SessionType && x.ShiftType == ShiftTypeEnum.START) > 0)
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại buổi vào học này đã được tạo!");
-                }
-                if (school.SchoolShifts.Count(x => x.SessionType == model.SessionType && x.ShiftType == ShiftTypeEnum.END) > 0)
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại buổi vào học này đã được tạo!");
                 }
 
-                schoolShift.SchoolId = school.Id;
                 schoolShift.ShiftType = model.ShiftType;
                 schoolShift.Time = model.Time;
                 schoolShift.SessionType = model.SessionType;
