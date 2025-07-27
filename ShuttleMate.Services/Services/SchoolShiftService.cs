@@ -206,6 +206,18 @@ namespace ShuttleMate.Services.Services
             {
                 //bỏ qua cập nhật
             }
+            else
+            if(schoolShift.ShiftType == model.ShiftType
+                && schoolShift.SessionType == model.SessionType)
+            {
+                schoolShift.ShiftType = model.ShiftType;
+                schoolShift.Time = model.Time;
+                schoolShift.SessionType = model.SessionType;
+                schoolShift.LastUpdatedTime = DateTime.Now;
+
+                await _unitOfWork.GetRepository<SchoolShift>().UpdateAsync(schoolShift);
+                await _unitOfWork.SaveAsync();
+            }
             else//tiếp tục cập nhật
             {
                 if (school.SchoolShifts.Count(x => x.ShiftType == model.ShiftType && x.SessionType == model.SessionType && !x.DeletedTime.HasValue) > 0)
