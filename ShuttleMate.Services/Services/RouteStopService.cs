@@ -59,7 +59,7 @@ namespace ShuttleMate.Services.Services
                     //_unitOfWork.Detach(old);
                 }
 
-                await routeStopRepo.UpdateRangeAsync(oldStops);
+                //await routeStopRepo.UpdateRangeAsync(oldStops);
                 await _unitOfWork.SaveAsync();
 
                 foreach (var old in oldStops)
