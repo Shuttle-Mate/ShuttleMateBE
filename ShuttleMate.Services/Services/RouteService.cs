@@ -81,7 +81,12 @@ namespace ShuttleMate.Services.Services
 
             var query = _unitOfWork.GetRepository<Route>().Entities
                 .Where(x => !x.DeletedTime.HasValue);
-                //.OrderBy(x => x.RouteCode);
+            //.OrderBy(x => x.RouteCode);
+
+            if (req.schooldId.HasValue && req.schooldId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.SchoolId == req.schooldId.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(searchKeyword))
             {
