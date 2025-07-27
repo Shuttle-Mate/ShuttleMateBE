@@ -3,6 +3,7 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.AttendanceModelViews;
+using ShuttleMate.ModelViews.RouteModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
 using ShuttleMate.ModelViews.TripModelViews;
 using ShuttleMate.Services.Services;
@@ -31,6 +32,19 @@ namespace ShuttleMate.API.Controllers
                 code: ResponseCodeConstants.SUCCESS,
                 message: "Bắt đầu chuyến đi thành công!",
                 data: tripId.ToString()
+            ));
+        }
+        /// <summary>
+        /// get all trip với filter
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetAllTrip([FromQuery] GetTripQuery query)
+        {
+            var res = await _tripService.GetAllPaging(query);
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseTripModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: res
             ));
         }
         /// <summary>
