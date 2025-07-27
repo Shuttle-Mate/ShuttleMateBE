@@ -8,6 +8,7 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
+using ShuttleMate.ModelViews.RouteModelViews;
 using ShuttleMate.ModelViews.TripModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using System;
@@ -111,9 +112,52 @@ namespace ShuttleMate.Services.Services
             return newTrip.Id;
         }
 
-        public Task<BasePaginatedList<ResponseTripModel>> GetAllPaging(GetTripQuery req)
+        public async Task<BasePaginatedList<ResponseTripModel>> GetAllPaging(GetTripQuery req)
         {
-            throw new NotImplementedException();
+            var page = req.page > 0 ? req.page : 0;
+            var pageSize = req.pageSize > 0 ? req.pageSize : 10;
+
+            var query = _unitOfWork.GetRepository<Trip>().Entities
+                .Where(x => !x.DeletedTime.HasValue);
+
+            // Filter by status (string to enum, upper-case)
+            if (!string.IsNullOrWhiteSpace(req.status))
+            {
+                if (Enum.TryParse<TripStatusEnum>(req.status.Trim().ToUpperInvariant(), out var statusEnum))
+                {
+                    query = query.Where(x => x.Status == statusEnum);
+                }
+                else
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trạng thái chuyến xe không hợp lệ!");
+                }
+            }
+
+            // Filter by startDate (TripDate) and endDate (TripDate)
+            if (!string.IsNullOrWhiteSpace(req.startDate) && DateOnly.TryParse(req.startDate, out var startDate))
+            {
+                query = query.Where(x => x.TripDate >= startDate);
+            }
+            if (!string.IsNullOrWhiteSpace(req.endDate) && DateOnly.TryParse(req.endDate, out var endDate))
+            {
+                query = query.Where(x => x.TripDate <= endDate);
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var trips = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            if (!trips.Any())
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có chuyến xe nào tồn tại!");
+            }
+
+            var result = _mapper.Map<List<ResponseTripModel>>(trips);
+
+            return new BasePaginatedList<ResponseTripModel>(result, totalCount, page, pageSize);
         }
 
         public Task<ResponseTripModel> GetById(Guid tripId)

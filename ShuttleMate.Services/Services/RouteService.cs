@@ -83,9 +83,9 @@ namespace ShuttleMate.Services.Services
                 .Where(x => !x.DeletedTime.HasValue);
             //.OrderBy(x => x.RouteCode);
 
-            if (req.schooldId.HasValue && req.schooldId.Value != Guid.Empty)
+            if (req.schoolId.HasValue && req.schoolId.Value != Guid.Empty)
             {
-                query = query.Where(x => x.SchoolId == req.schooldId.Value);
+                query = query.Where(x => x.SchoolId == req.schoolId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(searchKeyword))
