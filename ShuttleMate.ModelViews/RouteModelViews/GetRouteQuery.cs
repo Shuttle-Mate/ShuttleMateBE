@@ -20,5 +20,6 @@ namespace ShuttleMate.ModelViews.RouteModelViews
         /// <summary>
         /// Filter theo SchoolId
         /// </summary>
+        public Guid? schoolId { get; set; } = null!;
     }
 }
