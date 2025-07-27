@@ -36,7 +36,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// lấy tất cả ca học trường mình quản lí.
+        /// lấy tất cả ca học trường mình quản lí.(SCHOOL)
         /// </summary>
         /// <param name="sessionType">lọc theo START, END.</param>
         /// <param name="shiftType">Lọc theo MORNING, AFTERNOON.</param>
@@ -50,6 +50,23 @@ namespace ShuttleMate.API.Controllers
             statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: await _schoolShiftService.GetAllSchoolShift(page, pageSize, sessionType,shiftType, sortAsc)));
+        }
+        /// <summary>
+        /// lấy tất cả ca học của trường.(ADMIN)
+        /// </summary>
+        /// <param name="sessionType">lọc theo START, END.</param>
+        /// <param name="shiftType">Lọc theo MORNING, AFTERNOON.</param>
+        /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
+        /// <param name="schoolId">id của trường muốn xem ca học(bắt buộc).</param>
+        [HttpGet("{schoolId}")]
+        public async Task<IActionResult> GetAllSchoolShiftForAdmin(int page = 0, int pageSize = 10, string? sessionType = null, string? shiftType = null, bool sortAsc = false, Guid? schoolId = null)
+        {
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>>(
+            statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: await _schoolShiftService.GetAllSchoolShiftForAdmin(page, pageSize, sessionType, shiftType, sortAsc, schoolId)));
         }
         /// <summary>
         /// Tạo ca học

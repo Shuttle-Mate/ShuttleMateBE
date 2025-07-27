@@ -41,9 +41,9 @@ namespace ShuttleMate.API.Controllers
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         [HttpGet("get-all-users")]
-        public async Task<IActionResult> GetAllUsers(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
+        public async Task<IActionResult> GetAllUsers(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
         {
-            var users = await _userService.GetAllAsync(page, pageSize, name, gender, roleName, Violate, email, phone, schoolId, parentId);
+            var users = await _userService.GetAllAsync(page, pageSize, name, gender, roleName, violate, email, phone, schoolId, parentId);
 
             return Ok(new BaseResponseModel<BasePaginatedList<AdminResponseUserModel>>(
                 statusCode: StatusCodes.Status200OK,
@@ -73,11 +73,11 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy tất cả con của phụ huynh(Parent)
         /// </summary>
-        /// <param name="Id">Id của phụ huynh</param>
+        /// <param name="id">Id của phụ huynh</param>
         [HttpGet("get-child")]
-        public async Task<IActionResult> GetYourChild(Guid Id)
+        public async Task<IActionResult> GetYourChild(Guid id)
         {
-            var users = await _userService.GetYourChild(Id);
+            var users = await _userService.GetYourChild(id);
 
             return Ok(new BaseResponseModel<IEnumerable<ReponseYourChild>>(
                 statusCode: StatusCodes.Status200OK,
