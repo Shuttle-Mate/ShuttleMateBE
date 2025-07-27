@@ -96,10 +96,66 @@ namespace ShuttleMate.Services.Services
 
             return new BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>(list, totalCount, page, pageSize);
         }
+        public async Task<BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>> GetAllSchoolShiftForAdmin(int page = 0, int pageSize = 10, string? sessionType = null, string? shiftType = null, bool sortAsc = false, Guid? schoolId = null)
+        {
+
+            if (schoolId == null)
+            {
+                var emptyList = Enumerable.Empty<ResponseSchoolShiftListByTicketIdMode>();
+                var paginatedList = new BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>(
+                    emptyList.ToList(), // Danh sách rỗng
+                    0,                  // Total count = 0
+                    page,
+                    pageSize
+                );
+                return paginatedList;
+            }
+
+            var query = _unitOfWork.GetRepository<SchoolShift>()
+                .GetQueryable()
+                .Include(x => x.School)
+                .Where(x => x.SchoolId == schoolId && !x.DeletedTime.HasValue);
+
+            if (!string.IsNullOrWhiteSpace(sessionType))
+            {
+                var upper = sessionType.Trim().ToUpper();
+                query = query.Where(x => x.SessionType.ToString().ToUpper() == upper);
+            }
+            if (!string.IsNullOrWhiteSpace(shiftType))
+            {
+                var upper = shiftType.Trim().ToUpper();
+                query = query.Where(x => x.ShiftType.ToString().ToUpper() == upper);
+            }
+
+            query = sortAsc
+                ? query.OrderBy(x => x.CreatedTime)
+                : query.OrderByDescending(x => x.CreatedTime);
+
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var list = await query
+                .Select(x => new ResponseSchoolShiftListByTicketIdMode
+                {
+                    Id = x.Id,
+                    SchoolId = x.SchoolId,
+                    SchoolName = x.School.Name,
+                    SessionType = x.SessionType,
+                    ShiftType = x.ShiftType,
+                    Time = x.Time,
+                })
+                .ToListAsync();
+
+            return new BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>(list, totalCount, page, pageSize);
+        }
 
         public async Task<List<ResponseSchoolShiftListByTicketIdMode>> GetSchoolShiftListByTicketId(Guid ticketId)
         {
-            var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == ticketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == ticketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy vé!");
             var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.Where(x=>x.SchoolId == ticket.Route.SchoolId).ToListAsync() ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
             var list = schoolShift.Select(x => new ResponseSchoolShiftListByTicketIdMode
             {

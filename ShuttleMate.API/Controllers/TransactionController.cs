@@ -29,9 +29,9 @@ namespace ShuttleMate.API.Controllers
         /// <param name="description">mô tả</param>
 
         [HttpGet("my")]
-        public async Task<IActionResult> GetAllForUserAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null)
+        public async Task<IActionResult> GetAllForUserAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? createTime = null)
         {
-            var transactions = await _transactionService.GetAllForUserAsync(paymentMethodEnum, paymentStatus, orderCode, description, CreateTime);
+            var transactions = await _transactionService.GetAllForUserAsync(paymentMethodEnum, paymentStatus, orderCode, description, createTime);
 
             return Ok(new BaseResponseModel<IEnumerable<TransactionResponseModel>>(
                 statusCode: StatusCodes.Status200OK,
@@ -60,9 +60,9 @@ namespace ShuttleMate.API.Controllers
         /// <param name="description">mô tả</param>
 
         [HttpGet]
-        public async Task<IActionResult> GetAllForAdminAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null)
+        public async Task<IActionResult> GetAllForAdminAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? createTime = null)
         {
-            var transactions = await _transactionService.GetAllForAdminAsync(paymentMethodEnum, paymentStatus, orderCode, description, CreateTime);
+            var transactions = await _transactionService.GetAllForAdminAsync(paymentMethodEnum, paymentStatus, orderCode, description, createTime);
 
             return Ok(new BaseResponseModel<IEnumerable<TransactionAdminResponseModel>>(
                 statusCode: StatusCodes.Status200OK,
