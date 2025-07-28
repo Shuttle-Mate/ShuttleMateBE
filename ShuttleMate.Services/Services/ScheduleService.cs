@@ -124,6 +124,8 @@ namespace ShuttleMate.Services.Services
                 responseList.Add(new ResponseTodayScheduleForDriverModel
                 {
                     Id = s.Id,
+                    RouteId = s.RouteId,
+                    SchoolShiftId = (Guid)s.SchoolShiftId,
                     RouteCode = s.Route?.RouteCode ?? "",
                     RouteName = s.Route?.RouteName ?? "",
                     StartTime = startTime.ToString("HH:mm"),
@@ -149,6 +151,8 @@ namespace ShuttleMate.Services.Services
                 responseList.Add(new ResponseTodayScheduleForDriverModel
                 {
                     Id = s.Id,
+                    RouteId = s.RouteId,
+                    SchoolShiftId = (Guid)s.SchoolShiftId,
                     RouteCode = s.Route?.RouteCode ?? "",
                     RouteName = s.Route?.RouteName ?? "",
                     StartTime = startTime.ToString("HH:mm"),
