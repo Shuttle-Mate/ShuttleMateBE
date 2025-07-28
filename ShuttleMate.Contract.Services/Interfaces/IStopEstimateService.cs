@@ -1,11 +1,10 @@
-﻿using ShuttleMate.ModelViews.StopEstimateModelViews;
+﻿using ShuttleMate.Contract.Repositories.Entities;
 
 namespace ShuttleMate.Contract.Services.Interfaces
 {
     public interface IStopEstimateService
     {
-        Task<IEnumerable<ResponseStopEstimateModel>> GetAllAsync();
-        Task<IEnumerable<ResponseStopEstimateModel>> GetByRouteIdAsync(Guid routeId);
-        Task CreateAsync(Guid routeId);
+        Task CreateAsync(List<Schedule> schedules, Guid routeId);
+        Task UpdateAsync(List<Schedule> schedules, Guid routeId);
     }
 }

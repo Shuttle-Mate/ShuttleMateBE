@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using ShuttleMate.Contract.Repositories.Base;
@@ -9,6 +10,7 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.StopEstimateModelViews;
+using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
 {
@@ -29,147 +31,97 @@ namespace ShuttleMate.Services.Services
             _httpClient = httpClient;
         }
 
-        private const string VietMapRouteApiUrl = "https://maps.vietmap.vn/api/route?api-version=1.1";
+        private const string VietMapMatrixApiUrl = "https://maps.vietmap.vn/api/matrix?api-version=1.1";
 
-        public async Task<IEnumerable<ResponseStopEstimateModel>> GetAllAsync()
+        public async Task CreateAsync(List<Schedule> schedules, Guid routeId)
         {
-            var stopEstimates = await _unitOfWork.GetRepository<StopEstimate>().FindAllAsync(se => !se.DeletedTime.HasValue);
+            var allRouteStops = await _unitOfWork.GetRepository<RouteStop>().Entities
+                .Where(rs => rs.RouteId == routeId)
+                .Include(rs => rs.Stop)
+                .ToListAsync();
 
-            if (!stopEstimates.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không có thời gian ước tính nào.");
-            }
-
-            var sortedStopEstimates = stopEstimates
-                .OrderBy(se => se.ExpectedTime)
-                .ToList();
-
-            return _mapper.Map<IEnumerable<ResponseStopEstimateModel>>(sortedStopEstimates);
-        }
-
-        public async Task<IEnumerable<ResponseStopEstimateModel>> GetByRouteIdAsync(Guid routeId)
-        {
-            var departureTimes = await _unitOfWork.GetRepository<Schedule>()
-                .FindAllAsync(d => d.RouteId == routeId && !d.DeletedTime.HasValue);
-
-            if (!departureTimes.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không có thời gian khởi hành nào cho tuyến xe này.");
-            }
-
-            var stopEstimates = await _unitOfWork.GetRepository<StopEstimate>()
-                .FindAllAsync(se => !se.DeletedTime.HasValue &&
-                    departureTimes.Select(dt => dt.Id).Contains(se.ScheduleId));
-
-            if (!stopEstimates.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không có thời gian ước tính nào cho tuyến xe này.");
-            }
-            
-            var sortedStopEstimates = stopEstimates
-                .OrderBy(se => se.ExpectedTime)
-                .ToList();
-
-            return _mapper.Map<IEnumerable<ResponseStopEstimateModel>>(sortedStopEstimates);
-        }
-
-        public async Task CreateAsync(Guid routeId)
-        {
-            var route = await _unitOfWork.GetRepository<Route>().GetByIdAsync(routeId);
-            if (route == null)
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến xe không tồn tại.");
-            }
-
-            var departureTimes = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(d => d.RouteId == routeId && !d.DeletedTime.HasValue);
-            if (!departureTimes.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không có thời gian khởi hành nào cho tuyến xe này.");
-            }
-
-            var stops = await _unitOfWork.GetRepository<Stop>().FindAllAsync(s => s.RouteStops.Any(rs => rs.RouteId == routeId));
-            if (!stops.Any())
-            {
+            if (!allRouteStops.Any())
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không có điểm dừng nào cho tuyến xe này.");
-            }
 
-            foreach (var departureTime in departureTimes)
+            foreach (var schedule in schedules)
             {
-                foreach (var stop in stops)
+                var routeStops = schedule.Direction == RouteDirectionEnum.IN_BOUND
+                    ? allRouteStops.OrderBy(rs => rs.StopOrder).ToList()
+                    : allRouteStops.OrderByDescending(rs => rs.StopOrder).ToList();
+
+                var waypoints = routeStops.Select(rs => $"{rs.Stop.Lat},{rs.Stop.Lng}").ToList();
+                var pointParams = string.Join("&", waypoints.Select(p => $"point={p}"));
+
+                var matrixUrl = $"{VietMapMatrixApiUrl}"
+                              + $"&apikey={_vietMapSettings.ApiKey}"
+                              + $"&{pointParams}"
+                              + $"&vehicle=car"
+                              + $"&points_encoded=false"
+                              + $"&annotations=duration";
+
+                var response = await _httpClient.GetAsync(matrixUrl);
+                if (!response.IsSuccessStatusCode)
+                    throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Lỗi khi gọi API VietMap Matrix.");
+
+                var content = await response.Content.ReadAsStringAsync();
+                var matrixResult = JsonConvert.DeserializeObject<ResponseVietMapMatrixModel>(content);
+
+                if (matrixResult?.Durations == null || matrixResult.Durations.Count == 0)
+                    throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Không có dữ liệu duration từ Matrix API.");
+
+                var durationsMatrix = matrixResult.Durations;
+
+                double accumulatedSeconds = 0;
+
+                for (int i = 0; i < routeStops.Count; i++)
                 {
-                    var estimatedTime = await CalculateStopEstimateAsync(route, departureTime, stop);
-                    if (estimatedTime.HasValue)
+                    if (i > 0)
                     {
-                        var stopEstimate = new StopEstimate
-                        {
-                            StopId = stop.Id,
-                            ScheduleId = departureTime.Id,
-                            ExpectedTime = estimatedTime.Value
-                        };
+                        accumulatedSeconds += durationsMatrix[i - 1][i];
 
-                        await _unitOfWork.GetRepository<StopEstimate>().InsertAsync(stopEstimate);
-                        await _unitOfWork.SaveAsync();
+                        accumulatedSeconds += 300;
                     }
-                }
-            }
-        }
 
-        private async Task<TimeOnly?> CalculateStopEstimateAsync(Route route, Schedule departureTime, Stop stop)
-        {
-            var waypoints = route.RouteStops.Select(rs => $"{rs.Stop.Lat},{rs.Stop.Lng}").ToList();
+                    var estimatedTime = DateTime.Today
+                        .Add(schedule.DepartureTime.ToTimeSpan())
+                        .AddSeconds(accumulatedSeconds);
 
-            var routeRequestUrl = BuildRouteRequestUrl(waypoints);
+                    var stopEstimate = new StopEstimate
+                    {
+                        ScheduleId = schedule.Id,
+                        StopId = routeStops[i].StopId,
+                        ExpectedTime = TimeOnly.FromDateTime(RoundUpToNearest5Minutes(estimatedTime))
+                    };
 
-            var response = await _httpClient.GetAsync(routeRequestUrl);
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Lỗi khi gọi API VietMap.");
-            }
-
-            var responseContent = await response.Content.ReadAsStringAsync();
-            var routeApiResponse = JsonConvert.DeserializeObject<ResponseVietMapRouteApi>(responseContent);
-
-            if (routeApiResponse?.Code != "OK")
-            {
-                throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Có lỗi xảy ra khi gọi API VietMap.");
-            }
-
-            int stopIndex = -1;
-
-            foreach (var routeStopWithIndex in route.RouteStops.Select((value, idx) => new { value, idx }))
-            {
-                var routeStop = routeStopWithIndex.value;
-                var index = routeStopWithIndex.idx;
-
-                if (routeStop.StopId == stop.Id)
-                {
-                    stopIndex = index;
-                    break;
+                    await _unitOfWork.GetRepository<StopEstimate>().InsertAsync(stopEstimate);
                 }
             }
 
-            if (stopIndex == -1) return null;
-
-            var estimatedTimeInSeconds = routeApiResponse?.Paths[0]?.Instructions[stopIndex]?.Time;
-
-            if (estimatedTimeInSeconds.HasValue)
-            {
-                var departureDateTime = DateTime.Today.Add(departureTime.DepartureTime.ToTimeSpan());
-
-                var expectedDateTime = departureDateTime.AddSeconds(estimatedTimeInSeconds.Value);
-
-                var expectedTime = TimeOnly.FromDateTime(expectedDateTime);
-                return expectedTime;
-            }
-
-            return null;
+            await _unitOfWork.SaveAsync();
         }
 
-        private string BuildRouteRequestUrl(List<string> waypoints)
+        public async Task UpdateAsync(List<Schedule> schedules, Guid routeId)
         {
-            var points = string.Join("&point=", waypoints);
+            var scheduleIds = schedules.Select(s => s.Id).ToList();
 
-            return $"{VietMapRouteApiUrl}&apikey={_vietMapSettings.ApiKey}&point={points}&vehicle=bus";
+            var existingEstimates = await _unitOfWork.GetRepository<StopEstimate>().Entities
+                .Where(se => scheduleIds.Contains(se.ScheduleId))
+                .ToListAsync();
+
+            await _unitOfWork.GetRepository<StopEstimate>().DeleteRangeAsync(existingEstimates);
+
+            await CreateAsync(schedules, routeId);
+
+            await _unitOfWork.SaveAsync();
+        }
+
+        private DateTime RoundUpToNearest5Minutes(DateTime dt)
+        {
+            int extraMinutes = 5 - dt.Minute % 5;
+            if (extraMinutes == 5 && dt.Second == 0 && dt.Millisecond == 0)
+                return new DateTime(dt.Ticks);
+
+            return dt.AddMinutes(extraMinutes).AddSeconds(-dt.Second).AddMilliseconds(-dt.Millisecond);
         }
     }
 }
