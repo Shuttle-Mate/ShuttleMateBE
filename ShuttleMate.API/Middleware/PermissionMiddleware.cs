@@ -30,7 +30,7 @@ namespace ShuttleMate.API.Middleware
                 "/api/auth/forget-password/confirm-otp",
                 "/api/auth/change-password",
                 "/api/auth/logout",
-                "/api/historyticket/payos_callback",
+                "/api/history-ticket/payos-callback",
 
             };
             _rolePermissions = new Dictionary<string, List<string>>()
