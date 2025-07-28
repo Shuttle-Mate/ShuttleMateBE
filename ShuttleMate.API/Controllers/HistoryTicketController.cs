@@ -141,7 +141,7 @@ namespace ShuttleMate.API.Controllers
         /// Hàm xử lí sau khi thanh toán(PAYOS)
         /// </summary>
         [AllowAnonymous]
-        [HttpPost("payos_callback")]
+        [HttpPost("payos-callback")]
         public async Task<IActionResult> PayOSCallback([FromBody] PayOSWebhookRequest request)
         {
             try
