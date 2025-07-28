@@ -10,7 +10,7 @@ namespace ShuttleMate.Contract.Repositories.Base
         protected BaseEntity()
         {
             Id = Guid.NewGuid();
-            CreatedTime = LastUpdatedTime = CoreHelper.SystemTimeNow;
+            CreatedTime = LastUpdatedTime = DateTime.Now;
         }
 
         [Key]
