@@ -337,33 +337,6 @@ namespace ShuttleMate.Services.Services
                 LastUpdatedTime = DateTime.Now,
                 CreatedBy = userId
             };
-
-            foreach (var schoolShiftId in model.ListSchoolShiftId)
-            {
-                var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
-
-                var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == cb && !x.DeletedTime.HasValue).ToListAsync();
-                if (userShift != null)
-                {
-                    foreach (var del in userShift)
-                    {
-                        del.DeletedTime = DateTime.Now;
-                        await _unitOfWork.GetRepository<UserSchoolShift>().UpdateAsync(del);
-                    }
-                }
-                await _unitOfWork.SaveAsync();
-
-                var userShiftNew = new UserSchoolShift
-                {
-                    Id = Guid.NewGuid(),
-                    SchoolShiftId = schoolShiftId,
-                    StudentId = cb,
-                    CreatedTime = DateTime.Now,
-                    LastUpdatedTime = DateTime.Now
-                };
-                await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
-            }
-
             switch (ticket.Type)
             {
                 //case TicketTypeEnum.SINGLE_RIDE:
@@ -484,6 +457,39 @@ namespace ShuttleMate.Services.Services
                     historyTicket.ValidUntil = ticket.Route.School.EndSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!"); break;
             }
 
+            //Xóa  
+            var userShift = await _unitOfWork.GetRepository<UserSchoolShift>()
+                .Entities
+                .Where(x => x.StudentId == cb && !x.DeletedTime.HasValue).ToListAsync();
+            // Xoá các userShift trước
+            if (userShift != null)
+            {
+                foreach (var del in userShift)
+                {
+                    await _unitOfWork.GetRepository<UserSchoolShift>().DeleteAsync(del);
+                }
+                await _unitOfWork.SaveAsync();
+            }
+
+            // Tiếp tục insert
+            foreach (var schoolShiftId in model.ListSchoolShiftId)
+            {
+                var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities
+                    .FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue)
+                    ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
+
+                var userShiftNew = new UserSchoolShift
+                {
+                    Id = Guid.NewGuid(),
+                    SchoolShiftId = schoolShiftId,
+                    StudentId = cb,
+                    CreatedTime = DateTime.Now,
+                    LastUpdatedTime = DateTime.Now
+                };
+
+                await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
+            }
+
             await _unitOfWork.GetRepository<HistoryTicket>().InsertAsync(historyTicket);
             await _unitOfWork.SaveAsync();
 
@@ -492,7 +498,7 @@ namespace ShuttleMate.Services.Services
             {
                 orderCode = await GenerateUniqueOrderCodeAsync(),
                 amount = (long)ticket.Price, // Chuyển đổi TotalPrice sang long
-                description = $"Thanh toán 100%!!!",
+                description = $"Thanh toán!!!",
                 buyerName = user.FullName,
                 buyerEmail = user.Email,
                 buyerPhone = user.PhoneNumber,
@@ -526,7 +532,6 @@ namespace ShuttleMate.Services.Services
                 CreatedTime = DateTime.Now,
                 LastUpdatedTime = DateTime.Now,
                 HistoryTicketId = historyTicket.Id,
-                DeletedBy = userId,
                 //... các thông tin khác (nếu cần)...
             };
 
@@ -571,32 +576,6 @@ namespace ShuttleMate.Services.Services
                 LastUpdatedTime = DateTime.Now,
                 CreatedBy = user.Id.ToString(),
             };
-
-            foreach (var schoolShiftId in model.ListSchoolShiftId)
-            {
-                var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
-                var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
-                if (userShift != null)
-                {
-                    foreach (var del in userShift)
-                    {
-                        del.DeletedTime = DateTime.Now;
-                        await _unitOfWork.GetRepository<UserSchoolShift>().UpdateAsync(del);
-                    }
-                }
-                await _unitOfWork.SaveAsync();
-
-                var userShiftNew = new UserSchoolShift
-                {
-                    Id = Guid.NewGuid(),
-                    SchoolShiftId = schoolShiftId,
-                    StudentId = user.Id,
-                    CreatedTime = DateTime.Now,
-                    LastUpdatedTime = DateTime.Now
-                };
-                await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
-            }
-
             switch (ticket.Type)
             {
                 //case TicketTypeEnum.SINGLE_RIDE:
@@ -716,6 +695,31 @@ namespace ShuttleMate.Services.Services
                     historyTicket.ValidFrom = ticket.Route.School.StartSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
                     historyTicket.ValidUntil = ticket.Route.School.EndSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!"); break;
             }
+            //xóa
+            var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
+            if (userShift != null)
+            {
+                foreach (var del in userShift)
+                {
+                    await _unitOfWork.GetRepository<UserSchoolShift>().DeleteAsync(del);
+                }
+                await _unitOfWork.SaveAsync();
+            }
+
+            foreach (var schoolShiftId in model.ListSchoolShiftId)
+            {
+                var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
+
+                var userShiftNew = new UserSchoolShift
+                {
+                    Id = Guid.NewGuid(),
+                    SchoolShiftId = schoolShiftId,
+                    StudentId = user.Id,
+                    CreatedTime = DateTime.Now,
+                    LastUpdatedTime = DateTime.Now
+                };
+                await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
+            }
 
             await _unitOfWork.GetRepository<HistoryTicket>().InsertAsync(historyTicket);
             await _unitOfWork.SaveAsync();
@@ -725,7 +729,7 @@ namespace ShuttleMate.Services.Services
             {
                 orderCode = await GenerateUniqueOrderCodeAsync(),
                 amount = (long)ticket.Price, // Chuyển đổi TotalPrice sang long
-                description = $"Thanh toán 100%!!!",
+                description = $"Thanh toán!!!",
                 buyerName = user.FullName,
                 buyerEmail = user.Email,
                 buyerPhone = user.PhoneNumber,
