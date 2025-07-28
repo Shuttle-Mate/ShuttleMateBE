@@ -3,6 +3,8 @@
     public class ResponseTodayScheduleForDriverModel
     {
         public Guid Id { get; set; }
+        public Guid RouteId { get; set; }
+        public Guid SchoolShiftId { get; set; }
         public string RouteCode { get; set; }
         public string RouteName { get; set; }
         public string StartTime { get; set; }
