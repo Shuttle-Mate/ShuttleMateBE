@@ -57,6 +57,7 @@ namespace ShuttleMate.Services.Services
 
             var newRoute = _mapper.Map<Route>(model);
             newRoute.CreatedBy = userId;
+            newRoute.IsActive = true;
             newRoute.LastUpdatedBy = userId;
             await _unitOfWork.GetRepository<Route>().InsertAsync(newRoute);
             await _unitOfWork.SaveAsync();

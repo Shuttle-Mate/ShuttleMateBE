@@ -114,7 +114,9 @@ namespace ShuttleMate.Services.Services
             var query = _unitOfWork.GetRepository<SchoolShift>()
                 .GetQueryable()
                 .Include(x => x.School)
-                .Where(x => x.SchoolId == schoolId && !x.DeletedTime.HasValue);
+                .Where(x => x.SchoolId == schoolId 
+                && x.School.IsActive == true
+                && !x.DeletedTime.HasValue);
 
             if (!string.IsNullOrWhiteSpace(sessionType))
             {
@@ -155,7 +157,10 @@ namespace ShuttleMate.Services.Services
 
         public async Task<List<ResponseSchoolShiftListByTicketIdMode>> GetSchoolShiftListByTicketId(Guid ticketId)
         {
-            var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == ticketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy vé!");
+            var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == ticketId
+            && x.Route.IsActive == true
+            && x.Route.School.IsActive == true
+            && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy vé!");
             var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.Where(x=>x.SchoolId == ticket.Route.SchoolId).ToListAsync() ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
             var list = schoolShift.Select(x => new ResponseSchoolShiftListByTicketIdMode
             {
@@ -172,7 +177,9 @@ namespace ShuttleMate.Services.Services
 
         public async Task CreateSchoolShift(CreateSchoolShiftModel model)
         {
-            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId 
+            && x.IsActive == true
+            && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
 
             if (school.SchoolShifts.Count(x => x.ShiftType == model.ShiftType && x.SessionType == model.SessionType && !x.DeletedTime.HasValue) > 0)
             {
@@ -198,7 +205,9 @@ namespace ShuttleMate.Services.Services
         {
             
             var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy ca học!");
-            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShift.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShift.SchoolId 
+            && x.IsActive == true
+            && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
 
             if (schoolShift.ShiftType == model.ShiftType
                 && schoolShift.Time == model.Time
@@ -207,6 +216,7 @@ namespace ShuttleMate.Services.Services
                 //bỏ qua cập nhật
             }
             else
+            //Cập nhật khi chỉ thay đổi thời gian
             if(schoolShift.ShiftType == model.ShiftType
                 && schoolShift.SessionType == model.SessionType)
             {

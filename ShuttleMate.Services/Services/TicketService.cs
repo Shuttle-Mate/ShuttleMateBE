@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ShuttleMate.Contract.Repositories.Entities;
@@ -37,12 +38,15 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _emailService = emailService;
         }
-        public async Task<BasePaginatedList<TicketResponseModel>> GetAllAsync(int page = 0, int pageSize = 10, string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid ? routeId = null)
+        public async Task<BasePaginatedList<TicketResponseModel>> GetAllAsync(int page = 0, int pageSize = 10, string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid? routeId = null)
         {
             var ticketRepo = _unitOfWork.GetRepository<Ticket>();
 
-            var query = ticketRepo.Entities.Where(x => !x.DeletedTime.HasValue)
+            var query = ticketRepo.Entities.Where(x => x.Route.School.IsActive == true
+            && x.Route.IsActive == true
+            && !x.DeletedTime.HasValue)
                 .Include(u => u.Route)
+                .ThenInclude(x => x.School)
                 .AsQueryable();
             if (!string.IsNullOrWhiteSpace(type))
             {
@@ -75,7 +79,7 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(x => x.Price >= lowerBound);
             }
-            else
+            else if(upperBound != null)
             {
                 query = query.Where(x => x.Price <= upperBound);
             }
@@ -113,7 +117,9 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<TicketResponseModel> GetById(Guid Id)
         {
-            var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+            var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == Id
+            && x.Route.School.IsActive
+            && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
             var response = new TicketResponseModel
             {
                 Id = ticket.Id,
@@ -129,7 +135,10 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Giá loại vé phải lớn hơn 0!");
             }
-            var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == model.RouteId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
+            var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == model.RouteId
+            && x.IsActive == true
+            && x.School.IsActive == true
+            && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
             switch (model.Type)
             {
                 //case "SINGLE_RIDE":
@@ -221,7 +230,10 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Giá loại vé phải lớn hơn 0!");
             }
-            var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == model.RouteId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
+            var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == model.RouteId
+            && x.IsActive == true
+            && x.School.IsActive == true
+            && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
             var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketTypeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
 
             ticket.Price = model.Price;

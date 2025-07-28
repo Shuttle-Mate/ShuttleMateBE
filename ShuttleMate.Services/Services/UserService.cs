@@ -292,6 +292,7 @@ namespace ShuttleMate.Services.Services
             query = query.Where(x=>x.UserSchoolShifts.Any(x=> x.SchoolShiftId == schoolShiftId  && !x.DeletedTime.HasValue));
             //điều kiện học sinh có vé tuyến đường này và vé còn thời gian hiệu lực
             query = query.Where(x => x.HistoryTickets.Any(x => x.Ticket.Route.Id == routeId 
+            && x.Ticket.Route.IsActive == true
             && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now) 
             && x.Status == HistoryTicketStatus.PAID
             && !x.DeletedTime.HasValue));
