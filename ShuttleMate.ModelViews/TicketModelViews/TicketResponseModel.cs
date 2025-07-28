@@ -14,5 +14,6 @@ namespace ShuttleMate.ModelViews.TicketTypeModelViews
         public string RouteName { get; set; }
         public string Type { get; set; }
         public decimal Price { get; set; }
+        public Guid RouteId { get; set; }
     }
 }
