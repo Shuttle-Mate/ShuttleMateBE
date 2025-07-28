@@ -334,7 +334,7 @@ namespace ShuttleMate.Services.Services
                 Status = HistoryTicketStatus.UNPAID,
                 PurchaseAt = DateTime.Now,
                 UserId = cb,
-                LastUpdatedTime = DateTime.Now,
+                LastUpdatedTime = DateTime.Now,               
                 CreatedBy = userId
             };
             switch (ticket.Type)
