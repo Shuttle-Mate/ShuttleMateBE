@@ -337,6 +337,10 @@ namespace ShuttleMate.Services.Services
                 LastUpdatedTime = DateTime.Now,               
                 CreatedBy = userId
             };
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
+
             switch (ticket.Type)
             {
                 //case TicketTypeEnum.SINGLE_RIDE:
@@ -346,22 +350,23 @@ namespace ShuttleMate.Services.Services
                 //    }
                 //    historyTicket.ValidUntil = model.ValidFrom;
                 //    break;
+
                 case TicketTypeEnum.DAY_PASS:
-                    if (model.ValidFrom <= DateOnly.FromDateTime(DateTime.Now))
+                    if (model.ValidFrom <= todayVN)
                     {
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
                     }
                     historyTicket.ValidUntil = model.ValidFrom;
                     break;
                 case TicketTypeEnum.WEEKLY:
-                    if (model.ValidFrom <= DateOnly.FromDateTime(DateTime.Now))
+                    if (model.ValidFrom <= todayVN)
                     {
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
                     }
                     historyTicket.ValidUntil = model.ValidFrom.AddDays(7);
                     break;
                 case TicketTypeEnum.MONTHLY:
-                    if (model.ValidFrom <= DateOnly.FromDateTime(DateTime.Now))
+                    if (model.ValidFrom <= todayVN)
                     {
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
                     }
@@ -392,7 +397,7 @@ namespace ShuttleMate.Services.Services
 
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
                     }
-                    if (ticket.Route.School.EndSemTwo < DateOnly.FromDateTime(DateTime.Now))
+                    if (ticket.Route.School.EndSemTwo < todayVN)
                     {
                         await _emailService.SendEmailAsync(
                             ticket.Route.School.Email!,
@@ -404,7 +409,7 @@ namespace ShuttleMate.Services.Services
 
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
                     }
-                    if (ticket.Route.School.StartSemOne <= DateOnly.FromDateTime(DateTime.Now))
+                    if (ticket.Route.School.StartSemOne <= todayVN)
                     {
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Vé chỉ được mua trước ngày {ticket.Route.School.StartSemOne}!");
                     }
@@ -437,7 +442,7 @@ namespace ShuttleMate.Services.Services
 
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
                     }
-                    if (ticket.Route.School.EndSemTwo <= DateOnly.FromDateTime(DateTime.Now))
+                    if (ticket.Route.School.EndSemTwo <= todayVN)
                     {
                         await _emailService.SendEmailAsync(
                             ticket.Route.School.Email!,
@@ -449,7 +454,7 @@ namespace ShuttleMate.Services.Services
 
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
                     }
-                    if (ticket.Route.School.StartSemTwo <= DateOnly.FromDateTime(DateTime.Now))
+                    if (ticket.Route.School.StartSemTwo <= todayVN)
                     {
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Vé chỉ được mua trước ngày {ticket.Route.School.StartSemTwo}!");
                     }
@@ -576,6 +581,10 @@ namespace ShuttleMate.Services.Services
                 LastUpdatedTime = DateTime.Now,
                 CreatedBy = user.Id.ToString(),
             };
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
+
             switch (ticket.Type)
             {
                 //case TicketTypeEnum.SINGLE_RIDE:
@@ -586,21 +595,21 @@ namespace ShuttleMate.Services.Services
                 //    historyTicket.ValidUntil = model.ValidFrom;
                 //    break;
                 case TicketTypeEnum.DAY_PASS:
-                    if (model.ValidFrom <= DateOnly.FromDateTime(DateTime.Now))
+                    if (model.ValidFrom <= todayVN)
                     {
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
                     }
                     historyTicket.ValidUntil = model.ValidFrom;
                     break;
                 case TicketTypeEnum.WEEKLY:
-                    if (model.ValidFrom <= DateOnly.FromDateTime(DateTime.Now))
+                    if (model.ValidFrom <= todayVN)
                     {
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
                     }
                     historyTicket.ValidUntil = model.ValidFrom.AddDays(7);
                     break;
                 case TicketTypeEnum.MONTHLY:
-                    if (model.ValidFrom <= DateOnly.FromDateTime(DateTime.Now))
+                    if (model.ValidFrom <= todayVN)
                     {
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
                     }
@@ -631,7 +640,7 @@ namespace ShuttleMate.Services.Services
 
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
                     }
-                    if (ticket.Route.School.EndSemTwo < DateOnly.FromDateTime(DateTime.Now))
+                    if (ticket.Route.School.EndSemTwo < todayVN)
                     {
                         await _emailService.SendEmailAsync(
                             ticket.Route.School.Email!,
@@ -643,7 +652,7 @@ namespace ShuttleMate.Services.Services
 
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
                     }
-                    if (ticket.Route.School.StartSemOne <= DateOnly.FromDateTime(DateTime.Now))
+                    if (ticket.Route.School.StartSemOne <= todayVN)
                     {
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Vé chỉ được mua trước ngày {ticket.Route.School.StartSemOne}!");
                     }
@@ -676,7 +685,7 @@ namespace ShuttleMate.Services.Services
 
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
                     }
-                    if (ticket.Route.School.EndSemTwo <= DateOnly.FromDateTime(DateTime.Now))
+                    if (ticket.Route.School.EndSemTwo <= todayVN)
                     {
                         await _emailService.SendEmailAsync(
                             ticket.Route.School.Email!,
@@ -688,7 +697,7 @@ namespace ShuttleMate.Services.Services
 
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
                     }
-                    if (ticket.Route.School.StartSemTwo <= DateOnly.FromDateTime(DateTime.Now))
+                    if (ticket.Route.School.StartSemTwo <= todayVN)
                     {
                         throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Vé chỉ được mua trước ngày {ticket.Route.School.StartSemTwo}!");
                     }
