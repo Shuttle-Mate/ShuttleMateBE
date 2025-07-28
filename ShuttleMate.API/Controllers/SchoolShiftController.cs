@@ -69,7 +69,7 @@ namespace ShuttleMate.API.Controllers
                 data: await _schoolShiftService.GetAllSchoolShiftForAdmin(page, pageSize, sessionType, shiftType, sortAsc, schoolId)));
         }
         /// <summary>
-        /// Tạo ca học
+        /// Tạo ca học: ShiftType(START, END), SessionType(MORNING, AFTERNOON)
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateSchoolShift(CreateSchoolShiftModel model)
@@ -83,7 +83,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Cập nhật ca học
+        /// Cập nhật ca học: ShiftType(START, END), SessionType(MORNING, AFTERNOON)
         /// </summary>
         [HttpPatch]
         public async Task<IActionResult> UpdateSchoolShift(UpdateSchoolShiftModel model)

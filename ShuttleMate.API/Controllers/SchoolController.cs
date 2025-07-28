@@ -108,14 +108,14 @@ namespace ShuttleMate.API.Controllers
         //    ));
         //}
         /// <summary>
-        /// Cập nhật một trường.(ADMIN/SCHOOL)
+        /// Cập nhật một trường.(ADMIN)
         /// </summary>
-        /// <param name="id">id đối với role school lấy là schoolId, đối với role admin lấy id từ list school.</param>
+        /// <param name="schoolId">id đối với role school lấy là schoolId, đối với role admin lấy id từ list school.</param>
 
-        [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateSchool(Guid id, UpdateSchoolModel model)
+        [HttpPatch("{schoolId}")]
+        public async Task<IActionResult> UpdateSchool(Guid schoolId, UpdateSchoolModel model)
         {
-            await _schoolService.UpdateSchool(id, model);
+            await _schoolService.UpdateSchool(schoolId, model);
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,

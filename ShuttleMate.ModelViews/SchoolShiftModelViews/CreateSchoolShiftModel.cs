@@ -10,8 +10,8 @@ namespace ShuttleMate.ModelViews.SchoolShiftModelViews
     public class CreateSchoolShiftModel
     {
         public TimeOnly Time { get; set; }
-        public ShiftTypeEnum ShiftType { get; set; }
-        public SessionTypeEnum SessionType { get; set; }
+        public string ShiftType { get; set; }
+        public string SessionType { get; set; }
         public Guid SchoolId { get; set; }
     }
 }
