@@ -96,6 +96,7 @@ namespace ShuttleMate.Services.Services
                     CreatedTime = user.CreatedTime,
                     Role = roleName.ToUpper(),
                     ProfileImageUrl = user.ProfileImageUrl,
+                    SchoolId = user.SchoolId,
                 }
             };
         }
