@@ -17,8 +17,8 @@ namespace ShuttleMate.ModelViews.HistoryTicketModelView
 
     public class PayOSWebhookData
     {
-        public long orderCode { get; set; }
-        public int amount { get; set; }
+        public int orderCode { get; set; }
+        public long amount { get; set; }
         public string description { get; set; }
         public string accountNumber { get; set; }
         public string reference { get; set; }
