@@ -334,7 +334,7 @@ namespace ShuttleMate.Services.Services
                 Status = HistoryTicketStatus.UNPAID,
                 PurchaseAt = DateTime.Now,
                 UserId = cb,
-                LastUpdatedTime = DateTime.Now,               
+                LastUpdatedTime = DateTime.Now,
                 CreatedBy = userId
             };
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
@@ -894,6 +894,8 @@ namespace ShuttleMate.Services.Services
                 Console.WriteLine($"Không tìm thấy thanh toán với orderCode: {request.data.orderCode}. Bỏ qua xử lý.");
                 return;
             }
+            var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities
+            .FirstOrDefaultAsync(x => x.Id == transaction.HistoryTicketId && !x.DeletedTime.HasValue);
 
             switch (request.data.code)
             {
@@ -902,8 +904,6 @@ namespace ShuttleMate.Services.Services
                     var user = await _unitOfWork.GetRepository<User>().Entities
                         .FirstOrDefaultAsync(x => x.Id.ToString() == transaction.CreatedBy && !x.DeletedTime.HasValue);
 
-                    var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities
-                         .FirstOrDefaultAsync(x => x.Id == transaction.HistoryTicketId && !x.DeletedTime.HasValue);
 
                     historyTicket.Status = HistoryTicketStatus.PAID;
                     transaction.Status = PaymentStatus.PAID;
@@ -918,10 +918,18 @@ namespace ShuttleMate.Services.Services
 
                 case "01": // Giao dịch thất bại
                     transaction.Status = PaymentStatus.UNPAID;
+                    historyTicket.Status = HistoryTicketStatus.UNPAID;
+                    await _unitOfWork.GetRepository<Transaction>().UpdateAsync(transaction);
+                    await _unitOfWork.GetRepository<HistoryTicket>().UpdateAsync(historyTicket);
+                    await _unitOfWork.SaveAsync();
                     break;
 
                 case "02": // Hủy giao dịch
                     transaction.Status = PaymentStatus.CANCELED;
+                    historyTicket.Status = HistoryTicketStatus.CANCELLED;
+                    await _unitOfWork.GetRepository<Transaction>().UpdateAsync(transaction);
+                    await _unitOfWork.GetRepository<HistoryTicket>().UpdateAsync(historyTicket);
+                    await _unitOfWork.SaveAsync();
                     break;
 
                 default:
