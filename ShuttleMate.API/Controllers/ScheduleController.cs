@@ -32,7 +32,7 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Tạo thời gian khởi hành của tuyến.
+        /// Tạo lịch trình của tuyến.
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateDepartureTime(CreateScheduleModel model)
@@ -41,20 +41,20 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string?>(
               statusCode: StatusCodes.Status200OK,
               code: ResponseCodeConstants.SUCCESS,
-              message: "Tạo mới thời gian khởi hành thành công."));
+              message: "Tạo mới lịch trình thành công."));
         }
 
         /// <summary>
-        /// Cập nhật thời gian khởi hành của tuyến.
+        /// Cập nhật một lịch trình.
         /// </summary>
-        [HttpPut]
-        public async Task<IActionResult> UpdateDepartureTime(UpdateScheduleModel model)
+        [HttpPut("{scheduleId}")]
+        public async Task<IActionResult> UpdateDepartureTime(Guid scheduleId, UpdateScheduleModel model)
         {
-            await _scheduleService.UpdateAsync(model);
+            await _scheduleService.UpdateAsync(scheduleId, model);
             return Ok(new BaseResponseModel<string?>(
                statusCode: StatusCodes.Status200OK,
                code: ResponseCodeConstants.SUCCESS,
-               message: "Cập nhật thời gian khởi hành thành công."));
+               message: "Cập nhật lịch trình thành công."));
         }
     }
 }
