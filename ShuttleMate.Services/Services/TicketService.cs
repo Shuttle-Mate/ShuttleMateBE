@@ -118,7 +118,8 @@ namespace ShuttleMate.Services.Services
         public async Task<TicketResponseModel> GetById(Guid Id)
         {
             var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == Id
-            && x.Route.School.IsActive
+            && x.Route.School.IsActive == true
+            && x.Route.IsActive == true
             && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
             var response = new TicketResponseModel
             {
