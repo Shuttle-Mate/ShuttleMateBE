@@ -93,6 +93,7 @@ namespace ShuttleMate.Services.Services
                     RouteName = u.Route.RouteName,
                     Type = u.Type.ToString().ToUpper(),
                     RouteId = u.RouteId,
+                    Schoolname = u.Route.School.Name,
                 })
                 .ToListAsync();
             var totalCount = await query.CountAsync();
