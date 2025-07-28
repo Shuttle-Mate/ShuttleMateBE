@@ -42,12 +42,13 @@ namespace ShuttleMate.Services.Services
         {
             var ticketRepo = _unitOfWork.GetRepository<Ticket>();
 
-            var query = ticketRepo.Entities.Where(x => x.Route.School.IsActive == true
+            var query = ticketRepo.Entities
+            .Where(x => x.Route.School.IsActive == true
             && x.Route.IsActive == true
             && !x.DeletedTime.HasValue)
-                .Include(u => u.Route)
-                .ThenInclude(x => x.School)
-                .AsQueryable();
+            .Include(u => u.Route)
+            .ThenInclude(x => x.School)
+            .AsQueryable();
             if (!string.IsNullOrWhiteSpace(type))
             {
                 query = query.Where(u => u.Type.ToString().ToUpper() == type);
@@ -90,7 +91,8 @@ namespace ShuttleMate.Services.Services
                     Id = u.Id,
                     Price = u.Price,
                     RouteName = u.Route.RouteName,
-                    Type = u.Type.ToString().ToUpper()
+                    Type = u.Type.ToString().ToUpper(),
+                    RouteId = u.RouteId,
                 })
                 .ToListAsync();
             var totalCount = await query.CountAsync();
