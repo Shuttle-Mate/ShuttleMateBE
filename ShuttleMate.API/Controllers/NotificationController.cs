@@ -13,10 +13,19 @@ namespace ShuttleMate.API.Controllers
     public class NotificationController : ControllerBase
     {
         private readonly INotificationService _notificationService;
+        private readonly IFirebaseService _firebaseService;
 
-        public NotificationController(INotificationService notificationService)
+        public NotificationController(INotificationService notificationService, IFirebaseService firebaseService)
         {
             _notificationService = notificationService;
+            _firebaseService = firebaseService;
+        }
+
+        [HttpPost("send")]
+        public async Task<IActionResult> Send([FromBody] NotificationRequest req)
+        {
+            await _firebaseService.SendNotificationAsync(req.Title, req.Body, req.DeviceToken);
+            return Ok("Notification sent.");
         }
 
         [HttpPost]
