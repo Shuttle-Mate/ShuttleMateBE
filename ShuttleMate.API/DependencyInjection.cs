@@ -231,6 +231,7 @@ namespace ShuttleMate.API
             services.AddScoped<ITripService, TripService>();
             services.AddScoped<ISchoolShiftService, SchoolShiftService>();
             services.AddScoped<IWithdrawalRequestService, WithdrawalRequestService>();
+            services.AddScoped<IFirebaseService, FirebaseService>();
         }
 
         public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)
