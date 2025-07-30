@@ -18,6 +18,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<BasePaginatedList<ListStudentInSchoolResponse>> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null, bool sortAsc = false, Guid? schoolShiftId = null);
         Task<BasePaginatedList<ListStudentInSchoolResponse>> GetAllStudentInSchoolForAdmin(int page = 0, int pageSize = 10, string? search = null, bool sortAsc = false, Guid? schoolShiftId = null, Guid? schoolId = null);
         Task<BasePaginatedList<RouteToSchoolResponseModel>> GetAllRouteToSchool(int page = 0, int pageSize = 10, string? search = null, bool? isActive = null, bool sortAsc = false);
+        Task SendEmailToSchool(SendEmailToSchoolModel model);
         Task<SchoolResponseModel> GetById(Guid id);
     }
 }

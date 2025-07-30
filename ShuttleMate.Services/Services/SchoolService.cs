@@ -354,5 +354,374 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<School>().UpdateAsync(school);
             await _unitOfWork.SaveAsync();
         }
+        public async Task SendEmailToSchool(SendEmailToSchoolModel model)
+        {
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x=>x.Id == model.SchoolId) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            switch (model.Type)
+            {
+                case "SCHOOL_SHIFT":
+                    await SendCreateStudentSessionsEmail(school.Email);
+                    break;
+                case "SCHOOL_INFOR":
+                    await SendSchoolTermUpdateEmail(school.Email);
+                    break;
+                default:
+                    throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vui lòng chọn đúng loại!");
+            }
+        }
+        private async Task SendSchoolTermUpdateEmail(string schoolEmail)
+        {
+            await _emailService.SendEmailAsync(
+                schoolEmail,
+                "Yêu Cầu Cập Nhật Thời Gian Học Kỳ",
+                $@"
+        <html>
+        <head>
+            <style>
+                body, p, h1, h2, h3, ul {{
+                    margin: 0;
+                    padding: 0;
+                }}
+                
+                body {{
+                    font-family: 'Arial', sans-serif;
+                    line-height: 1.6;
+                    color: #333333;
+                    background-color: #FAF9F7;
+                    padding: 20px 0;
+                }}
+                
+                .email-container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background: #ffffff;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                }}
+                
+                .email-header {{
+                    background-color: #124DA3;
+                    padding: 25px 30px;
+                    color: white;
+                    text-align: center;
+                }}
+                
+                .email-header h2 {{
+                    font-size: 22px;
+                    font-weight: 600;
+                    margin-bottom: 10px;
+                }}
+                
+                .email-content {{
+                    padding: 30px;
+                }}
+                
+                .greeting {{
+                    margin-bottom: 20px;
+                    font-size: 16px;
+                }}
+                
+                .section {{
+                    margin-bottom: 25px;
+                }}
+                
+                .section h3 {{
+                    color: #124DA3;
+                    font-size: 18px;
+                    margin-bottom: 15px;
+                    padding-bottom: 8px;
+                    border-bottom: 1px solid #eaeaea;
+                }}
+                
+                .section p {{
+                    margin-bottom: 15px;
+                    font-size: 15px;
+                }}
+                
+                .section ul {{
+                    margin: 15px 0 15px 20px;
+                }}
+                
+                .section li {{
+                    margin-bottom: 8px;
+                    font-size: 15px;
+                }}
+                
+                .cta-button {{
+                    display: inline-block;
+                    background-color: #F37022;
+                    color: white !important;
+                    padding: 12px 25px;
+                    text-decoration: none;
+                    border-radius: 4px;
+                    font-weight: 500;
+                    margin: 15px 0;
+                    text-align: center;
+                }}
+                
+                .email-footer {{
+                    background-color: #FAF9F7;
+                    padding: 20px 30px;
+                    text-align: center;
+                    font-size: 14px;
+                    color: #666666;
+                }}
+                
+                .contact-info {{
+                    margin-top: 15px;
+                }}
+                
+                .contact-info p {{
+                    margin-bottom: 5px;
+                }}
+                
+                .logo {{
+                    font-weight: bold;
+                    color: #124DA3;
+                    font-size: 16px;
+                    margin-bottom: 10px;
+                }}
+                
+                a {{
+                    color: #124DA3;
+                    text-decoration: underline;
+                }}
+                
+                @media only screen and (max-width: 600px) {{
+                    .email-container {{
+                        width: 100%;
+                        border-radius: 0;
+                    }}
+                    
+                    .email-header, .email-content, .email-footer {{
+                        padding: 20px;
+                    }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class='email-container'>
+                <div class='email-header'>
+                    <h2>YÊU CẦU CẬP NHẬT THỜI GIAN HỌC KỲ</h2>
+                </div>
+                
+                <div class='email-content'>
+                    <div class='greeting'>
+                        <p>Kính gửi Ban Giám hiệu Nhà trường,</p>
+                    </div>
+                    
+                    <div class='section'>
+                        <p>Hệ thống ShuttleMate trân trọng gửi đến Quý trường yêu cầu cập nhật thông tin thời gian học kỳ để phục vụ công tác quản lý và vận hành tuyến xe.</p>
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>NỘI DUNG YÊU CẦU</h3>
+                        <p>Quý trường vui lòng cập nhật đầy đủ thông tin về:</p>
+                        <ul>
+                            <li>Thời gian bắt đầu và kết thúc Học kỳ 1</li>
+                            <li>Thời gian bắt đầu và kết thúc Học kỳ 2</li>
+                        </ul>
+                        <p>Thông tin này sẽ giúp chúng tôi lên kế hoạch vận hành tuyến xe phù hợp với lịch học của nhà trường.</p>
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>HƯỚNG DẪN THỰC HIỆN</h3>
+                        <p>Vui lòng đăng nhập vào hệ thống quản lý và cập nhật thông tin tại mục <strong>Cài đặt học kỳ</strong>:</p>
+                        <a href='https://admin.shuttlemate.fun/login' class='cta-button'>TRUY CẬP HỆ THỐNG</a>
+                        <p>Hoặc truy cập đường dẫn: <a href='https://admin.shuttlemate.fun/login'>https://admin.shuttlemate.fun/login</a></p>
+                    </div>
+                </div>
+                
+                <div class='email-footer'>
+                    <div class='logo'>SHUTTLEMATE</div>
+                    <p>Nếu Quý trường cần hỗ trợ, vui lòng liên hệ:</p>
+                    <div class='contact-info'>
+                        <p>Email: <a href='mailto:shuttlemate.service@gmail.com'>shuttlemate.service@gmail.com</a></p>
+                    </div>
+                    <p style='margin-top: 15px;'>Trân trọng cảm ơn sự hợp tác của Quý trường!</p>
+                </div>
+            </div>
+        </body>
+        </html>"
+            );
+        }
+
+        private async Task SendCreateStudentSessionsEmail( string schoolEmail)
+        {
+            await _emailService.SendEmailAsync(
+                schoolEmail,
+                "Yêu Cầu Tạo Ca Học Cho Học Sinh",
+                $@"
+        <html>
+        <head>
+            <style>
+                body, p, h1, h2, h3, ul {{
+                    margin: 0;
+                    padding: 0;
+                }}
+                
+                body {{
+                    font-family: 'Arial', sans-serif;
+                    line-height: 1.6;
+                    color: #333333;
+                    background-color: #FAF9F7;
+                    padding: 20px 0;
+                }}
+                
+                .email-container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background: #ffffff;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                }}
+                
+                .email-header {{
+                    background-color: #124DA3;
+                    padding: 25px 30px;
+                    color: white;
+                    text-align: center;
+                }}
+                
+                .email-header h2 {{
+                    font-size: 22px;
+                    font-weight: 600;
+                    margin-bottom: 10px;
+                }}
+                
+                .email-content {{
+                    padding: 30px;
+                }}
+                
+                .greeting {{
+                    margin-bottom: 20px;
+                    font-size: 16px;
+                }}
+                
+                .section {{
+                    margin-bottom: 25px;
+                }}
+                
+                .section h3 {{
+                    color: #124DA3;
+                    font-size: 18px;
+                    margin-bottom: 15px;
+                    padding-bottom: 8px;
+                    border-bottom: 1px solid #eaeaea;
+                }}
+                
+                .section p {{
+                    margin-bottom: 15px;
+                    font-size: 15px;
+                }}
+                
+                .section ul {{
+                    margin: 15px 0 15px 20px;
+                }}
+                
+                .section li {{
+                    margin-bottom: 8px;
+                    font-size: 15px;
+                }}
+                
+                .cta-button {{
+                    display: inline-block;
+                    background-color: #F37022;
+                    color: white !important;
+                    padding: 12px 25px;
+                    text-decoration: none;
+                    border-radius: 4px;
+                    font-weight: 500;
+                    margin: 15px 0;
+                    text-align: center;
+                }}
+                
+                .email-footer {{
+                    background-color: #FAF9F7;
+                    padding: 20px 30px;
+                    text-align: center;
+                    font-size: 14px;
+                    color: #666666;
+                }}
+                
+                .contact-info {{
+                    margin-top: 15px;
+                }}
+                
+                .contact-info p {{
+                    margin-bottom: 5px;
+                }}
+                
+                .logo {{
+                    font-weight: bold;
+                    color: #124DA3;
+                    font-size: 16px;
+                    margin-bottom: 10px;
+                }}
+                
+                a {{
+                    color: #124DA3;
+                    text-decoration: underline;
+                }}
+                
+                @media only screen and (max-width: 600px) {{
+                    .email-container {{
+                        width: 100%;
+                        border-radius: 0;
+                    }}
+                    
+                    .email-header, .email-content, .email-footer {{
+                        padding: 20px;
+                    }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class='email-container'>
+                <div class='email-header'>
+                    <h2>YÊU CẦU TẠO CA HỌC CHO HỌC SINH</h2>
+                </div>
+                
+                <div class='email-content'>
+                    <div class='greeting'>
+                        <p>Kính gửi Ban Giám hiệu Nhà trường,</p>
+                    </div>
+                    
+                    <div class='section'>
+                        <p>Hệ thống ShuttleMate trân trọng gửi đến Quý trường yêu cầu tạo các ca học cho học sinh để phục vụ công tác quản lý và sắp xếp lịch trình xe đưa đón.</p>
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>NỘI DUNG YÊU CẦU</h3>
+                        <p>Quý trường vui lòng tạo đầy đủ các ca học cho học sinh bao gồm:</p>
+                        <ul>
+                            <li>Thời gian bắt đầu và kết thúc các ca học</li>
+                        </ul>
+                        <p>Thông tin này sẽ giúp chúng tôi sắp xếp lịch trình xe đưa đón phù hợp với nhu cầu của nhà trường và phụ huynh học sinh.</p>
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>HƯỚNG DẪN THỰC HIỆN</h3>
+                        <p>Vui lòng đăng nhập vào hệ thống quản lý và thực hiện tạo ca học tại mục <strong>Quản lý ca học</strong>:</p>
+                        <a href='https://admin.shuttlemate.fun/login' class='cta-button'>TRUY CẬP HỆ THỐNG</a>
+                        <p>Hoặc truy cập đường dẫn: <a href='https://admin.shuttlemate.fun/login'>https://admin.shuttlemate.fun/login</a></p>
+                    </div>
+                </div>
+                
+                <div class='email-footer'>
+                    <div class='logo'>SHUTTLEMATE</div>
+                    <p>Nếu Quý trường cần hỗ trợ, vui lòng liên hệ:</p>
+                    <div class='contact-info'>
+                        <p>Email: <a href='mailto:shuttlemate.service@gmail.com'>shuttlemate.service@gmail.com</a></p>
+                    </div>
+                    <p style='margin-top: 15px;'>Trân trọng cảm ơn sự hợp tác của Quý trường!</p>
+                </div>
+            </div>
+        </body>
+        </html>"
+            );
+        }
     }
 }
