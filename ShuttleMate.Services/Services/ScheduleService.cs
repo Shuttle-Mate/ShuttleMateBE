@@ -329,7 +329,9 @@ namespace ShuttleMate.Services.Services
                     }
                 }
 
-                foreach (var existing in existingSchedules)
+                var existingRouteSchedules = existingSchedules.Where(x => x.RouteId == route.Id);
+
+                foreach (var existing in existingRouteSchedules)
                 {
                     for (int i = 0; i < 7; i++)
                     {
