@@ -94,25 +94,38 @@ namespace ShuttleMate.API.Controllers
                 code: ResponseCodeConstants.SUCCESS,
                 data: await _schoolService.GetById(id)));
         }
-        ///// <summary>
-        ///// Tạo trường mới.
-        ///// </summary>
-        //[HttpPost]
-        //public async Task<IActionResult> CreateSchool(CreateSchoolModel model)
-        //{
-        //    await _schoolService.CreateSchool(model);
-        //    return Ok(new BaseResponseModel<string>(
-        //        statusCode: StatusCodes.Status200OK,
-        //        code: ResponseCodeConstants.SUCCESS,
-        //        message: "Tạo trường thành công!"
-        //    ));
-        //}
         /// <summary>
-        /// Cập nhật một trường.(ADMIN)
+        /// Gửi mail cho trường nhắc nhở:Type(SCHOOL_SHIFT, SCHOOL_INFOR)
         /// </summary>
-        /// <param name="schoolId">id đối với role school lấy là schoolId, đối với role admin lấy id từ list school.</param>
+        [HttpPost("send-email")]
+        public async Task<IActionResult> CreateSchool(SendEmailToSchoolModel model)
+        {
+            await _schoolService.SendEmailToSchool(model);
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "gửi email cho trường thành công!"
+            ));
+        }
+            ///// <summary>
+            ///// Tạo trường mới.
+            ///// </summary>
+            //[HttpPost]
+            //public async Task<IActionResult> CreateSchool(CreateSchoolModel model)
+            //{
+            //    await _schoolService.CreateSchool(model);
+            //    return Ok(new BaseResponseModel<string>(
+            //        statusCode: StatusCodes.Status200OK,
+            //        code: ResponseCodeConstants.SUCCESS,
+            //        message: "Tạo trường thành công!"
+            //    ));
+            //}
+            /// <summary>
+            /// Cập nhật một trường.(ADMIN)
+            /// </summary>
+            /// <param name="schoolId">id đối với role school lấy là schoolId, đối với role admin lấy id từ list school.</param>
 
-        [HttpPatch("{schoolId}")]
+            [HttpPatch("{schoolId}")]
         public async Task<IActionResult> UpdateSchool(Guid schoolId, UpdateSchoolModel model)
         {
             await _schoolService.UpdateSchool(schoolId, model);
