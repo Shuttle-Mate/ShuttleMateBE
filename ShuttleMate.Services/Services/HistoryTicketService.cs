@@ -902,7 +902,9 @@ namespace ShuttleMate.Services.Services
                 case "00": // Thành công
 
                     var user = await _unitOfWork.GetRepository<User>().Entities
-                        .FirstOrDefaultAsync(x => x.Id.ToString() == transaction.CreatedBy && !x.DeletedTime.HasValue);
+                        .FirstOrDefaultAsync(x => x.Id.ToString() == transaction.CreatedBy 
+                        && x.Violate == false
+                        && !x.DeletedTime.HasValue);
 
 
                     historyTicket.Status = HistoryTicketStatus.PAID;
@@ -911,9 +913,25 @@ namespace ShuttleMate.Services.Services
                     await _unitOfWork.GetRepository<Transaction>().UpdateAsync(transaction);
                     await _unitOfWork.GetRepository<HistoryTicket>().UpdateAsync(historyTicket);
                     await _unitOfWork.SaveAsync();
+                    if (user != null && user.UserRoles.Any(x => x.Role.Name.ToUpper() == "PARENT"))
+                    {
+                        //tìm
+                        var child = await _unitOfWork.GetRepository<User>().Entities
+                        .FirstOrDefaultAsync(x => x.ParentId == user.Id
+                        && x.Violate == false
+                        && !x.DeletedTime.HasValue);
+                        if(child != null)
+                        {
+                            //Gửi mail hóa đơn thanh toán thành công 
+                            await SendTicketPaymentSuccessEmailForParent(user, child, historyTicket);
+                        }
+                    }
+                    else
+                    {
+                        //Gửi mail hóa đơn thanh toán thành công 
+                        await SendTicketPaymentSuccessEmail(user, historyTicket);
+                    }
 
-                    //Gửi mail hóa đơn thanh toán thành công 
-                    await SendTicketPaymentSuccessEmail(user, historyTicket);
                     break;
 
                 case "01": // Giao dịch thất bại
@@ -1109,6 +1127,214 @@ namespace ShuttleMate.Services.Services
                         <p><strong>Họ và tên:</strong> {user.FullName}</p>
                         <p><strong>Email:</strong> {user.Email}</p>
                         <p><strong>Số điện thoại:</strong> {user.PhoneNumber}</p>
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>CHI TIẾT VÉ</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Đường đi</th>
+                                    <th>Loại vé</th>
+                                    <th>Giá vé</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{historyTicket.Ticket.Route.RouteName}</td>
+                                    <td>{ConvertStatusTicketTypeToString(historyTicket.Ticket.Type)}</td>
+                                    <td>{historyTicket.Ticket.Price:N0} đ</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p class='total-amount'>Tổng tiền: {historyTicket.Ticket.Price:N0} đ</p>
+                    </div>
+                </div>
+                
+                <div class='email-footer'>
+                    <div class='logo'>SHUTTLEMATE</div>
+                    <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
+                    <div class='contact-info'>
+                        <p>Mọi thắc mắc vui lòng liên hệ:</p>
+                        <p>Email: <a href='mailto:shuttlemate.service@gmail.com' style='color:#124DA3;'>shuttlemate.service@gmail.com</a></p>
+                        <p>Hotline: 1900 1234</p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>"
+            );
+        }
+        private async Task SendTicketPaymentSuccessEmailForParent(User parent, User Child, HistoryTicket historyTicket)
+        {
+            await _emailService.SendEmailAsync(
+                parent.Email,
+                "Xác Nhận Thanh Toán Vé Cho Học Sinh Thành Công",
+                $@"
+        <html>
+        <head>
+            <style>
+                body, p, h1, h2, h3, table, th, td, ul {{
+                    margin: 0;
+                    padding: 0;
+                    font-family: 'Arial', sans-serif;
+                }}
+                
+                body {{
+                    background-color: #FAF9F7;
+                    padding: 20px 0;
+                    color: #333333;
+                    line-height: 1.6;
+                }}
+                
+                .email-container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background: #ffffff;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                }}
+                
+                .email-header {{
+                    background-color: #124DA3;
+                    padding: 25px 30px;
+                    color: white;
+                    text-align: center;
+                }}
+                
+                .email-header h2 {{
+                    font-size: 22px;
+                    font-weight: 600;
+                    margin-bottom: 10px;
+                }}
+                
+                .company-info {{
+                    padding: 20px 30px;
+                    background-color: #FAF9F7;
+                    border-bottom: 1px solid #eaeaea;
+                }}
+                
+                .email-content {{
+                    padding: 30px;
+                }}
+                
+                .section {{
+                    margin-bottom: 25px;
+                }}
+                
+                .section h3 {{
+                    color: #124DA3;
+                    font-size: 18px;
+                    margin-bottom: 15px;
+                    padding-bottom: 8px;
+                    border-bottom: 1px solid #eaeaea;
+                }}
+                
+                .section p {{
+                    margin-bottom: 10px;
+                    font-size: 15px;
+                }}
+                
+                table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 15px 0;
+                    font-size: 15px;
+                }}
+                
+                th {{
+                    background-color: #124DA3;
+                    color: white;
+                    padding: 12px;
+                    text-align: left;
+                }}
+                
+                td {{
+                    padding: 12px;
+                    border-bottom: 1px solid #eaeaea;
+                }}
+                
+                .total-amount {{
+                    color: #F37022;
+                    font-weight: bold;
+                    font-size: 16px;
+                    margin-top: 10px;
+                }}
+                
+                .success-badge {{
+                    display: inline-block;
+                    background-color: #4EB748;
+                    color: white;
+                    padding: 4px 10px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    margin-left: 10px;
+                }}
+                
+                .email-footer {{
+                    background-color: #FAF9F7;
+                    padding: 20px 30px;
+                    text-align: center;
+                    font-size: 14px;
+                    color: #666666;
+                }}
+                
+                .contact-info p {{
+                    margin-bottom: 5px;
+                }}
+                
+                .logo {{
+                    font-weight: bold;
+                    color: #124DA3;
+                    font-size: 16px;
+                    margin-bottom: 10px;
+                }}
+                
+                @media only screen and (max-width: 600px) {{
+                    .email-container {{
+                        width: 100%;
+                        border-radius: 0;
+                    }}
+                    
+                    .email-header, .company-info, .email-content, .email-footer {{
+                        padding: 20px;
+                    }}
+                    
+                    th, td {{
+                        padding: 8px;
+                        font-size: 14px;
+                    }}
+                }}
+            </style>
+        </head>
+        <body>
+            <div class='email-container'>
+                <div class='email-header'>
+                    <h2>XÁC NHẬN THANH TOÁN VÉ <span class='success-badge'>THÀNH CÔNG</span></h2>
+                </div>
+                
+                <div class='company-info'>
+                    <p><strong>Công ty Cổ phần ShuttleMate</strong></p>
+                    <p>Email: shuttlemate.service@gmail.com</p>
+                </div>
+                
+                <div class='email-content'>
+                    <div class='section'>
+                        <h3>THÔNG TIN THANH TOÁN</h3>
+                        <p><strong>Mã vé:</strong> {historyTicket.Transaction.OrderCode}</p>
+                        <p><strong>Ngày thanh toán:</strong> {historyTicket.PurchaseAt:dd/MM/yyyy}</p>
+                        <p><strong>Ngày áp dụng:</strong> {historyTicket.ValidFrom:dd/MM/yyyy}</p>
+                        <p><strong>Ngày hết hạn:</strong> {historyTicket.ValidUntil:dd/MM/yyyy}</p>
+                        <p><strong>Hình thức thanh toán:</strong> {historyTicket.Transaction.PaymentMethod}</p>
+                    </div>
+                    
+                    <div class='section'>
+                        <h3>THÔNG TIN KHÁCH HÀNG SỬ DỤNG</h3>
+                        <p><strong>Họ và tên:</strong> {Child.FullName}</p>
+                        <p><strong>Email:</strong> {Child.Email}</p>
+                        <p><strong>Số điện thoại:</strong> {Child.PhoneNumber}</p>
                     </div>
                     
                     <div class='section'>
