@@ -19,6 +19,7 @@ namespace ShuttleMate.ModelViews.RouteModelViews
         public string RunningTime { get; set; }
         public int AmountOfTrip { get; set; }
         public string Description { get; set; }
+        public int TotalDuration { get; set; }
         public bool IsActive { get; set; }
         public Guid SchoolId { get; set; }
     }

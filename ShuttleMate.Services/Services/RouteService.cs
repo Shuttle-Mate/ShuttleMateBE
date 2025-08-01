@@ -127,7 +127,27 @@ namespace ShuttleMate.Services.Services
             }
 
             var result = _mapper.Map<List<ResponseRouteModel>>(routes);
-            
+
+            foreach (var routeModel in result)
+            {
+                var routeEntity = routes.First(r => r.Id == routeModel.Id);
+                var validStops = routeEntity.RouteStops?
+                    .Where(rs => !rs.DeletedTime.HasValue)
+                    .OrderBy(rs => rs.StopOrder)
+                    .ToList();
+
+                if (validStops is not null && validStops.Count > 1)
+                {
+                    var travelDurations = validStops.Skip(1).Sum(rs => rs.Duration);
+                    var stopTimeBuffer = 300 * (validStops.Count - 1);
+                    routeModel.TotalDuration = travelDurations + stopTimeBuffer;
+                }
+                else
+                {
+                    routeModel.TotalDuration = 0;
+                }
+            }
+
             return new BasePaginatedList<ResponseRouteModel>(result, totalCount, page, pageSize);
         }
 
@@ -135,7 +155,23 @@ namespace ShuttleMate.Services.Services
         {
             var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == routeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
 
-            return _mapper.Map<ResponseRouteModel>(route);
+            var result = _mapper.Map<ResponseRouteModel>(route);
+
+            var activeStops = route.RouteStops?
+                .Where(rs => !rs.DeletedTime.HasValue)
+                .ToList();
+
+            if (activeStops != null && activeStops.Count > 1)
+            {
+                var sumDuration = activeStops.Sum(rs => rs.Duration);
+                result.TotalDuration = sumDuration + (300 * (activeStops.Count - 1));
+            }
+            else
+            {
+                result.TotalDuration = 0;
+            }
+
+            return result;
         }
 
         public async Task<BasePaginatedList<StopWithOrderModel>> StopListByRoute(GetRouteStopQuery req, Guid routeId)
