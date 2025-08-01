@@ -180,7 +180,8 @@ namespace ShuttleMate.Services.Services
                         Lat = rs.Stop.Lat,
                         Lng = rs.Stop.Lng
                     },
-                    StopOrder = rs.StopOrder
+                    StopOrder = rs.StopOrder,
+                    Duration = rs.Duration
                 })
                 .ToList();
 
