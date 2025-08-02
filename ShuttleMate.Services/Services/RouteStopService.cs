@@ -1,19 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using ShuttleMate.Contract.Repositories.Base;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.RouteStopModelViews;
+using ShuttleMate.ModelViews.StopEstimateModelViews;
 using ShuttleMate.ModelViews.StopModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace ShuttleMate.Services.Services
 {
@@ -22,13 +27,19 @@ namespace ShuttleMate.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
+        private readonly VietMapSettings _vietMapSettings;
+        private readonly HttpClient _httpClient;
 
-        public RouteStopService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
+        public RouteStopService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IOptions<VietMapSettings> vietMapSettings, HttpClient httpClient)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
+            _vietMapSettings = vietMapSettings.Value;
+            _httpClient = httpClient;
         }
+
+        private const string VietMapMatrixApiUrl = "https://maps.vietmap.vn/api/matrix?api-version=1.1";
 
         public async Task AssignStopsToRouteAsync(AssignStopsToRouteModel model)
         {
@@ -67,21 +78,54 @@ namespace ShuttleMate.Services.Services
                     _unitOfWork.Detach(old);
                 }
 
-                // Gắn Stop mới với StopOrder
-                int order = 1;
-                foreach (var stopId in model.StopIds)
+                var stops = await _unitOfWork.GetRepository<Stop>().Entities
+                    .Where(s => model.StopIds.Contains(s.Id) && !s.DeletedTime.HasValue)
+                    .ToListAsync();
+
+                if (stops.Count != model.StopIds.Count)
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Một số StopId không tồn tại!");
+
+                var orderedStops = model.StopIds
+                    .Select((id, index) => new { Id = id, Order = index + 1, Stop = stops.First(s => s.Id == id) })
+                    .ToList();
+
+                var waypoints = orderedStops.Select(s => $"{s.Stop.Lat},{s.Stop.Lng}").ToList();
+                var pointParams = string.Join("&", waypoints.Select(p => $"point={p}"));
+
+                var matrixUrl = $"{VietMapMatrixApiUrl}"
+                              + $"&apikey={_vietMapSettings.ApiKey}"
+                              + $"&{pointParams}"
+                              + $"&vehicle=car"
+                              + $"&points_encoded=false"
+                              + $"&annotations=duration";
+
+                var response = await _httpClient.GetAsync(matrixUrl);
+                if (!response.IsSuccessStatusCode)
+                    throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Lỗi khi gọi API VietMap Matrix.");
+
+                var content = await response.Content.ReadAsStringAsync();
+                var matrixResult = JsonConvert.DeserializeObject<ResponseVietMapMatrixModel>(content);
+
+                if (matrixResult?.Durations == null || matrixResult.Durations.Count == 0)
+                    throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Không có dữ liệu duration từ Matrix API.");
+
+                var durationsMatrix = matrixResult.Durations;
+
+                for (int i = 0; i < orderedStops.Count; i++)
                 {
-                    var stopExists = await _unitOfWork.GetRepository<Stop>()
-                        .Entities.AnyAsync(s => s.Id == stopId && !s.DeletedTime.HasValue);
-                    if (!stopExists)
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, $"StopId {stopId} không hợp lệ!");
+                    int duration = 0;
+                    if (i > 0)
+                    {
+                        duration = (int)Math.Round(durationsMatrix[i - 1][i]);
+                    }
 
                     var newRouteStop = new RouteStop
                     {
                         Id = Guid.NewGuid(),
                         RouteId = model.RouteId,
-                        StopId = stopId,
-                        StopOrder = order++,
+                        StopId = orderedStops[i].Stop.Id,
+                        StopOrder = orderedStops[i].Order,
+                        Duration = duration,
                         CreatedBy = userId,
                         LastUpdatedBy = userId,
                         CreatedTime = DateTime.UtcNow,
@@ -92,11 +136,9 @@ namespace ShuttleMate.Services.Services
                 }
 
                 await _unitOfWork.SaveAsync();
-                //_unitOfWork.CommitTransaction();
             }
             catch
             {
-                //_unitOfWork.RollBack();
                 throw;
             }
         }

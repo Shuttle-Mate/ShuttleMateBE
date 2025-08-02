@@ -5,6 +5,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
     public class RouteStop : BaseEntity
     {
         public int StopOrder { get; set; }
+        public int Duration { get; set; }
         public Guid RouteId { get; set; }
         public virtual Route Route { get; set; }
         public Guid StopId { get; set; }

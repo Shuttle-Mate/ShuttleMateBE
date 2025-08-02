@@ -10,6 +10,7 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
+using ShuttleMate.ModelViews.FeedbackModelViews;
 using ShuttleMate.ModelViews.ScheduleModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
@@ -112,8 +113,16 @@ namespace ShuttleMate.Services.Services
             {
                 if (!IsBitSet(s.DayOfWeek, dayOfWeek)) continue;
 
-                var startTime = s.DepartureTime;
-                var endTime = startTime.AddHours(1);
+                var stopEstimates = await _unitOfWork.GetRepository<StopEstimate>().Entities
+                    .Where(se => se.ScheduleId == s.Id)
+                    .OrderBy(se => s.Direction == RouteDirectionEnum.IN_BOUND ? se.Stop.RouteStops.FirstOrDefault(rs => rs.RouteId == s.RouteId).StopOrder :
+                                                                              -se.Stop.RouteStops.FirstOrDefault(rs => rs.RouteId == s.RouteId).StopOrder)
+                    .ToListAsync();
+
+                TimeOnly startTime, endTime;
+                startTime = stopEstimates.First().ExpectedTime;
+                endTime = stopEstimates.Last().ExpectedTime;
+
                 var duration = endTime - startTime;
                 var routeStops = s.Route?.RouteStops?.Where(x => !x.DeletedTime.HasValue).ToList() ?? new();
                 var routeInfo = BuildRouteInfo(routeStops, s.Direction);
@@ -202,6 +211,17 @@ namespace ShuttleMate.Services.Services
             }
 
             return responseList.OrderBy(x => TimeOnly.Parse(x.StartTime));
+        }
+
+        public async Task<ResponseScheduleModel> GetByIdAsync(Guid scheduleId)
+        {
+            var schedule = await _unitOfWork.GetRepository<Schedule>().GetByIdAsync(scheduleId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình không tồn tại.");
+
+            if (schedule.DeletedTime.HasValue)
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình đã bị xóa.");
+
+            return _mapper.Map<ResponseScheduleModel>(schedule);
         }
 
         public async Task CreateAsync(CreateScheduleModel model)
@@ -329,7 +349,9 @@ namespace ShuttleMate.Services.Services
                     }
                 }
 
-                foreach (var existing in existingSchedules)
+                var existingRouteSchedules = existingSchedules.Where(x => x.RouteId == route.Id);
+
+                foreach (var existing in existingRouteSchedules)
                 {
                     for (int i = 0; i < 7; i++)
                     {
@@ -473,7 +495,9 @@ namespace ShuttleMate.Services.Services
                 }
             }
 
-            foreach (var existing in existingSchedules)
+            var existingRouteSchedules = existingSchedules.Where(x => x.RouteId == route.Id);
+
+            foreach (var existing in existingRouteSchedules)
             {
                 for (int i = 0; i < 7; i++)
                 {
@@ -501,6 +525,27 @@ namespace ShuttleMate.Services.Services
             await _stopEstimateService.UpdateAsync(new List<Schedule> { schedule }, schedule.RouteId);
             await _unitOfWork.SaveAsync();
         }
+
+        public async Task DeleteAsync(Guid scheduleId)
+        {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            var schedule = await _unitOfWork.GetRepository<Schedule>().GetByIdAsync(scheduleId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình không tồn tại.");
+
+            if (schedule.DeletedTime.HasValue)
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình đã bị xóa.");
+
+            schedule.LastUpdatedTime = CoreHelper.SystemTimeNow;
+            schedule.LastUpdatedBy = userId;
+            schedule.DeletedTime = CoreHelper.SystemTimeNow;
+            schedule.DeletedBy = userId;
+
+            await _unitOfWork.GetRepository<Schedule>().UpdateAsync(schedule);
+            await _unitOfWork.SaveAsync();
+        }
+
+        #region Private Methods
 
         private string ConvertToBinaryDayOfWeek(IEnumerable<string> days)
         {
@@ -604,5 +649,6 @@ namespace ShuttleMate.Services.Services
             return $"{shiftType} buổi {sessionType}";
         }
 
+        #endregion
     }
 }
