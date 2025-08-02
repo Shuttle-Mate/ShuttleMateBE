@@ -80,7 +80,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string?>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                message: "Xóa đánh giá công."));
+                message: "Xóa đánh giá thành công."));
         }
     }
 }

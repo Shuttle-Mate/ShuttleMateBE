@@ -11,5 +11,6 @@ namespace ShuttleMate.ModelViews.RouteModelViews
     {
         public BasicStopModel Stop {  get; set; }
         public int StopOrder { get; set; }
+        public int Duration { get; set; }
     }
 }
