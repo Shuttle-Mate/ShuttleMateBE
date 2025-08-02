@@ -563,6 +563,7 @@ namespace ShuttleMate.Services.Services
             //kiểm tra id của phụ huynh
             var parent = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.StudentId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
             var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+            //học sinh
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.StudentId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy học sinh!");
             if (model.ListSchoolShiftId.Count == 0)
             {
@@ -704,7 +705,7 @@ namespace ShuttleMate.Services.Services
                     historyTicket.ValidFrom = ticket.Route.School.StartSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
                     historyTicket.ValidUntil = ticket.Route.School.EndSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!"); break;
             }
-            //xóa
+            //xóa userShift
             var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
             if (userShift != null)
             {
