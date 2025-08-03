@@ -38,7 +38,7 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _emailService = emailService;
         }
-        public async Task<BasePaginatedList<TicketResponseModel>> GetAllAsync(int page = 0, int pageSize = 10, string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid? routeId = null)
+        public async Task<BasePaginatedList<TicketResponseModel>> GetAllAsync(int page = 0, int pageSize = 10, string? type = null, string? search = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid? routeId = null, Guid? schoolId = null)
         {
             var ticketRepo = _unitOfWork.GetRepository<Ticket>();
 
@@ -57,9 +57,15 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(u => u.Route.Id.ToString().Contains(routeId.ToString()!));
             }
-            if (!string.IsNullOrWhiteSpace(routeName))
+            if (schoolId != null)
             {
-                query = query.Where(u => u.Route.RouteName.Contains(routeName));
+                query = query.Where(u => u.Route.School.Id.ToString().Contains(schoolId.ToString()!));
+            }
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(u => u.Route.RouteName.Contains(search)
+                || u.Route.RouteCode.Contains(search)
+                || u.Route.School.Name.Contains(search));
             }
             if (price != null)
             {
@@ -130,6 +136,8 @@ namespace ShuttleMate.Services.Services
                 Price = ticket.Price,
                 RouteName = ticket.Route.RouteName,
                 Type = ticket.Type.ToString().ToUpper(),
+                RouteId = ticket.RouteId,
+                Schoolname = ticket.Route.School.Name
             };
             return response;
         }
@@ -269,9 +277,9 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<Ticket>().UpdateAsync(ticket);
             await _unitOfWork.SaveAsync();
         }
-        public async Task DeleteTicket(DeleteTicketModel model)
+        public async Task DeleteTicket(Guid ticketId)
         {
-            var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+            var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == ticketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
 
             ticket.DeletedTime = DateTime.Now;
 

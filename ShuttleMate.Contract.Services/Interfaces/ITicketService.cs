@@ -11,10 +11,10 @@ namespace ShuttleMate.Contract.Services.Interfaces
 {
     public interface ITicketService
     {
-        Task<BasePaginatedList<TicketResponseModel>> GetAllAsync(int page = 0, int pageSize = 10, string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid? routeId = null);
+        Task<BasePaginatedList<TicketResponseModel>> GetAllAsync(int page = 0, int pageSize = 10, string? type = null, string? routeName = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid? routeId = null, Guid? schoolId = null);
         Task<TicketResponseModel> GetById(Guid Id);
         Task CreateTicket(CreateTicketModel model);
         Task UpdateTicket(UpdateTicketModel model);
-        Task DeleteTicket(DeleteTicketModel model);
+        Task DeleteTicket(Guid ticketId);
     }
 }

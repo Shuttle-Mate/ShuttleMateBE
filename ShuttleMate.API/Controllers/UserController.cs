@@ -34,7 +34,7 @@ namespace ShuttleMate.API.Controllers
         /// Lấy tất cả người dùng(Admin)
         /// </summary>
         /// <param name="gender">true là nam, false là nữ (tuỳ chọn)</param>
-        /// <param name="Violate">true là bị khóa, false là không khóa (tuỳ chọn).</param>
+        /// <param name="violate">true là bị khóa, false là không khóa (tuỳ chọn).</param>
         /// <param name="schoolId">lọc theo id trường (tuỳ chọn).</param>
         /// <param name="parentId">Lọc theo id phụ huynh.(tuỳ chọn).</param>
         /// <param name="roleName"> STUDENT, PARENT, OPERATOR, DRIVER, SCHOOL</param>
