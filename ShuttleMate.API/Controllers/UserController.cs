@@ -34,7 +34,7 @@ namespace ShuttleMate.API.Controllers
         /// Lấy tất cả người dùng(Admin)
         /// </summary>
         /// <param name="gender">true là nam, false là nữ (tuỳ chọn)</param>
-        /// <param name="Violate">true là bị khóa, false là không khóa (tuỳ chọn).</param>
+        /// <param name="violate">true là bị khóa, false là không khóa (tuỳ chọn).</param>
         /// <param name="schoolId">lọc theo id trường (tuỳ chọn).</param>
         /// <param name="parentId">Lọc theo id phụ huynh.(tuỳ chọn).</param>
         /// <param name="roleName"> STUDENT, PARENT, OPERATOR, DRIVER, SCHOOL</param>
@@ -59,7 +59,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         /// <param name="routeId">Lấy id tuyền(bắt buộc).</param>
         /// <param name="schoolShiftId">Lấy id ca học(bắt buộc).</param>
-        [HttpGet("get-student-in-route-and-shift")]
+        [HttpGet("student-in-route-and-shift")]
         public async Task<IActionResult> GetStudentInRouteAndShift(int page = 0, int pageSize = 10, Guid? routeId = null, Guid? schoolShiftId = null)
         {
             var users = await _userService.GetStudentInRouteAndShift(page, pageSize, routeId, schoolShiftId);

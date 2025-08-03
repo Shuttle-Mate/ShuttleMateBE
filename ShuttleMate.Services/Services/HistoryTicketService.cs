@@ -318,6 +318,9 @@ namespace ShuttleMate.Services.Services
 
             Guid.TryParse(userId, out Guid cb);
 
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
             var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
             if (model.ListSchoolShiftId.Count == 0)
@@ -329,17 +332,15 @@ namespace ShuttleMate.Services.Services
                 Id = Guid.NewGuid(),
                 ValidFrom = model.ValidFrom,
                 ValidUntil = model.ValidFrom,
-                CreatedTime = DateTime.Now,
+                CreatedTime = vietnamNow,
                 TicketId = model.TicketId,
                 Status = HistoryTicketStatus.UNPAID,
-                PurchaseAt = DateTime.Now,
+                PurchaseAt = vietnamNow,
                 UserId = cb,
-                LastUpdatedTime = DateTime.Now,
+                LastUpdatedTime = vietnamNow,
                 CreatedBy = userId
             };
-            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
-            var todayVN = DateOnly.FromDateTime(vietnamNow);
+
 
             switch (ticket.Type)
             {
@@ -488,8 +489,8 @@ namespace ShuttleMate.Services.Services
                     Id = Guid.NewGuid(),
                     SchoolShiftId = schoolShiftId,
                     StudentId = cb,
-                    CreatedTime = DateTime.Now,
-                    LastUpdatedTime = DateTime.Now
+                    CreatedTime = vietnamNow,
+                    LastUpdatedTime = vietnamNow
                 };
 
                 await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
@@ -560,9 +561,13 @@ namespace ShuttleMate.Services.Services
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             Guid.TryParse(userId, out Guid cb);
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
             //kiểm tra id của phụ huynh
             var parent = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.StudentId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
             var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+            //học sinh
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.StudentId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy học sinh!");
             if (model.ListSchoolShiftId.Count == 0)
             {
@@ -573,17 +578,14 @@ namespace ShuttleMate.Services.Services
                 Id = Guid.NewGuid(),
                 ValidFrom = model.ValidFrom,
                 ValidUntil = model.ValidFrom,
-                CreatedTime = DateTime.Now,
+                CreatedTime = vietnamNow,
                 TicketId = model.TicketId,
                 Status = HistoryTicketStatus.UNPAID,
-                PurchaseAt = DateTime.Now,
+                PurchaseAt = vietnamNow,
                 UserId = user.Id,
-                LastUpdatedTime = DateTime.Now,
+                LastUpdatedTime = vietnamNow,
                 CreatedBy = user.Id.ToString(),
             };
-            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
-            var todayVN = DateOnly.FromDateTime(vietnamNow);
 
             switch (ticket.Type)
             {
@@ -704,7 +706,7 @@ namespace ShuttleMate.Services.Services
                     historyTicket.ValidFrom = ticket.Route.School.StartSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
                     historyTicket.ValidUntil = ticket.Route.School.EndSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!"); break;
             }
-            //xóa
+            //xóa userShift
             var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
             if (userShift != null)
             {
@@ -724,8 +726,8 @@ namespace ShuttleMate.Services.Services
                     Id = Guid.NewGuid(),
                     SchoolShiftId = schoolShiftId,
                     StudentId = user.Id,
-                    CreatedTime = DateTime.Now,
-                    LastUpdatedTime = DateTime.Now
+                    CreatedTime = vietnamNow,
+                    LastUpdatedTime = vietnamNow
                 };
                 await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
             }
