@@ -8,7 +8,7 @@ namespace ShuttleMate.ModelViews.ChatModelView
 {
     public class ChatRequest
     {
-        public string SessionId { get; set; } // To track conversation history
+        //public string SessionId { get; set; } // To track conversation history
         public string Message { get; set; }
     }
 }

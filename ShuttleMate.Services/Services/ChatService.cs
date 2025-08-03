@@ -49,8 +49,11 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<ChatResponse> SendMessage(ChatRequest request)
         {
+            // Lấy userId từ người dùng hiện tại (cần inject ICurrentUserService)
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            var conversationHistory = await GetConversationHistory(request.SessionId);
+            Guid.TryParse(userId, out Guid cb);
+            var conversationHistory = await GetConversationHistory(cb);
 
             // Thêm tin nhắn mới với định dạng đúng
             conversationHistory.Add(new ChatMessage
@@ -103,7 +106,7 @@ namespace ShuttleMate.Services.Services
                 Parts = new List<ChatPart> { new ChatPart { Text = aiResponse } }
             });
 
-            await SaveConversationHistory(request.SessionId, conversationHistory);
+            await SaveConversationHistory(conversationHistory);
 
             return (new ChatResponse
             {
@@ -113,39 +116,45 @@ namespace ShuttleMate.Services.Services
         }
 
         // Implement these methods based on your storage solution (database, cache, etc.)
-        private async Task<List<ChatMessage>> GetConversationHistory(string sessionId)
+        private async Task<List<ChatMessage>> GetConversationHistory(Guid userId)
         {
             // Retrieve conversation history from your storage
             // Return empty list if no history exists
             return new List<ChatMessage>();
         }
 
-        private async Task SaveConversationHistory(string sessionId, List<ChatMessage> conversation)
+        private async Task SaveConversationHistory(List<ChatMessage> conversation)
         {
             // Lấy userId từ người dùng hiện tại (cần inject ICurrentUserService)
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             Guid.TryParse(userId, out Guid cb);
-            // Lấy tin nhắn cuối cùng trong conversation để lưu
-            var lastMessage = conversation.LastOrDefault();
-            if (lastMessage == null) return;
-
-            // Xác định role từ tin nhắn
-            var role = lastMessage.Role == "user" ? ChatBotRoleEnum.USER : ChatBotRoleEnum.MODEL;
-
-            // Tạo mới ChatBotLog
-            var chatLog = new ChatBotLog
+            //Lấy giờ cả VN hiện tại
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            // Lấy 2 tin nhắn cuối cùng trong conversation để lưu 1 là user 2 là model
+            var lastTwoMessages = conversation.TakeLast(2).ToList();
+            foreach (var message in lastTwoMessages)
             {
-                Role = role,
-                Content = lastMessage.Parts.FirstOrDefault()?.Text ?? string.Empty,
-                ModelUsed = "gemini-1.5-flash", // Hoặc model bạn đang sử dụng
-                UserId = cb,
-                CreatedTime = DateTimeOffset.Now,
-                LastUpdatedTime = DateTimeOffset.Now
-            };
+                if (message == null) continue;
 
-            // Lưu vào database thông qua UnitOfWork
-            await _unitOfWork.GetRepository<ChatBotLog>().InsertAsync(chatLog);
+                // Xác định role từ tin nhắn
+                var role = message.Role == "user" ? ChatBotRoleEnum.USER : ChatBotRoleEnum.MODEL;
+
+                // Tạo mới ChatBotLog cho mỗi tin nhắn
+                var chatLog = new ChatBotLog
+                {
+                    Role = role,
+                    Content = message.Parts.FirstOrDefault()?.Text ?? string.Empty,
+                    ModelUsed = "gemini-1.5-flash",
+                    UserId = cb,
+                    CreatedTime = vietnamNow,
+                    LastUpdatedTime = vietnamNow
+                };
+
+                // Lưu vào database
+                await _unitOfWork.GetRepository<ChatBotLog>().InsertAsync(chatLog);
+            }
             await _unitOfWork.SaveAsync();
         }
         private readonly string SystemInstruction = @"
