@@ -10,7 +10,7 @@ using System.Net.Http.Headers;
 using System.Text;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/chat")]
 public class ChatController : ControllerBase
 {
     private readonly IChatService _chatService;

@@ -4,11 +4,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.ChatModelView;
+using ShuttleMate.Services.Services.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,6 +18,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
 {
@@ -119,7 +122,31 @@ namespace ShuttleMate.Services.Services
 
         private async Task SaveConversationHistory(string sessionId, List<ChatMessage> conversation)
         {
-            // Save conversation history to your storage
+            // Lấy userId từ người dùng hiện tại (cần inject ICurrentUserService)
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            Guid.TryParse(userId, out Guid cb);
+            // Lấy tin nhắn cuối cùng trong conversation để lưu
+            var lastMessage = conversation.LastOrDefault();
+            if (lastMessage == null) return;
+
+            // Xác định role từ tin nhắn
+            var role = lastMessage.Role == "user" ? ChatBotRoleEnum.USER : ChatBotRoleEnum.MODEL;
+
+            // Tạo mới ChatBotLog
+            var chatLog = new ChatBotLog
+            {
+                Role = role,
+                Content = lastMessage.Parts.FirstOrDefault()?.Text ?? string.Empty,
+                ModelUsed = "gemini-1.5-flash", // Hoặc model bạn đang sử dụng
+                UserId = cb,
+                CreatedTime = DateTimeOffset.Now,
+                LastUpdatedTime = DateTimeOffset.Now
+            };
+
+            // Lưu vào database thông qua UnitOfWork
+            await _unitOfWork.GetRepository<ChatBotLog>().InsertAsync(chatLog);
+            await _unitOfWork.SaveAsync();
         }
         private readonly string SystemInstruction = @"
             🏥 1. Thông tin chung về phòng khám
