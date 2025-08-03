@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Ocsp;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
@@ -9,6 +10,7 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.AttendanceModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
+using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using System;
 using System.Collections.Generic;
@@ -25,19 +27,22 @@ namespace ShuttleMate.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
+        private readonly IUserService _userService;
 
-        public AttendanceService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
+        public AttendanceService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IUserService userService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
+            _userService = userService;
         }
 
         public async Task CheckIn(CheckInModel model)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            Attendance attendance = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Status == AttendanceStatusEnum.CHECKED_IN);
+            Attendance attendance = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Status == AttendanceStatusEnum.CHECKED_IN
+                                                                                                                && x.HistoryTicketId == model.HistoryTicketId);
             if (attendance != null)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vé này đã CheckIn nhưng chưa được CheckOut!!");
@@ -195,6 +200,90 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.GetRepository<Attendance>().UpdateRangeAsync(attendances);
             await _unitOfWork.SaveAsync();
+        }
+
+        public async Task<BasePaginatedList<ResponseStudentInRouteAndShiftModel>> ListAbsentStudent(GetAbsentQuery req)
+        {
+            var page = req.page > 0 ? req.page : 0;
+            var pageSize = req.pageSize > 0 ? req.pageSize : 10;
+
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var userQuery = userRepo.Entities
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .Include(u => u.UserSchoolShifts)
+            .ThenInclude(u => u.SchoolShift)
+            .AsQueryable();
+
+
+            if (req.routeId == null)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy tuyến!");
+            }
+            if (req.schoolShiftId == null)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy ca học!");
+            }
+            //điều kiện hs trong cùng 1 ca học
+            userQuery = userQuery.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == req.schoolShiftId && !x.DeletedTime.HasValue));
+            //điều kiện học sinh có vé tuyến đường này và vé còn thời gian hiệu lực
+            userQuery = userQuery.Where(x => x.HistoryTickets.Any(x => x.Ticket.Route.Id == req.routeId
+            && x.Ticket.Route.IsActive == true
+            && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
+            && x.Status == HistoryTicketStatus.PAID
+            && !x.DeletedTime.HasValue));
+
+            var listStudent = await userQuery
+                .Select(u => new ResponseStudentInRouteAndShiftModel
+                {
+                    Id = u.Id,
+                    FullName = u.FullName,
+                    Gender = u.Gender,
+                    DateOfBirth = u.DateOfBirth,
+                    ProfileImageUrl = u.ProfileImageUrl,
+                    Address = u.Address,
+                    Email = u.Email,
+                    ParentName = u.Parent.FullName,
+                    PhoneNumber = u.PhoneNumber,
+                    SchoolName = u.School.Name,
+                    HistoryTicketId = u.HistoryTickets.
+                    FirstOrDefault(x => x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
+                    && x.Status == HistoryTicketStatus.PAID
+                    && !x.DeletedTime.HasValue)!.Id,
+                })
+                .ToListAsync();
+
+            var listCheckin = await _unitOfWork.GetRepository<Attendance>().Entities
+                .Where(x => !x.DeletedTime.HasValue
+                        && x.TripId == req.tripId)
+                .ToListAsync();
+
+            //lấy danh sách absent
+            // Tạo danh sách các HistoryTicketId đã check-in
+            var checkedInHistoryTicketIds = listCheckin
+                .Select(x => x.HistoryTicketId)
+                .ToHashSet(); // Tối ưu tìm kiếm O(1)
+
+            // Lọc danh sách học sinh chưa check-in
+            var listAbsent = listStudent
+                .Where(student => !checkedInHistoryTicketIds.Contains(student.HistoryTicketId));
+
+            var totalCount = listAbsent.Count();
+
+            //Paging
+            var absents = listAbsent
+                .Skip(req.page * req.pageSize)
+                .Take(req.pageSize)
+                .ToList();
+
+            if (!absents.Any())
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có học sinh vắng nào được ghi nhận!");
+            }
+
+            var result = _mapper.Map<List<ResponseStudentInRouteAndShiftModel>>(absents);
+
+            return new BasePaginatedList<ResponseStudentInRouteAndShiftModel>(result, totalCount, page, pageSize);
         }
 
         //public Task UpdateAttendance(UpdateAttendanceModel model)

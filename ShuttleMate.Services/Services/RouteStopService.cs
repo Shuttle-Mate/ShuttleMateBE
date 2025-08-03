@@ -145,20 +145,28 @@ namespace ShuttleMate.Services.Services
 
         public async Task<BasePaginatedList<StopWithRouteResponseModel>> SearchStopWithRoutes(GetRouteStopQuery req)
         {
-            string stopName = req.search ?? "";
+            string search = req.search ?? "";
             var page = req.page > 0 ? req.page : 0;
             var pageSize = req.pageSize > 0 ? req.pageSize : 10;
 
-            var query = _unitOfWork.GetRepository<Stop>().Entities
+            IQueryable<Stop> query = _unitOfWork.GetRepository<Stop>().Entities
                 .Where(rs => !rs.DeletedTime.HasValue)
                 .Include(rs => rs.RouteStops)
-                    .ThenInclude(rs => rs.Route)
-                .Select(s => new StopWithRouteResponseModel
-                {
-                    StopId = s.Id,
-                    StopName = s.Name,
-                    Address = s.Address,
-                    Routes = s.RouteStops
+                    .ThenInclude(rs => rs.Route);
+
+            // Filter stops by SchoolId if provided
+            if (req.SchoolId.HasValue)
+            {
+                query = query.Where(s => s.RouteStops.Any(rs => rs.Route.SchoolId == req.SchoolId && !rs.Route.DeletedTime.HasValue));
+            }
+
+            var projected = query.Select(s => new StopWithRouteResponseModel
+            {
+                StopId = s.Id,
+                StopName = s.Name,
+                Address = s.Address,
+                Routes = s.RouteStops
+                    .Where(rs => !rs.Route.DeletedTime.HasValue && (!req.SchoolId.HasValue || rs.Route.SchoolId == req.SchoolId))
                     .Select(rs => new RouteResponseModel
                     {
                         RouteId = rs.Route.Id,
@@ -167,19 +175,20 @@ namespace ShuttleMate.Services.Services
                     })
                     .Distinct()
                     .ToList()
-                });
+            });
 
-            if (!string.IsNullOrWhiteSpace(stopName))
+            if (!string.IsNullOrWhiteSpace(search))
             {
-                query = query.Where(x => x.StopName.ToLower().Contains(stopName.ToLower()));
+                projected = projected.Where(x => x.StopName.ToLower().Contains(search.ToLower())
+                                            || x.Address.ToLower().Contains(search.ToLower()));
             }
 
-            var totalCount = await query.CountAsync();
+            var totalCount = await projected.CountAsync();
 
-            var stops = await query
+            var stops = await projected
                 .OrderBy(x => x.StopName)
-                .Skip(req.page * req.pageSize)
-                .Take(req.pageSize)
+                .Skip(page * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
             if (!stops.Any())

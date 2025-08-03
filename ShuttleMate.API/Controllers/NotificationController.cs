@@ -21,7 +21,7 @@ namespace ShuttleMate.API.Controllers
             _firebaseService = firebaseService;
         }
 
-        [HttpPost("send")]
+        [HttpPost("push/send")]
         public async Task<IActionResult> Send([FromBody] NotificationRequest req)
         {
             await _firebaseService.SendNotificationAsync(req.Title, req.Body, req.DeviceToken);

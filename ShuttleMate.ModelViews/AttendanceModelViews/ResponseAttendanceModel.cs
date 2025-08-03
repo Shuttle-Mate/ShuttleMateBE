@@ -11,7 +11,7 @@ namespace ShuttleMate.ModelViews.AttendanceModelViews
     public class ResponseAttendanceModel
     {
         public Guid Id { get; set; }
-        public Guid TicketId { get; set; }
+        public Guid HistoryTicketId { get; set; }
         public DateTime CheckInTime { get; set; }
         public string? CheckInLocation { get; set; }
         public DateTime CheckOutTime { get; set; }

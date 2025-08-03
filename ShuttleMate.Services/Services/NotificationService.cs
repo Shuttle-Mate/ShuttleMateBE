@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using ShuttleMate.Contract.Repositories.Entities;
@@ -14,6 +9,13 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.NotificationModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
 {
@@ -74,6 +76,58 @@ namespace ShuttleMate.Services.Services
             var noti = await _unitOfWork.GetRepository<Notification>().Entities.FirstOrDefaultAsync(x => x.Id == notiId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
 
             return _mapper.Map<ResponseNotiModel>(noti);
+        }
+
+        public async Task<Guid> SendNotificationFromTemplateAsync(string templateType, List<Guid> recipientIds, Dictionary<string, string> metadata, string createdBy)
+        {
+            var template = await _unitOfWork
+                .GetRepository<NotificationTemplate>()
+                .Entities
+                .FirstOrDefaultAsync(x => x.Type == templateType && x.DeletedTime == null);
+
+            if (template == null)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, $"không tìm thấy mẫu thông báo '{templateType}'");
+            }
+
+            //thay biến
+            string content = template.Template;
+            foreach (var kvp in metadata)
+            {
+                content = content.Replace($"{{{{{kvp.Key}}}}}", kvp.Value);
+            }
+
+            // 3. Tạo bản ghi Notifications
+            var notification = new Notification
+            {
+                Id = Guid.NewGuid(),
+                Title = $"Thông báo: {template.Type}", // modify
+                Content = content,
+                Type = template.Type,
+                Status = NotificationStatusEnum.SENT, // đã gửi
+                CreatedBy = createdBy,
+                CreatedTime = DateTimeOffset.UtcNow,
+                MetaData = JsonSerializer.Serialize(metadata)
+            };
+
+            _unitOfWork.GetRepository<Notification>().Insert(notification);
+
+            // 4. Tạo bản ghi NotificationRecipients
+            var recipients = recipientIds.Select(recipientId => new NotificationRecipient
+            {
+                Id = Guid.NewGuid(),
+                NotificationId = notification.Id,
+                RecipientId = recipientId,
+                RecipientType = "User",
+                Status = NotificationStatusEnum.DELIVERED,
+                CreatedBy = createdBy,
+                CreatedTime = DateTimeOffset.UtcNow
+            }).ToList();
+
+            _unitOfWork.GetRepository<NotificationRecipient>().InsertRange(recipients);
+
+            await _unitOfWork.SaveAsync();
+            return notification.Id;
         }
 
         public Task UpdateNoti(UpdateNotiModel model)
