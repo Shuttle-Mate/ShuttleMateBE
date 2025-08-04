@@ -13,5 +13,9 @@ namespace ShuttleMate.ModelViews.RouteStopModelViews
         /// Từ khoá tìm kiếm theo tên trạm. Tùy chọn.
         /// </summary>
         public string? search { get; set; } = null!;
+        /// <summary>
+        /// filter theo school
+        /// </summary>
+        public Guid? SchoolId { get; set; }
     }
 }

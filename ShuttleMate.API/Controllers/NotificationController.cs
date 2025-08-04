@@ -21,7 +21,7 @@ namespace ShuttleMate.API.Controllers
             _firebaseService = firebaseService;
         }
 
-        [HttpPost("send")]
+        [HttpPost("push/send")]
         public async Task<IActionResult> Send([FromBody] NotificationRequest req)
         {
             await _firebaseService.SendNotificationAsync(req.Title, req.Body, req.DeviceToken);
@@ -76,6 +76,23 @@ namespace ShuttleMate.API.Controllers
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 message: "Xóa thông báo thành công"
+            ));
+        }
+        [HttpPost("send-template")]
+        public async Task<IActionResult> SendFromTemplate([FromBody] NotificationTemplateSendRequest request)
+        {
+            var notificationId = await _notificationService.SendNotificationFromTemplateAsync(
+                templateType: request.TemplateType,
+                recipientIds: request.RecipientIds,
+                metadata: request.Metadata,
+                createdBy: request.CreatedBy
+            );
+
+            return Ok(new BaseResponseModel<Guid>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "Gửi thông báo từ template thành công",
+                data: notificationId
             ));
         }
     }

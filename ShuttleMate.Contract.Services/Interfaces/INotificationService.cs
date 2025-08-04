@@ -10,6 +10,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
 {
     public interface INotificationService
     {
+        Task<Guid> SendNotificationFromTemplateAsync(string templateType, List<Guid> recipientIds, Dictionary<string, string> metadata, string createdBy);
         Task CreateNotification(NotiModel model);
         Task<List<ResponseNotiModel>> GetAll();
         Task<ResponseNotiModel> GetById(Guid notiId);

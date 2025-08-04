@@ -18,4 +18,11 @@ namespace ShuttleMate.ModelViews.AttendanceModelViews
         /// </summary>
         public Guid? tripId { get; set; } = null!;
     }
+
+    public class GetAbsentQuery : PaginationReq
+    {
+        public Guid tripId { get; set; }
+        public Guid routeId { get; set; }
+        public Guid schoolShiftId { get; set; }
+    }
 }
