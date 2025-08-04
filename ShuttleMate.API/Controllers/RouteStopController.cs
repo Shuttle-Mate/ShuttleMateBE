@@ -30,9 +30,13 @@ namespace ShuttleMate.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetStopWithRoute([FromQuery] GetRouteStopQuery req)
+        public async Task<IActionResult> GetStopWithRoute(
+            [FromQuery] double lat,
+            [FromQuery] double lng,
+            [FromQuery] GetRouteStopQuery req
+            )
         {
-            var res = await _routeStopService.SearchStopWithRoutes(req);
+            var res = await _routeStopService.SearchStopWithRoutes(lat, lng, req);
             return Ok(new BaseResponseModel<BasePaginatedList<StopWithRouteResponseModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
