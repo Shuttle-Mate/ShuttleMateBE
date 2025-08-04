@@ -4,6 +4,7 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.AttendanceModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
+using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
@@ -72,12 +73,26 @@ namespace ShuttleMate.API.Controllers
         }
         /// <summary>
         /// Get All cho operator/admin
+        /// FE: CheckOutTime = 0001-01-01 00:00:00.0000000 => chưa checkout, hiển thị thời gian null
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetAllAttendance([FromQuery]GetAttendanceQuery query)
         {
             var res = await _attendanceService.GetAll(query);
             return Ok(new BaseResponseModel<BasePaginatedList<ResponseAttendanceModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: res
+            ));
+        }
+        /// <summary>
+        /// Get absent 
+        /// </summary>
+        [HttpGet("absent")]
+        public async Task<IActionResult> GetAbsentOfTrip([FromQuery] GetAbsentQuery query)
+        {
+            var res = await _attendanceService.ListAbsentStudent(query);
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseStudentInRouteAndShiftModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: res
