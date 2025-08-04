@@ -100,7 +100,15 @@ namespace ShuttleMate.Services.Services
                     Type = u.Type.ToString().ToUpper(),
                     RouteId = u.RouteId,
                     Schoolname = u.Route.School.Name,
-                })
+                    GetOff = u.Route.RouteStops
+                        .OrderByDescending(x => x.StopOrder)
+                        .FirstOrDefault()!.Stop.Name,
+                    GetOn = u.Route.RouteStops
+                        .OrderBy(x => x.StopOrder)
+                        .FirstOrDefault()!.Stop.Name,
+                    RunningTime = u.Route.RunningTime!
+
+               })
                 .ToListAsync();
             var totalCount = await query.CountAsync();
 
