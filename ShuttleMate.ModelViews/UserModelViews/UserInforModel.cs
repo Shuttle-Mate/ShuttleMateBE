@@ -21,5 +21,6 @@ namespace ShuttleMate.ModelViews.UserModelViews
         public ParentResponse? Parent { get; set; }
         public List<ChildResponse> Childs { get; set; }
         public SchoolResponse School { get; set; }
+        public string RoleName { get; set; }
     }
 }
