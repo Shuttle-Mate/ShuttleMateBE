@@ -14,6 +14,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
     {
         Task AssignStopsToRouteAsync(AssignStopsToRouteModel model);
         //Task<List<ResponseShuttleModel>> GetAll();
-        Task<BasePaginatedList<StopWithRouteResponseModel>> SearchStopWithRoutes(GetRouteStopQuery req);
+        Task<BasePaginatedList<StopWithRouteResponseModel>> SearchStopWithRoutes(double lat, double lng, GetRouteStopQuery req);
     }
 }
