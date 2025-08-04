@@ -49,9 +49,9 @@ namespace ShuttleMate.Services.Services
             .Include(u => u.Route)
             .ThenInclude(x => x.School)
             .AsQueryable();
-            if (!string.IsNullOrWhiteSpace(type))
+            if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse<TicketTypeEnum>(type, true, out var parsedType))
             {
-                query = query.Where(u => u.Type.ToString().ToUpper() == type);
+                query = query.Where(u => u.Type == parsedType);
             }
             if (routeId != null)
             {
