@@ -97,7 +97,7 @@ namespace ShuttleMate.Services.Services
                               + $"&{pointParams}"
                               + $"&vehicle=car"
                               + $"&points_encoded=false"
-                              + $"&annotations=duration";
+                              + $"&annotations=duration,distance";
 
                 var response = await _httpClient.GetAsync(matrixUrl);
                 if (!response.IsSuccessStatusCode)
@@ -134,6 +134,44 @@ namespace ShuttleMate.Services.Services
 
                     await routeStopRepo.InsertAsync(newRouteStop);
                 }
+
+                await _unitOfWork.SaveAsync();
+
+                if (matrixResult?.Distances == null || matrixResult.Distances.Count == 0)
+                    throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Không có dữ liệu distance từ Matrix API.");
+
+                var distancesMatrix = matrixResult.Distances;
+
+                double totalDistance = 0;
+                for (int i = 1; i < orderedStops.Count; i++)
+                {
+                    totalDistance += distancesMatrix[i - 1][i];
+                }
+
+                var validStops = await _unitOfWork.GetRepository<RouteStop>().Entities
+                    .Where(rs => rs.RouteId == model.RouteId && !rs.DeletedTime.HasValue)
+                    .OrderBy(rs => rs.StopOrder)
+                    .ToListAsync();
+
+                if (validStops != null && validStops.Count > 1)
+                {
+                    var travelDurations = validStops.Skip(1).Sum(rs => rs.Duration);
+                    var stopTimeBuffer = 300 * (validStops.Count - 1);
+                    route.RunningTime = (travelDurations + stopTimeBuffer).ToString();
+                }
+                else
+                {
+                    route.RunningTime = "0";
+                }
+
+                var stopNames = orderedStops.Select(x => x.Stop.Name).ToList();
+                route.InBound = string.Join(" - ", stopNames);
+                route.OutBound = string.Join(" - ", stopNames.AsEnumerable().Reverse());
+                route.TotalDistance = (decimal?)Math.Round(totalDistance, 2);
+                route.LastUpdatedTime = DateTime.UtcNow;
+                route.LastUpdatedBy = userId;
+
+                _unitOfWork.GetRepository<Route>().Update(route);
 
                 await _unitOfWork.SaveAsync();
             }
