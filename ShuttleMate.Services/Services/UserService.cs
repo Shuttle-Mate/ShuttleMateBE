@@ -13,6 +13,7 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.AuthModelViews;
 using ShuttleMate.ModelViews.SchoolModelView;
+using ShuttleMate.ModelViews.SchoolShiftModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using System.Numerics;
@@ -289,12 +290,12 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy ca học!");
             }
             //điều kiện hs trong cùng 1 ca học
-            query = query.Where(x=>x.UserSchoolShifts.Any(x=> x.SchoolShiftId == schoolShiftId  
+            query = query.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId
             && !x.DeletedTime.HasValue));
             //điều kiện học sinh có vé tuyến đường này và vé còn thời gian hiệu lực
-            query = query.Where(x => x.HistoryTickets.Any(y => y.Ticket.RouteId == routeId 
+            query = query.Where(x => x.HistoryTickets.Any(y => y.Ticket.RouteId == routeId
             && y.Ticket.Route.IsActive == true
-            && y.ValidUntil >= DateOnly.FromDateTime(DateTime.Now) 
+            && y.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
             && y.Status == HistoryTicketStatus.PAID
             && !y.DeletedTime.HasValue));
 
@@ -312,7 +313,7 @@ namespace ShuttleMate.Services.Services
                     PhoneNumber = u.PhoneNumber,
                     SchoolName = u.School.Name,
                     HistoryTicketId = u.HistoryTickets.
-                    FirstOrDefault(x=>x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
+                    FirstOrDefault(x => x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
                     && x.Ticket.RouteId == routeId
                     && x.Ticket.Route.IsActive == true
                     && x.Status == HistoryTicketStatus.PAID
@@ -385,7 +386,7 @@ namespace ShuttleMate.Services.Services
                     ParentName = u.Parent.FullName,
                     SchoolName = u.School.Name,
                     PhoneNumber = u.PhoneNumber,
-                    
+
                 })
                 .ToListAsync();
             var totalCount = await query.CountAsync();
@@ -403,10 +404,80 @@ namespace ShuttleMate.Services.Services
 
             Guid.TryParse(userId, out Guid cb);
 
-
             // Lấy thông tin người dùng
             User user = await _unitOfWork.GetRepository<User>()
                 .Entities.FirstOrDefaultAsync(x => x.Id == cb);
+
+            // Lấy thông tin parent (nếu có)
+            ParentResponse parentResponse = null;
+            if (user.ParentId != null)
+            {
+                var parent = await _unitOfWork.GetRepository<User>()
+                    .Entities.FirstOrDefaultAsync(x => x.Id == user.ParentId);
+                if (parent != null)
+                {
+                    parentResponse = new ParentResponse
+                    {
+                        Id = parent.Id,
+                        Address = parent.Address,
+                        DateOfBirth = parent.DateOfBirth,
+                        Email = parent.Email,
+                        FullName = parent.FullName,
+                        Gender = parent.Gender,
+                        PhoneNumber = parent.PhoneNumber,
+                        ProfileImageUrl = parent.ProfileImageUrl
+                    };
+                }
+            }
+            // Lấy danh sách children (nếu có)
+            var children = new List<ChildResponse>();
+
+            var childUsers = await _unitOfWork.GetRepository<User>()
+                .Entities.Where(x => x.ParentId == user.Id).ToListAsync();
+            if (childUsers != null)
+            {
+                foreach (var child in childUsers)
+                {
+                    children.Add(new ChildResponse
+                    {
+                        Id = child.Id,
+                        Address = child.Address,
+                        DateOfBirth = child.DateOfBirth,
+                        Email = child.Email,
+                        FullName = child.FullName,
+                        Gender = child.Gender,
+                        PhoneNumber = child.PhoneNumber,
+                        ProfileImageUrl = child.ProfileImageUrl!,
+                    });
+                }
+            }
+
+            // Lấy thông tin trường học (nếu có)
+            SchoolResponse schoolResponse = null;
+
+            var school = await _unitOfWork.GetRepository<School>()
+                .Entities.Include(x => x.SchoolShifts)
+                .FirstOrDefaultAsync(x => x.Id == user.SchoolId);
+
+            if (school != null)
+            {
+                schoolResponse = new SchoolResponse
+                {
+                    Id = school.Id,
+                    Name = school.Name,
+                    Address = school.Address,
+                    PhoneNumber = school.PhoneNumber,
+                    Email = school.Email,
+                    schoolShiftResponses = school.SchoolShifts?.Select(x => new SchoolShiftResponse
+                    {
+                        Id = x.Id,
+                        Time = x.Time,
+                        ShiftType = x.ShiftType.ToString().ToUpper(),
+                        SessionType = x.SessionType.ToString().ToUpper()
+                    }).ToList()!
+                };
+            }
+
             UserInforModel inforModel = new UserInforModel
             {
                 Id = user.Id,
@@ -417,7 +488,9 @@ namespace ShuttleMate.Services.Services
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
                 ProfileImageUrl = user.ProfileImageUrl,
-                
+                Parent = parentResponse,
+                Childs = children,
+                School = schoolResponse
             };
             return inforModel;
         }
