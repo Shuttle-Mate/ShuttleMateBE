@@ -396,6 +396,118 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
             return new BasePaginatedList<AdminResponseUserModel>(users, totalCount, page, pageSize);
         }
+        public async Task UpdateSchoolForUser(Guid? id = null, UpdateSchoolForUserModel? model = null)
+        {
+            // Lấy userId từ HttpContext
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            Guid.TryParse(userId, out Guid cb);
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
+            // Check if current time is within allowed period (7PM Sat to 5PM Sun)
+            var dayOfWeek = vietnamNow.DayOfWeek;
+            var currentTime = vietnamNow.TimeOfDay;
+
+            bool isAllowedTime = false;
+
+            // Saturday case
+            if (dayOfWeek == DayOfWeek.Saturday && currentTime >= new TimeSpan(19, 0, 0))
+            {
+                isAllowedTime = true;
+            }
+            // Sunday case
+            else if (dayOfWeek == DayOfWeek.Sunday && currentTime <= new TimeSpan(17, 0, 0))
+            {
+                isAllowedTime = true;
+            }
+
+            if (!isAllowedTime)
+            {
+                throw new ErrorException(StatusCodes.Status403Forbidden, ErrorCode.Forbidden,
+                    "Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần");
+            }
+
+            if (id != null)
+            {
+                User user = await _unitOfWork.GetRepository<User>()
+                    .Entities.FirstOrDefaultAsync(x => x.Id == id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
+                School school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model!.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường!");
+
+                user.SchoolId = school.Id;
+                user.LastUpdatedTime = vietnamNow;
+
+                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+
+                if (model!.SchoolShifts!.Count > 0)
+                {
+                    //xóa userShift
+                    var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
+                    if (userShift != null)
+                    {
+                        foreach (var del in userShift)
+                        {
+                            await _unitOfWork.GetRepository<UserSchoolShift>().DeleteAsync(del);
+                        }
+                        await _unitOfWork.SaveAsync();
+                    }
+
+                    foreach (var schoolShiftId in model.SchoolShifts!)
+                    {
+                        var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
+
+                        var userShiftNew = new UserSchoolShift
+                        {
+                            Id = Guid.NewGuid(),
+                            SchoolShiftId = schoolShiftId,
+                            StudentId = user.Id,
+                            CreatedTime = vietnamNow,
+                            LastUpdatedTime = vietnamNow
+                        };
+                        await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
+                    }
+                }
+                
+            }
+            else
+            {
+                User user = await _unitOfWork.GetRepository<User>()
+                    .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
+                School school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model!.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường!");
+
+                user.SchoolId = school.Id;
+                user.LastUpdatedTime = vietnamNow;
+
+                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+
+                //xóa userShift
+                var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
+                if (userShift != null)
+                {
+                    foreach (var del in userShift)
+                    {
+                        await _unitOfWork.GetRepository<UserSchoolShift>().DeleteAsync(del);
+                    }
+                    await _unitOfWork.SaveAsync();
+                }
+
+                foreach (var schoolShiftId in model!.SchoolShifts!)
+                {
+                    var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
+
+                    var userShiftNew = new UserSchoolShift
+                    {
+                        Id = Guid.NewGuid(),
+                        SchoolShiftId = schoolShiftId,
+                        StudentId = user.Id,
+                        CreatedTime = vietnamNow,
+                        LastUpdatedTime = vietnamNow
+                    };
+                    await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
+                }
+            }
+            await _unitOfWork.SaveAsync();
+        }
         public async Task<UserInforModel> GetInfor()
         {
             // Lấy userId từ HttpContext

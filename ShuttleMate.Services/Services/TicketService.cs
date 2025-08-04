@@ -107,7 +107,6 @@ namespace ShuttleMate.Services.Services
                         .OrderBy(x => x.StopOrder)
                         .FirstOrDefault()!.Stop.Name,
                     RunningTime = u.Route.RunningTime!
-
                })
                 .ToListAsync();
             var totalCount = await query.CountAsync();
