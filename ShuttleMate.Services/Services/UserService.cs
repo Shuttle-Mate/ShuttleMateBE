@@ -92,7 +92,6 @@ namespace ShuttleMate.Services.Services
                 await _emailService.SendEmailAsync(user.Email, "Thông báo từ ShuttleMate", $"Phụ huynh đã xóa bạn khỏi khỏi danh sách học sinh!</div>");
             }
         }
-
         public async Task CreateUserAdmin(CreateUserAdminModel model)
         {
             // Kiểm tra user co tồn tại
@@ -504,7 +503,7 @@ namespace ShuttleMate.Services.Services
                     });
                 }
             }
-            
+
 
             UserInforModel inforModel = new UserInforModel
             {
@@ -717,18 +716,37 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.SaveAsync();
         }
-        public async Task UpdateProfiel(UpdateProfileModel model)
+        public async Task UpdateProfiel(Guid? id, UpdateProfileModel model)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             Guid.TryParse(userId, out Guid cb);
-
-
-            User user = await _unitOfWork.GetRepository<User>()
-         .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
-            User school = await _unitOfWork.GetRepository<User>()
-         .Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && x.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() == "SCHOOL" && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Trường học không tồn tại!");
+            if (id != null)
+            {
+                User user = await _unitOfWork.GetRepository<User>()
+                    .Entities.FirstOrDefaultAsync(x => x.Id == id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
+                user.FullName = model.FullName;
+                user.PhoneNumber = model.PhoneNumber;
+                user.Gender = model.Gender;
+                user.Address = model.Address;
+                user.DateOfBirth = model.DateOfBirth;
+                user.ProfileImageUrl = model.ProfileImageUrl;
+                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+            }
+            else
+            {
+                User user = await _unitOfWork.GetRepository<User>()
+                    .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
+                user.FullName = model.FullName;
+                user.PhoneNumber = model.PhoneNumber;
+                user.Gender = model.Gender;
+                user.Address = model.Address;
+                user.DateOfBirth = model.DateOfBirth;
+                user.ProfileImageUrl = model.ProfileImageUrl;
+                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+            }
+            await _unitOfWork.SaveAsync();
 
             //if (model.FullName.Length < 8)
             //{
@@ -749,16 +767,6 @@ namespace ShuttleMate.Services.Services
             //{
             //    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Địa chỉ không được để trống!!");
             //}
-
-            user.FullName = model.FullName;
-            user.PhoneNumber = model.PhoneNumber;
-            user.Gender = model.Gender;
-            user.Address = model.Address;
-            user.DateOfBirth = model.DateOfBirth;
-            user.ProfileImageUrl = model.ProfileImageUrl;
-            user.SchoolId = model.SchoolId;
-            await _unitOfWork.GetRepository<User>().UpdateAsync(user);
-            await _unitOfWork.SaveAsync();
         }
         public async Task<string> BlockUserForAdmin(BlockUserForAdminModel model)
         {
