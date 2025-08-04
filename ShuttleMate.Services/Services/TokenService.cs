@@ -60,7 +60,7 @@ namespace ShuttleMate.Services.Services
                 claims: claims,
                 issuer: _configuration.GetSection("JwtSettings:Issuer").Value,
                 audience: _configuration.GetSection("JwtSettings:Audience").Value,
-                expires: DateTime.UtcNow.AddMinutes(20),
+                expires: DateTime.UtcNow.AddDays(1),
                 signingCredentials: creds
             );
             var accessTokenString = new JwtSecurityTokenHandler().WriteToken(accessToken);
