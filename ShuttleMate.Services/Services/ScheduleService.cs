@@ -437,6 +437,35 @@ namespace ShuttleMate.Services.Services
 
             await _stopEstimateService.CreateAsync(newSchedules, model.RouteId);
 
+            var allSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(s => s.RouteId == model.RouteId && !s.DeletedTime.HasValue);
+
+            if (allSchedules != null && allSchedules.Any())
+            {
+                var minTime = allSchedules.Min(s => s.DepartureTime);
+                var maxTime = allSchedules.Max(s => s.DepartureTime);
+
+                route.OperatingTime = $"{minTime:HH\\:mm} - {maxTime:HH\\:mm}";
+
+                var earliestSchedule = allSchedules.OrderBy(s => s.DepartureTime).FirstOrDefault();
+                if (earliestSchedule != null)
+                {
+                    var stopEstimates = await _unitOfWork.GetRepository<StopEstimate>().FindAllAsync(se =>
+                        se.ScheduleId == earliestSchedule.Id);
+
+                    if (stopEstimates != null && stopEstimates.Any())
+                    {
+                        var earliest = stopEstimates.Min(se => se.ExpectedTime);
+                        var latest = stopEstimates.Max(se => se.ExpectedTime);
+                        route.RunningTime = (latest - earliest).TotalSeconds.ToString();
+                    }
+                }
+
+                route.LastUpdatedBy = userId;
+                route.LastUpdatedTime = DateTime.UtcNow;
+
+                await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
+            }
+
             await _unitOfWork.SaveAsync();
         }
 
@@ -562,6 +591,36 @@ namespace ShuttleMate.Services.Services
             schedule.LastUpdatedTime = DateTime.UtcNow;
 
             await _stopEstimateService.UpdateAsync(new List<Schedule> { schedule }, schedule.RouteId);
+
+            //var allSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(s => s.RouteId == schedule.RouteId && !s.DeletedTime.HasValue);
+
+            //if (allSchedules != null && allSchedules.Any())
+            //{
+            //    var minTime = allSchedules.Min(s => s.DepartureTime);
+            //    var maxTime = allSchedules.Max(s => s.DepartureTime);
+
+            //    route.OperatingTime = $"{minTime:HH\\:mm} - {maxTime:HH\\:mm}";
+
+            //    var earliestSchedule = allSchedules.OrderBy(s => s.DepartureTime).FirstOrDefault();
+            //    if (earliestSchedule != null)
+            //    {
+            //        var stopEstimates = await _unitOfWork.GetRepository<StopEstimate>().FindAllAsync(se =>
+            //            se.ScheduleId == earliestSchedule.Id);
+
+            //        if (stopEstimates != null && stopEstimates.Any())
+            //        {
+            //            var earliest = stopEstimates.Min(se => se.ExpectedTime);
+            //            var latest = stopEstimates.Max(se => se.ExpectedTime);
+            //            route.RunningTime = (latest - earliest).TotalSeconds.ToString();
+            //        }
+            //    }
+
+            //    route.LastUpdatedBy = userId;
+            //    route.LastUpdatedTime = DateTime.UtcNow;
+
+            //    await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
+            //}
+
             await _unitOfWork.SaveAsync();
         }
 
