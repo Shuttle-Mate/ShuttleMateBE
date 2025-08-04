@@ -1,14 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ShuttleMate.ModelViews.Pagination;
+﻿using ShuttleMate.ModelViews.Pagination;
 
 namespace ShuttleMate.ModelViews.RouteStopModelViews
 {
     public class GetRouteStopQuery : PaginationReq
     {
+        /// <summary>
+        /// Vĩ độ của vị trí hiện tại. Bắt buộc.
+        /// </summary>
+        public double Lat { get; set; }
+        /// <summary>
+        /// Kinh độ của vị trí hiện tại. Bắt buộc.
+        /// </summary>
+        public double Lng { get; set; }
         /// <summary>
         /// Từ khoá tìm kiếm theo tên trạm. Tùy chọn.
         /// </summary>

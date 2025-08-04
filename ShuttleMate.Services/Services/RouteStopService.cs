@@ -145,58 +145,89 @@ namespace ShuttleMate.Services.Services
 
         public async Task<BasePaginatedList<StopWithRouteResponseModel>> SearchStopWithRoutes(GetRouteStopQuery req)
         {
-            string search = req.search ?? "";
-            var page = req.page > 0 ? req.page : 0;
-            var pageSize = req.pageSize > 0 ? req.pageSize : 10;
+            if (req.Lat == 0 || req.Lng == 0)
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Phải truyền tọa độ lat, lng");
 
-            IQueryable<Stop> query = _unitOfWork.GetRepository<Stop>().Entities
-                .Where(rs => !rs.DeletedTime.HasValue)
-                .Include(rs => rs.RouteStops)
-                    .ThenInclude(rs => rs.Route);
+            var lat = req.Lat;
+            var lng = req.Lng;
 
-            // Filter stops by SchoolId if provided
-            if (req.SchoolId.HasValue)
-            {
-                query = query.Where(s => s.RouteStops.Any(rs => rs.Route.SchoolId == req.SchoolId && !rs.Route.DeletedTime.HasValue));
-            }
-
-            var projected = query.Select(s => new StopWithRouteResponseModel
-            {
-                StopId = s.Id,
-                StopName = s.Name,
-                Address = s.Address,
-                Routes = s.RouteStops
-                    .Where(rs => !rs.Route.DeletedTime.HasValue && (!req.SchoolId.HasValue || rs.Route.SchoolId == req.SchoolId))
-                    .Select(rs => new RouteResponseModel
-                    {
-                        RouteId = rs.Route.Id,
-                        RouteCode = rs.Route.RouteCode,
-                        RouteName = rs.Route.RouteName
-                    })
-                    .Distinct()
-                    .ToList()
-            });
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                projected = projected.Where(x => x.StopName.ToLower().Contains(search.ToLower())
-                                            || x.Address.ToLower().Contains(search.ToLower()));
-            }
-
-            var totalCount = await projected.CountAsync();
-
-            var stops = await projected
-                .OrderBy(x => x.StopName)
-                .Skip(page * pageSize)
-                .Take(pageSize)
+            var stops = await _unitOfWork.GetRepository<Stop>().Entities
+                .Where(s => !s.DeletedTime.HasValue)
+                .Include(s => s.RouteStops)
+                    .ThenInclude(rs => rs.Route)
                 .ToListAsync();
 
             if (!stops.Any())
-            {
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có trạm nào tồn tại!");
+
+            var waypoints = stops.Select(s => $"{s.Lat},{s.Lng}").ToList();
+            var pointParams = string.Join("&", waypoints.Select(p => $"point={p}"));
+
+            var matrixUrl = $"https://maps.vietmap.vn/api/matrix?api-version=1.1"
+                          + $"&apikey={_vietMapSettings.ApiKey}"
+                          + $"&point={lat},{lng}&{pointParams}"
+                          + "&vehicle=foot&points_encoded=false&annotations=distance,duration";
+
+            var response = await _httpClient.GetAsync(matrixUrl);
+            if (!response.IsSuccessStatusCode)
+                throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Lỗi khi gọi API VietMap Matrix.");
+
+            var content = await response.Content.ReadAsStringAsync();
+            var matrixResult = JsonConvert.DeserializeObject<ResponseVietMapMatrixModel>(content);
+
+            if (matrixResult?.Distances == null || matrixResult.Durations == null || matrixResult.Distances.Count == 0 || matrixResult.Durations.Count == 0)
+                throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Không có dữ liệu distance/duration từ Matrix API.");
+
+            var distanceList = matrixResult.Distances[0];
+            var durationList = matrixResult.Durations[0];
+
+            var stopsWithDistance = stops.Select((s, i) => new
+            {
+                Stop = s,
+                Distance = distanceList[i],
+                Duration = durationList[i]
+            });
+
+            if (!string.IsNullOrWhiteSpace(req.search))
+            {
+                var keyword = req.search.ToLower();
+                stopsWithDistance = stopsWithDistance.Where(x =>
+                    x.Stop.Name.ToLower().Contains(keyword) ||
+                    x.Stop.Address.ToLower().Contains(keyword));
             }
 
-            return new BasePaginatedList<StopWithRouteResponseModel>(stops, totalCount, page, pageSize);
+            var filtered = stopsWithDistance
+                .OrderBy(x => x.Distance)
+                .Select(x => new StopWithRouteResponseModel
+                {
+                    StopId = x.Stop.Id,
+                    StopName = x.Stop.Name,
+                    Address = x.Stop.Address,
+                    Distance = Math.Round(x.Distance, 2),
+                    Duration = Math.Round(x.Duration, 2),
+                    Routes = x.Stop.RouteStops
+                        .Where(rs => !rs.Route.DeletedTime.HasValue && (!req.SchoolId.HasValue || rs.Route.SchoolId == req.SchoolId))
+                        .Select(rs => new RouteResponseModel
+                        {
+                            RouteId = rs.Route.Id,
+                            RouteCode = rs.Route.RouteCode,
+                            RouteName = rs.Route.RouteName
+                        })
+                        .Distinct()
+                        .ToList()
+                })
+                .Where(x => x.Routes.Any());
+
+            var totalCount = filtered.Count();
+            var page = req.page > 0 ? req.page : 0;
+            var pageSize = req.pageSize > 0 ? req.pageSize : 10;
+
+            var paginated = filtered
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new BasePaginatedList<StopWithRouteResponseModel>(paginated, totalCount, page, pageSize);
         }
     }
 }
