@@ -174,8 +174,8 @@ namespace ShuttleMate.API.Controllers
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetById(Guid userId)
         {
-            UserResponseModel res = await _userService.GetById(userId);
-            return Ok(new BaseResponseModel<UserResponseModel>(
+            UserInforModel res = await _userService.GetById(userId);
+            return Ok(new BaseResponseModel<UserInforModel>(
                  statusCode: StatusCodes.Status200OK,
                  code: ResponseCodeConstants.SUCCESS,
                  data: res

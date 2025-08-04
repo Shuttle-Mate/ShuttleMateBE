@@ -373,7 +373,7 @@ namespace ShuttleMate.Services.Services
                 .Select(u => new AdminResponseUserModel
                 {
                     Id = u.Id,
-                    RoleName = u.UserRoles.Select(ur => ur.Role.Name).FirstOrDefault().ToUpper(),
+                    RoleName = u.UserRoles.Select(ur => ur.Role.Name).FirstOrDefault()!.ToUpper(),
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
@@ -405,12 +405,12 @@ namespace ShuttleMate.Services.Services
             Guid.TryParse(userId, out Guid cb);
 
             // Lấy thông tin người dùng
-            User user = await _unitOfWork.GetRepository<User>()
+            User? user = await _unitOfWork.GetRepository<User>()
                 .Entities.FirstOrDefaultAsync(x => x.Id == cb);
 
             // Lấy thông tin parent (nếu có)
-            ParentResponse parentResponse = null;
-            if (user.ParentId != null)
+            ParentResponse? parentResponse = null;
+            if (user!.ParentId != null)
             {
                 var parent = await _unitOfWork.GetRepository<User>()
                     .Entities.FirstOrDefaultAsync(x => x.Id == user.ParentId);
@@ -425,7 +425,7 @@ namespace ShuttleMate.Services.Services
                         FullName = parent.FullName,
                         Gender = parent.Gender,
                         PhoneNumber = parent.PhoneNumber,
-                        ProfileImageUrl = parent.ProfileImageUrl
+                        ProfileImageUrl = parent.ProfileImageUrl!
                     };
                 }
             }
@@ -453,7 +453,7 @@ namespace ShuttleMate.Services.Services
             }
 
             // Lấy thông tin trường học (nếu có)
-            SchoolResponse schoolResponse = null;
+            SchoolResponse? schoolResponse = null;
 
             var school = await _unitOfWork.GetRepository<School>()
                 .Entities.Include(x => x.SchoolShifts)
@@ -487,21 +487,92 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
-                ProfileImageUrl = user.ProfileImageUrl,
+                ProfileImageUrl = user.ProfileImageUrl!,
                 Parent = parentResponse,
                 Childs = children,
-                School = schoolResponse
+                School = schoolResponse!,
+                RoleName = user.UserRoles.FirstOrDefault(x => !x.Role.DeletedTime.HasValue)!.Role.Name.ToUpper(),
             };
             return inforModel;
         }
-        public async Task<UserResponseModel> GetById(Guid userId)
+        public async Task<UserInforModel> GetById(Guid userId)
         {
 
             // Lấy thông tin người dùng
             User user = await _unitOfWork.GetRepository<User>()
                 .Entities.FirstOrDefaultAsync(x => x.Id == userId) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại!");
 
-            UserResponseModel inforModel = new UserResponseModel
+            // Lấy thông tin parent (nếu có)
+            ParentResponse? parentResponse = null;
+            if (user.ParentId != null)
+            {
+                var parent = await _unitOfWork.GetRepository<User>()
+                    .Entities.FirstOrDefaultAsync(x => x.Id == user.ParentId);
+                if (parent != null)
+                {
+                    parentResponse = new ParentResponse
+                    {
+                        Id = parent.Id,
+                        Address = parent.Address,
+                        DateOfBirth = parent.DateOfBirth,
+                        Email = parent.Email,
+                        FullName = parent.FullName,
+                        Gender = parent.Gender,
+                        PhoneNumber = parent.PhoneNumber,
+                        ProfileImageUrl = parent.ProfileImageUrl!
+                    };
+                }
+            }
+            // Lấy danh sách children (nếu có)
+            var children = new List<ChildResponse>();
+
+            var childUsers = await _unitOfWork.GetRepository<User>()
+                .Entities.Where(x => x.ParentId == user.Id).ToListAsync();
+            if (childUsers != null)
+            {
+                foreach (var child in childUsers)
+                {
+                    children.Add(new ChildResponse
+                    {
+                        Id = child.Id,
+                        Address = child.Address,
+                        DateOfBirth = child.DateOfBirth,
+                        Email = child.Email,
+                        FullName = child.FullName,
+                        Gender = child.Gender,
+                        PhoneNumber = child.PhoneNumber,
+                        ProfileImageUrl = child.ProfileImageUrl!,
+                    });
+                }
+            }
+
+            // Lấy thông tin trường học (nếu có)
+            SchoolResponse? schoolResponse = null;
+
+            var school = await _unitOfWork.GetRepository<School>()
+                .Entities.Include(x => x.SchoolShifts)
+                .FirstOrDefaultAsync(x => x.Id == user.SchoolId);
+
+            if (school != null)
+            {
+                schoolResponse = new SchoolResponse
+                {
+                    Id = school.Id,
+                    Name = school.Name,
+                    Address = school.Address,
+                    PhoneNumber = school.PhoneNumber,
+                    Email = school.Email,
+                    schoolShiftResponses = school.SchoolShifts?.Select(x => new SchoolShiftResponse
+                    {
+                        Id = x.Id,
+                        Time = x.Time,
+                        ShiftType = x.ShiftType.ToString().ToUpper(),
+                        SessionType = x.SessionType.ToString().ToUpper()
+                    }).ToList()!
+                };
+            }
+
+            UserInforModel inforModel = new UserInforModel
             {
                 Id = user.Id,
                 Address = user.Address,
@@ -510,8 +581,11 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
-                ProfileImageUrl = user.ProfileImageUrl,
-                RoleName = user.UserRoles.FirstOrDefault().Role.Name.ToUpper()
+                ProfileImageUrl = user.ProfileImageUrl!,
+                Parent = parentResponse,
+                Childs = children,
+                School = schoolResponse!,
+                RoleName = user.UserRoles.FirstOrDefault(x=>!x.Role.DeletedTime.HasValue)!.Role.Name.ToUpper()
             };
             return inforModel;
         }

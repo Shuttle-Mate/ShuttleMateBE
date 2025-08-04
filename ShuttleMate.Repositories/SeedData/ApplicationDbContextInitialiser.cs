@@ -67,32 +67,32 @@ namespace Wanvi.Repositories.SeedData
                   new Role
             {
                 Id = Guid.NewGuid(),
-                Name = "Admin",
+                Name = "ADMIN",
             },
               new Role
             {
                 Id = Guid.NewGuid(),
-                Name = "Student",
+                Name = "STUDENT",
             },
               new Role
             {
                 Id = Guid.NewGuid(),
-                Name = "Driver",
+                Name = "DRIVER",
             },
               new Role
             {
                 Id = Guid.NewGuid(),
-                Name = "Parent",
+                Name = "PARENT",
             },
               new Role
             {
                 Id = Guid.NewGuid(),
-                Name = "Operator",
+                Name = "OPERATOR",
             },
               new Role
             {
                 Id = Guid.NewGuid(),
-                Name = "School",
+                Name = "SCHOOL",
             }
             ];
             return roles;
