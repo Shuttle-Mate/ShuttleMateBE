@@ -15,6 +15,9 @@ namespace ShuttleMate.ModelViews.TicketTypeModelViews
         public string Schoolname { get; set; }
         public string Type { get; set; }
         public decimal Price { get; set; }
+        public string GetOn {  get; set; }
+        public string GetOff { get; set; }
+        public string RunningTime { get; set; }
         public Guid RouteId { get; set; }
     }
 }

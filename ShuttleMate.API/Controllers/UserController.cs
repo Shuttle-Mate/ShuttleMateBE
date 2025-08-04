@@ -182,9 +182,9 @@ namespace ShuttleMate.API.Controllers
              ));
         }
         [HttpPatch]
-        public async Task<IActionResult> UpdateProfile(UpdateProfileModel model)
+        public async Task<IActionResult> UpdateProfile(Guid? userId = null, UpdateProfileModel model = null)
         {
-            await _userService.UpdateProfiel(model);
+            await _userService.UpdateProfiel(userId, model);
             return Ok(new BaseResponseModel<string>(
                  statusCode: StatusCodes.Status200OK,
                  code: ResponseCodeConstants.SUCCESS,

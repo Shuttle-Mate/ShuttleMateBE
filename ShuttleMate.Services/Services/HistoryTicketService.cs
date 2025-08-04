@@ -303,7 +303,7 @@ namespace ShuttleMate.Services.Services
             return status switch
             {
                 //TicketTypeEnum.SINGLE_RIDE => "Chuyến 1 chiều",
-                TicketTypeEnum.DAY_PASS => "Chuyến trong ngày",
+                //TicketTypeEnum.DAY_PASS => "Chuyến trong ngày",
                 TicketTypeEnum.WEEKLY => "Chuyến 1 tuần",
                 TicketTypeEnum.SEMESTER_ONE => "Chuyến học kì 1",
                 TicketTypeEnum.SEMESTER_TWO => "Chuyến học kì 2",
@@ -352,13 +352,13 @@ namespace ShuttleMate.Services.Services
                 //    historyTicket.ValidUntil = model.ValidFrom;
                 //    break;
 
-                case TicketTypeEnum.DAY_PASS:
-                    if (model.ValidFrom <= todayVN)
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
-                    }
-                    historyTicket.ValidUntil = model.ValidFrom;
-                    break;
+                //case TicketTypeEnum.DAY_PASS:
+                //    if (model.ValidFrom <= todayVN)
+                //    {
+                //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
+                //    }
+                //    historyTicket.ValidUntil = model.ValidFrom;
+                //    break;
                 case TicketTypeEnum.WEEKLY:
                     if (model.ValidFrom <= todayVN)
                     {
@@ -596,13 +596,13 @@ namespace ShuttleMate.Services.Services
                 //    }
                 //    historyTicket.ValidUntil = model.ValidFrom;
                 //    break;
-                case TicketTypeEnum.DAY_PASS:
-                    if (model.ValidFrom <= todayVN)
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
-                    }
-                    historyTicket.ValidUntil = model.ValidFrom;
-                    break;
+                //case TicketTypeEnum.DAY_PASS:
+                //    if (model.ValidFrom <= todayVN)
+                //    {
+                //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
+                //    }
+                //    historyTicket.ValidUntil = model.ValidFrom;
+                //    break;
                 case TicketTypeEnum.WEEKLY:
                     if (model.ValidFrom <= todayVN)
                     {
