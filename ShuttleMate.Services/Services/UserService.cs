@@ -439,35 +439,36 @@ namespace ShuttleMate.Services.Services
 
                 await _unitOfWork.GetRepository<User>().UpdateAsync(user);
 
-                if (model!.SchoolShifts!.Count > 0)
+                List<Guid> listSchoolShift = new List<Guid>();
+                //Check xem đúng hết chưa 
+                foreach (var schoolShiftId in model.SchoolShifts!)
                 {
-                    //xóa userShift
-                    var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
-                    if (userShift != null)
-                    {
-                        foreach (var del in userShift)
-                        {
-                            await _unitOfWork.GetRepository<UserSchoolShift>().DeleteAsync(del);
-                        }
-                        await _unitOfWork.SaveAsync();
-                    }
-
-                    foreach (var schoolShiftId in model.SchoolShifts!)
-                    {
-                        var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
-
-                        var userShiftNew = new UserSchoolShift
-                        {
-                            Id = Guid.NewGuid(),
-                            SchoolShiftId = schoolShiftId,
-                            StudentId = user.Id,
-                            CreatedTime = vietnamNow,
-                            LastUpdatedTime = vietnamNow
-                        };
-                        await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
-                    }
+                    var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
+                    listSchoolShift.Add(schoolShift.Id);
                 }
-                
+                //xóa userShift
+                var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
+                if (userShift != null)
+                {
+                    foreach (var del in userShift)
+                    {
+                        await _unitOfWork.GetRepository<UserSchoolShift>().DeleteAsync(del);
+                    }
+                    await _unitOfWork.SaveAsync();
+                }
+                //Add vào 
+                foreach (var schoolShiftId in listSchoolShift)
+                {
+                    var userShiftNew = new UserSchoolShift
+                    {
+                        Id = Guid.NewGuid(),
+                        SchoolShiftId = schoolShiftId,
+                        StudentId = user.Id,
+                        CreatedTime = vietnamNow,
+                        LastUpdatedTime = vietnamNow
+                    };
+                    await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
+                }
             }
             else
             {
@@ -480,6 +481,13 @@ namespace ShuttleMate.Services.Services
 
                 await _unitOfWork.GetRepository<User>().UpdateAsync(user);
 
+                List<Guid> listSchoolShift = new List<Guid>();
+                //Check xem đúng hết chưa 
+                foreach (var schoolShiftId in model!.SchoolShifts!)
+                {
+                    var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
+                    listSchoolShift.Add(schoolShift.Id);
+                }
                 //xóa userShift
                 var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
                 if (userShift != null)
@@ -490,11 +498,9 @@ namespace ShuttleMate.Services.Services
                     }
                     await _unitOfWork.SaveAsync();
                 }
-
-                foreach (var schoolShiftId in model!.SchoolShifts!)
+                //Add vào 
+                foreach (var schoolShiftId in listSchoolShift)
                 {
-                    var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
-
                     var userShiftNew = new UserSchoolShift
                     {
                         Id = Guid.NewGuid(),
