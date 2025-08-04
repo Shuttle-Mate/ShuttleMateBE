@@ -241,7 +241,7 @@ namespace ShuttleMate.Services.Services
                     Distance = Math.Round(x.Distance, 2),
                     Duration = Math.Round(x.Duration, 2),
                     Routes = x.Stop.RouteStops
-                        .Where(rs => !rs.Route.DeletedTime.HasValue && (!req.SchoolId.HasValue || rs.Route.SchoolId == req.SchoolId))
+                        .Where(rs => !rs.Route.DeletedTime.HasValue && (!req.schoolId.HasValue || rs.Route.SchoolId == req.schoolId))
                         .Select(rs => new RouteResponseModel
                         {
                             RouteId = rs.Route.Id,
