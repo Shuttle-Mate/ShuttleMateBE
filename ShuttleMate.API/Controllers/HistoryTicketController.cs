@@ -27,7 +27,7 @@ namespace ShuttleMate.API.Controllers
         /// Lấy tất cả các vé của chính mình(người dùng)
         /// </summary>
         /// <param name="status">trạng thái(UNPAID, PAID, CANCELLED, USED) (tuỳ chọn)</param>
-        /// <param name="ticketType">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO) (tuỳ chọn).</param>
+        /// <param name="ticketType">Loại vé(WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO) (tuỳ chọn).</param>
         /// <param name="purchaseAt">Thời gian đặt vé (tuỳ chọn).</param>
         /// <param name="createTime">true là tăng dần, false là giảm dần.(tuỳ chọn).</param>
         /// <param name="validFrom">tra theo thời gian có hiệu lực tuỳ chọn).</param>
@@ -55,7 +55,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="validFrom">tra theo thời gian có hiệu lực (tuỳ chọn).</param>
         /// <param name="validUntil">tra theo thời gian hết hiệu lực (tuỳ chọn).</param>
         /// <param name="ticketId">tra theo vé</param>
-        /// <param name="ticketType">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO) (tuỳ chọn).</param>
+        /// <param name="ticketType">Loại vé(WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO) (tuỳ chọn).</param>
         /// <param name="studentId">Id của học sinh (tuỳ chọn).</param>
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
@@ -80,7 +80,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="validUntil">tra theo thời gian hết hiệu lực (tuỳ chọn).</param>
         /// <param name="ticketId">tra theo vé (tuỳ chọn).</param>
         /// <param name="userId">tra theo người mua (tuỳ chọn).</param>
-        /// <param name="ticketType">Loại vé(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO) (tuỳ chọn).</param>
+        /// <param name="ticketType">Loại vé(WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO) (tuỳ chọn).</param>
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         [HttpGet]

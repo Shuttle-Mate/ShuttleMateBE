@@ -115,7 +115,7 @@ namespace ShuttleMate.Services.Services
         {
             return status switch
             {
-                TicketTypeEnum.DAY_PASS => "Vé ngày",
+                //TicketTypeEnum.DAY_PASS => "Vé ngày",
                 TicketTypeEnum.MONTHLY => "Vé tháng",
                 TicketTypeEnum.WEEKLY => "Vé tuần",
                 //TicketTypeEnum.SINGLE_RIDE => "Vé 1 chiều",
@@ -166,19 +166,19 @@ namespace ShuttleMate.Services.Services
                 //    await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketSINGLE_RIDE);
                 //    await _unitOfWork.SaveAsync();
                 //    break;
-                case "DAY_PASS":
-                    var newTicketDAY_PASS = new Ticket
-                    {
-                        Id = Guid.NewGuid(),
-                        CreatedTime = DateTime.Now,
-                        Price = model.Price,
-                        RouteId = model.RouteId,
-                        Type = TicketTypeEnum.DAY_PASS,
-                        LastUpdatedTime = DateTime.Now,
-                    };
-                    await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketDAY_PASS);
-                    await _unitOfWork.SaveAsync();
-                    break;
+                //case "DAY_PASS":
+                //    var newTicketDAY_PASS = new Ticket
+                //    {
+                //        Id = Guid.NewGuid(),
+                //        CreatedTime = DateTime.Now,
+                //        Price = model.Price,
+                //        RouteId = model.RouteId,
+                //        //Type = TicketTypeEnum.DAY_PASS,
+                //        LastUpdatedTime = DateTime.Now,
+                //    };
+                //    await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketDAY_PASS);
+                //    await _unitOfWork.SaveAsync();
+                //    break;
                 case "WEEKLY":
                     var newTicketWEEKLY = new Ticket
                     {
@@ -255,9 +255,9 @@ namespace ShuttleMate.Services.Services
                 //case "SINGLE_RIDE":
                 //    ticket.Type = TicketTypeEnum.SINGLE_RIDE;
                 //    break;
-                case "DAY_PASS":
-                    ticket.Type = TicketTypeEnum.DAY_PASS;
-                    break;
+                //case "DAY_PASS":
+                //    ticket.Type = TicketTypeEnum.DAY_PASS;
+                //    break;
                 case "WEEKLY":
                     ticket.Type = TicketTypeEnum.WEEKLY;
                     break;
