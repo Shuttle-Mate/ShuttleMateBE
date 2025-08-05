@@ -135,7 +135,6 @@ namespace ShuttleMate.Services.Services
 
                 try
                 {
-                    // Lấy FCM token (giả sử bạn có service riêng để lấy)
                     //var token = await _deviceTokenService.GetTokenByUserIdAsync(recipientId); // bạn cần triển khai service này
                     var token = "duyf6BD7RhOE66NtvuyQyL:APA91bGdMhNmmXaVI45wv-kSi6HubP0PyLgE52j-R_PT763N7v-xqUGnvZ0CX13fZREX41hg5rI722zKyNC1YmYy7FHjPKpWXEPlCj2oYJklvIyjeZppDto";
 
@@ -156,7 +155,6 @@ namespace ShuttleMate.Services.Services
                 catch (Exception ex)
                 {
                     recipient.Status = NotificationStatusEnum.FAILED;
-                    // log nếu cần: _logger.LogError(ex, "Failed to send FCM to recipient {RecipientId}", recipientId);
                 }
 
                 recipients.Add(recipient);

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Org.BouncyCastle.Pkix;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
@@ -8,6 +9,7 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
+using ShuttleMate.ModelViews.AttendanceModelViews;
 using ShuttleMate.ModelViews.RouteModelViews;
 using ShuttleMate.ModelViews.TripModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
@@ -25,12 +27,18 @@ namespace ShuttleMate.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
+        private readonly IAttendanceService _attendanceService;
+        private readonly INotificationService _notificationService;
+        private readonly IFirebaseService _firebaseService;
 
-        public TripService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
+        public TripService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IAttendanceService attendanceService, INotificationService notificationService, IFirebaseService firebaseService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
+            _attendanceService = attendanceService;
+            _notificationService = notificationService;
+            _firebaseService = firebaseService;
         }
 
         public async Task<Guid> StartTrip(Guid scheduleId)
@@ -170,7 +178,7 @@ namespace ShuttleMate.Services.Services
             throw new NotImplementedException();
         }
 
-        public async Task EndTrip(Guid tripId)
+        public async Task EndTrip(Guid tripId, Guid routeId, Guid schoolShiftId)
         {
             string currentUserIdString = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
@@ -204,6 +212,65 @@ namespace ShuttleMate.Services.Services
 
             tripRepository.Update(tripToEnd);
             await _unitOfWork.SaveAsync();
+
+            var query = await _unitOfWork.GetRepository<Trip>().Entities
+                .Include(x => x.Schedule)
+                .Where(x => !x.DeletedTime.HasValue)
+                .FirstOrDefaultAsync(x => x.Id == tripId);
+
+            // 1. Lấy danh sách absent
+            var absentQuery = new GetAbsentQuery
+            {
+                tripId = tripId,
+                routeId = routeId,
+                schoolShiftId = schoolShiftId,
+                page = 0,
+                pageSize = int.MaxValue // lấy tất cả
+            };
+            var absentList = await _attendanceService.ListAbsentStudent(absentQuery);
+
+            // 2. Lấy danh sách userId và parentId
+            var userIds = absentList.Items.Select(s => s.Id).ToList();
+
+            // Lấy thông tin user để lấy parentId
+            var users = await _unitOfWork.GetRepository<User>()
+                .Entities
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.FullName, u.ParentId })
+                .ToListAsync();
+
+            // 3. Chuẩn bị danh sách người nhận
+            //var recipientIds = new List<Guid>();
+            //foreach (var user in users)
+            //{
+            //    if (user.ParentId != null && user.ParentId != Guid.Empty)
+            //        recipientIds.Add(user.ParentId.Value);
+            //    else
+            //        recipientIds.Add(user.Id);
+            //}
+
+            // 4. Gửi thông báo
+            var createdBy = "system";
+
+            // Tùy chỉnh metadata nếu dùng template
+            foreach (var user in users)
+            {
+                var recipientId = (user.ParentId != null && user.ParentId != Guid.Empty) ? user.ParentId.Value : user.Id;
+
+                var metadata = new Dictionary<string, string>
+                {
+                    { "StudentName", user.FullName },
+                    { "RouteName", query.Schedule.Route.RouteName}
+                    // Thêm các biến khác nếu cần
+                };
+
+                await _notificationService.SendNotificationFromTemplateAsync(
+                    templateType: "AbsentNotification", // tên template bạn định nghĩa
+                    recipientIds: new List<Guid> { recipientId },
+                    metadata: metadata,
+                    createdBy: createdBy
+                );
+            }
         }
     }
 }

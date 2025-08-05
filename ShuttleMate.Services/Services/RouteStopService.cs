@@ -181,13 +181,10 @@ namespace ShuttleMate.Services.Services
             }
         }
 
-        public async Task<BasePaginatedList<StopWithRouteResponseModel>> SearchStopWithRoutes(GetRouteStopQuery req)
+        public async Task<BasePaginatedList<StopWithRouteResponseModel>> SearchStopWithRoutes(double lat, double lng, GetRouteStopQuery req)
         {
-            if (req.Lat == 0 || req.Lng == 0)
+            if (lat == 0 || lng == 0)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Phải truyền tọa độ lat, lng");
-
-            var lat = req.Lat;
-            var lng = req.Lng;
 
             var stops = await _unitOfWork.GetRepository<Stop>().Entities
                 .Where(s => !s.DeletedTime.HasValue)
@@ -244,7 +241,7 @@ namespace ShuttleMate.Services.Services
                     Distance = Math.Round(x.Distance, 2),
                     Duration = Math.Round(x.Duration, 2),
                     Routes = x.Stop.RouteStops
-                        .Where(rs => !rs.Route.DeletedTime.HasValue && (!req.SchoolId.HasValue || rs.Route.SchoolId == req.SchoolId))
+                        .Where(rs => !rs.Route.DeletedTime.HasValue && (!req.schoolId.HasValue || rs.Route.SchoolId == req.schoolId))
                         .Select(rs => new RouteResponseModel
                         {
                             RouteId = rs.Route.Id,
