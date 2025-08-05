@@ -8,6 +8,7 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.HistoryTicketModelView;
+using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.TransactionModelView;
 using ShuttleMate.Services.Services.Infrastructure;
 using System;
@@ -35,7 +36,7 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _emailService = emailService;
         }
-        public async Task<IEnumerable<TransactionResponseModel>> GetAllForUserAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null)
+        public async Task<BasePaginatedList<TransactionResponseModel>> GetAllForUserAsync(int page = 0, int pageSize = 10,  string? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -56,13 +57,10 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(u => u.OrderCode == orderCode);
             }
-            if (paymentMethodEnum.HasValue)
+
+            if (!string.IsNullOrWhiteSpace(paymentStatus))
             {
-                query = query.Where(x => x.PaymentMethod == paymentMethodEnum);
-            }
-            if (paymentStatus.HasValue)
-            {
-                query = query.Where(u => u.Status == paymentStatus);
+                query = query.Where(u => u.Status.ToString().ToUpper() == paymentStatus.ToUpper());
             }
             if (CreateTime == true)
             {
@@ -73,7 +71,9 @@ namespace ShuttleMate.Services.Services
                 query = query.OrderByDescending(x => x.CreatedTime);
             }
 
-            var transactions = await query
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
                 .Select(u => new TransactionResponseModel
                 {
                     Id = u.Id,
@@ -84,9 +84,11 @@ namespace ShuttleMate.Services.Services
                     Description = u.Description,
                     HistoryTicketId = u.HistoryTicketId,
                 })
+                .Skip(page * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return transactions;
+            return new BasePaginatedList<TransactionResponseModel>(pagedItems, totalCount, page, pageSize);
         }
         public async Task<TransactionResponseModel> GetById(Guid transactionId)
         {
@@ -111,7 +113,7 @@ namespace ShuttleMate.Services.Services
                 
             return transaction;
         }
-        public async Task<IEnumerable<TransactionAdminResponseModel>> GetAllForAdminAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null)
+        public async Task<BasePaginatedList<TransactionAdminResponseModel>> GetAllForAdminAsync(int page = 0, int pageSize = 10,  string? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null)
         {
             var transaction = _unitOfWork.GetRepository<Transaction>();
 
@@ -126,13 +128,10 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(u => u.OrderCode == orderCode);
             }
-            if (paymentMethodEnum.HasValue)
+
+            if (!string.IsNullOrWhiteSpace(paymentStatus))
             {
-                query = query.Where(x => x.PaymentMethod == paymentMethodEnum);
-            }
-            if (paymentStatus.HasValue)
-            {
-                query = query.Where(u => u.Status == paymentStatus);
+                query = query.Where(u => u.Status.ToString().ToUpper() == paymentStatus.ToUpper());
             }
             if (CreateTime == true)
             {
@@ -143,7 +142,9 @@ namespace ShuttleMate.Services.Services
                 query = query.OrderByDescending(x => x.CreatedTime);
             }
 
-            var transactions = await query
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
                 .Select(u => new TransactionAdminResponseModel
                 {
                     Id = u.Id,
@@ -156,11 +157,14 @@ namespace ShuttleMate.Services.Services
                     BuyerAddress = u.BuyerAddress,
                     BuyerEmail = u.BuyerEmail,
                     BuyerName = u.BuyerName,
-                    BuyerPhone = u.BuyerPhone   
+                    BuyerPhone = u.BuyerPhone
                 })
+                .Skip(page * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return transactions;
+
+            return new BasePaginatedList<TransactionAdminResponseModel>(pagedItems, totalCount, page, pageSize); ;
         }
 
     }

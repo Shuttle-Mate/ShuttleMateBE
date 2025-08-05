@@ -300,7 +300,9 @@ namespace ShuttleMate.Services.Services
             && y.Status == HistoryTicketStatus.PAID
             && !y.DeletedTime.HasValue));
 
-            var users = await query
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
                 .Select(u => new ResponseStudentInRouteAndShiftModel
                 {
                     Id = u.Id,
@@ -320,14 +322,10 @@ namespace ShuttleMate.Services.Services
                     && x.Status == HistoryTicketStatus.PAID
                     && !x.DeletedTime.HasValue)!.Id,
                 })
-                .ToListAsync();
-            var totalCount = await query.CountAsync();
-
-            var pagedItems = await query
                 .Skip(page * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
-            return new BasePaginatedList<ResponseStudentInRouteAndShiftModel>(users, totalCount, page, pageSize);
+            return new BasePaginatedList<ResponseStudentInRouteAndShiftModel>(pagedItems, totalCount, page, pageSize);
         }
         public async Task<BasePaginatedList<AdminResponseUserModel>> GetAllAsync(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
         {
@@ -370,7 +368,10 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(u => u.ParentId == parentId);
             }
-            var users = await query
+
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
                 .Select(u => new AdminResponseUserModel
                 {
                     Id = u.Id,
@@ -387,16 +388,11 @@ namespace ShuttleMate.Services.Services
                     ParentName = u.Parent.FullName,
                     SchoolName = u.School.Name,
                     PhoneNumber = u.PhoneNumber,
-
                 })
-                .ToListAsync();
-            var totalCount = await query.CountAsync();
-
-            var pagedItems = await query
                 .Skip(page * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
-            return new BasePaginatedList<AdminResponseUserModel>(users, totalCount, page, pageSize);
+            return new BasePaginatedList<AdminResponseUserModel>(pagedItems, totalCount, page, pageSize);
         }
         public async Task UpdateSchoolForUser(Guid? id = null, UpdateSchoolForUserModel? model = null)
         {

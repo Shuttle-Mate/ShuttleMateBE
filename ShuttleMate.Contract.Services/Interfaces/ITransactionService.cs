@@ -1,4 +1,5 @@
-﻿using ShuttleMate.ModelViews.TransactionModelView;
+﻿using ShuttleMate.Core.Bases;
+using ShuttleMate.ModelViews.TransactionModelView;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,8 +11,8 @@ namespace ShuttleMate.Contract.Services.Interfaces
 {
     public interface ITransactionService
     {
-        Task<IEnumerable<TransactionResponseModel>> GetAllForUserAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null);
-        Task<IEnumerable<TransactionAdminResponseModel>> GetAllForAdminAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null);
+        Task<BasePaginatedList<TransactionResponseModel>> GetAllForUserAsync(int page = 0, int pageSize = 10 , string? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null);
+        Task<BasePaginatedList<TransactionAdminResponseModel>> GetAllForAdminAsync(int page = 0, int pageSize = 10,  string? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null);
         Task<TransactionResponseModel> GetById(Guid transactionId);
     }
 }

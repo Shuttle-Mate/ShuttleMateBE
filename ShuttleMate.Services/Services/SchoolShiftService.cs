@@ -78,11 +78,6 @@ namespace ShuttleMate.Services.Services
             var totalCount = await query.CountAsync();
 
             var pagedItems = await query
-                .Skip(page * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var list = await query
                 .Select(x => new ResponseSchoolShiftListByTicketIdMode
                 {
                     Id = x.Id,
@@ -92,9 +87,10 @@ namespace ShuttleMate.Services.Services
                     ShiftType = x.ShiftType.ToString().ToUpper(),
                     Time = x.Time,
                 })
+                .Skip(page * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
-
-            return new BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>(list, totalCount, page, pageSize);
+            return new BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>(pagedItems, totalCount, page, pageSize);
         }
         public async Task<BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>> GetAllSchoolShiftForAdmin(int page = 0, int pageSize = 10, string? sessionType = null, string? shiftType = null, bool sortAsc = false, Guid? schoolId = null)
         {
@@ -136,11 +132,6 @@ namespace ShuttleMate.Services.Services
             var totalCount = await query.CountAsync();
 
             var pagedItems = await query
-                .Skip(page * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var list = await query
                 .Select(x => new ResponseSchoolShiftListByTicketIdMode
                 {
                     Id = x.Id,
@@ -150,9 +141,11 @@ namespace ShuttleMate.Services.Services
                     ShiftType = x.ShiftType.ToString().ToUpper(),
                     Time = x.Time,
                 })
+                .Skip(page * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return new BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>(list, totalCount, page, pageSize);
+            return new BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>(pagedItems, totalCount, page, pageSize);
         }
 
         public async Task<List<ResponseSchoolShiftListByTicketIdMode>> GetSchoolShiftListByTicketId(Guid ticketId)

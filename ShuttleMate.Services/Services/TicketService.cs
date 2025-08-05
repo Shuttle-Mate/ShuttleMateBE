@@ -91,7 +91,9 @@ namespace ShuttleMate.Services.Services
                 query = query.Where(x => x.Price <= upperBound);
             }
 
-            var tickets = await query
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
                 .Select(u => new TicketResponseModel
                 {
                     Id = u.Id,
@@ -107,16 +109,12 @@ namespace ShuttleMate.Services.Services
                         .OrderBy(x => x.StopOrder)
                         .FirstOrDefault()!.Stop.Name,
                     RunningTime = u.Route.RunningTime!
-               })
-                .ToListAsync();
-            var totalCount = await query.CountAsync();
-
-            var pagedItems = await query
+                })
                 .Skip(page * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            return new BasePaginatedList<TicketResponseModel>(tickets, totalCount, page, pageSize);
+            return new BasePaginatedList<TicketResponseModel>(pagedItems, totalCount, page, pageSize);
         }
         static string ConvertStatusToString(TicketTypeEnum status)
         {
