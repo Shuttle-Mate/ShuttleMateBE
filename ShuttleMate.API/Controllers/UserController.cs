@@ -3,6 +3,7 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.AuthModelViews;
+using ShuttleMate.ModelViews.UserDeviceModelView;
 using ShuttleMate.ModelViews.UserModelViews;
 
 namespace ShuttleMate.API.Controllers
@@ -12,9 +13,11 @@ namespace ShuttleMate.API.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
-        public UserController(IUserService userService)
+        private readonly IUserDeviceService _userDeviceService;
+        public UserController(IUserService userService, IUserDeviceService userDeviceService)
         {
             _userService = userService;
+            _userDeviceService = userDeviceService;
         }
         /// <summary>
         ///Rolename: STUDENT, PARENT, OPERATOR, DRIVER, SCHOOL
@@ -229,6 +232,20 @@ namespace ShuttleMate.API.Controllers
                  code: ResponseCodeConstants.SUCCESS,
                  message: "Xóa học sinh thành công!"
              ));
+        }
+        /// <summary>
+        /// Đăng ký thiết bị mobile
+        /// </summary>
+        [HttpPost("register-device")]
+        public async Task<IActionResult> RegisterDevice([FromBody] UserDeviceModel model)
+        {
+            await _userDeviceService.RegisterDeviceToken(model);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "Đăng ký thiết bị thành công!"
+            ));
         }
     }
 }
