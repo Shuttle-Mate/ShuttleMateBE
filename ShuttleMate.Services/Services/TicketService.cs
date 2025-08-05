@@ -49,9 +49,9 @@ namespace ShuttleMate.Services.Services
             .Include(u => u.Route)
             .ThenInclude(x => x.School)
             .AsQueryable();
-            if (!string.IsNullOrWhiteSpace(type))
+            if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse<TicketTypeEnum>(type, true, out var parsedType))
             {
-                query = query.Where(u => u.Type.ToString().ToUpper() == type);
+                query = query.Where(u => u.Type == parsedType);
             }
             if (routeId != null)
             {
@@ -100,7 +100,14 @@ namespace ShuttleMate.Services.Services
                     Type = u.Type.ToString().ToUpper(),
                     RouteId = u.RouteId,
                     Schoolname = u.Route.School.Name,
-                })
+                    GetOff = u.Route.RouteStops
+                        .OrderByDescending(x => x.StopOrder)
+                        .FirstOrDefault()!.Stop.Name,
+                    GetOn = u.Route.RouteStops
+                        .OrderBy(x => x.StopOrder)
+                        .FirstOrDefault()!.Stop.Name,
+                    RunningTime = u.Route.RunningTime!
+               })
                 .ToListAsync();
             var totalCount = await query.CountAsync();
 
@@ -115,7 +122,7 @@ namespace ShuttleMate.Services.Services
         {
             return status switch
             {
-                TicketTypeEnum.DAY_PASS => "Vé ngày",
+                //TicketTypeEnum.DAY_PASS => "Vé ngày",
                 TicketTypeEnum.MONTHLY => "Vé tháng",
                 TicketTypeEnum.WEEKLY => "Vé tuần",
                 //TicketTypeEnum.SINGLE_RIDE => "Vé 1 chiều",
@@ -166,19 +173,19 @@ namespace ShuttleMate.Services.Services
                 //    await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketSINGLE_RIDE);
                 //    await _unitOfWork.SaveAsync();
                 //    break;
-                case "DAY_PASS":
-                    var newTicketDAY_PASS = new Ticket
-                    {
-                        Id = Guid.NewGuid(),
-                        CreatedTime = DateTime.Now,
-                        Price = model.Price,
-                        RouteId = model.RouteId,
-                        Type = TicketTypeEnum.DAY_PASS,
-                        LastUpdatedTime = DateTime.Now,
-                    };
-                    await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketDAY_PASS);
-                    await _unitOfWork.SaveAsync();
-                    break;
+                //case "DAY_PASS":
+                //    var newTicketDAY_PASS = new Ticket
+                //    {
+                //        Id = Guid.NewGuid(),
+                //        CreatedTime = DateTime.Now,
+                //        Price = model.Price,
+                //        RouteId = model.RouteId,
+                //        //Type = TicketTypeEnum.DAY_PASS,
+                //        LastUpdatedTime = DateTime.Now,
+                //    };
+                //    await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketDAY_PASS);
+                //    await _unitOfWork.SaveAsync();
+                //    break;
                 case "WEEKLY":
                     var newTicketWEEKLY = new Ticket
                     {
@@ -255,9 +262,9 @@ namespace ShuttleMate.Services.Services
                 //case "SINGLE_RIDE":
                 //    ticket.Type = TicketTypeEnum.SINGLE_RIDE;
                 //    break;
-                case "DAY_PASS":
-                    ticket.Type = TicketTypeEnum.DAY_PASS;
-                    break;
+                //case "DAY_PASS":
+                //    ticket.Type = TicketTypeEnum.DAY_PASS;
+                //    break;
                 case "WEEKLY":
                     ticket.Type = TicketTypeEnum.WEEKLY;
                     break;

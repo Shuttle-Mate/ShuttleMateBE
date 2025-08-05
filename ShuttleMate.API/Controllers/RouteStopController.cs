@@ -3,9 +3,7 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.RouteStopModelViews;
-using ShuttleMate.ModelViews.ShuttleModelViews;
 using ShuttleMate.ModelViews.StopModelViews;
-using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
 {
@@ -30,10 +28,15 @@ namespace ShuttleMate.API.Controllers
                 message: "Gắn trạm dừng vào tuyến thành công!"
             ));
         }
+
         [HttpGet]
-        public async Task<IActionResult> GetStopWithRoute([FromQuery] GetRouteStopQuery req)
+        public async Task<IActionResult> GetStopWithRoute(
+            [FromQuery] double lat,
+            [FromQuery] double lng,
+            [FromQuery] GetRouteStopQuery req
+            )
         {
-            var res = await _routeStopService.SearchStopWithRoutes(req);
+            var res = await _routeStopService.SearchStopWithRoutes(lat, lng, req);
             return Ok(new BaseResponseModel<BasePaginatedList<StopWithRouteResponseModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,

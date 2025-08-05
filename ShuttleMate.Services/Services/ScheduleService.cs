@@ -277,14 +277,30 @@ namespace ShuttleMate.Services.Services
                 if (!TimeOnly.TryParse(timeStr, out var time))
                     throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Giờ khởi hành không hợp lệ: {timeStr}.");
 
-                var direction = schoolShift.ShiftType == ShiftTypeEnum.START
-                    ? GeneralEnum.RouteDirectionEnum.IN_BOUND
-                    : GeneralEnum.RouteDirectionEnum.OUT_BOUND;
+                var routeStops = route.RouteStops?.Where(rs => !rs.DeletedTime.HasValue).ToList();
+                var stopCount = routeStops?.Count ?? 0;
 
-                if (schoolShift.ShiftType == ShiftTypeEnum.START && time > schoolShift.Time)
+                int totalDuration = 0;
+                if (stopCount > 1)
                 {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                        $"Giờ khởi hành {timeStr} phải nhỏ hơn hoặc bằng giờ bắt đầu của ca ({GetSchoolShiftDescription(schoolShift)} lúc {schoolShift.Time}).");
+                    var durationSum = routeStops.Sum(rs => rs.Duration);
+                    totalDuration = durationSum + 300 * (stopCount - 1);
+                }
+
+                if (schoolShift.ShiftType == ShiftTypeEnum.START)
+                {
+                    if (time > schoolShift.Time)
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                            $"Giờ khởi hành {timeStr} phải nhỏ hơn hoặc bằng giờ bắt đầu của ca ({GetSchoolShiftDescription(schoolShift)} lúc {schoolShift.Time}).");
+                    }
+
+                    var timeDiffInSeconds = (schoolShift.Time.ToTimeSpan() - time.ToTimeSpan()).TotalSeconds;
+                    if (timeDiffInSeconds < totalDuration)
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                            $"Giờ khởi hành {timeStr} phải cách giờ bắt đầu ca ít nhất {totalDuration / 60} phút để kịp di chuyển.");
+                    }
                 }
 
                 else if (schoolShift.ShiftType == ShiftTypeEnum.END && time < schoolShift.Time)
@@ -293,6 +309,9 @@ namespace ShuttleMate.Services.Services
                         $"Giờ khởi hành {timeStr} phải lớn hơn hoặc bằng giờ kết thúc ca ({GetSchoolShiftDescription(schoolShift)} lúc {schoolShift.Time}).");
                 }
 
+                var direction = schoolShift.ShiftType == ShiftTypeEnum.START
+                    ? GeneralEnum.RouteDirectionEnum.IN_BOUND
+                    : GeneralEnum.RouteDirectionEnum.OUT_BOUND;
                 var days = scheduleDetail.DayOfWeeks.Select(d => d.DayOfWeek.Trim().ToUpper()).ToList();
                 var binaryDayOfWeek = ConvertToBinaryDayOfWeek(days);
 
@@ -302,6 +321,26 @@ namespace ShuttleMate.Services.Services
 
                     foreach (var existing in existingSchedules)
                     {
+                        if (existing.DriverId == scheduleDetail.DriverId &&
+                            existing.SchoolShiftId == schoolShift.Id &&
+                            existing.Direction == direction &&
+                            existing.DayOfWeek[dayIndex] == '1' &&
+                            existing.RouteId != model.RouteId)
+                        {
+                            throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                                $"Tài xế {driver.FullName} đã có ca ở tuyến {existing.Route.RouteName}.");
+                        }
+
+                        if (existing.DriverId == scheduleDetail.DriverId &&
+                            existing.SchoolShiftId == schoolShift.Id &&
+                            existing.Direction == direction &&
+                            existing.DayOfWeek[dayIndex] == '1' &&
+                            existing.RouteId != model.RouteId)
+                        {
+                            throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                                $"Xe {shuttle.Name} đã có ca ở tuyến {existing.Route.RouteName}.");
+                        }
+
                         if (existing.DriverId == scheduleDetail.DriverId &&
                             existing.SchoolShiftId == schoolShift.Id &&
                             existing.Direction == direction &&
@@ -397,6 +436,35 @@ namespace ShuttleMate.Services.Services
                 await _unitOfWork.GetRepository<Schedule>().InsertRangeAsync(newSchedules);
 
             await _stopEstimateService.CreateAsync(newSchedules, model.RouteId);
+
+            var allSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(s => s.RouteId == model.RouteId && !s.DeletedTime.HasValue);
+
+            if (allSchedules != null && allSchedules.Any())
+            {
+                var minTime = allSchedules.Min(s => s.DepartureTime);
+                var maxTime = allSchedules.Max(s => s.DepartureTime);
+
+                route.OperatingTime = $"{minTime:HH\\:mm} - {maxTime:HH\\:mm}";
+
+                var earliestSchedule = allSchedules.OrderBy(s => s.DepartureTime).FirstOrDefault();
+                if (earliestSchedule != null)
+                {
+                    var stopEstimates = await _unitOfWork.GetRepository<StopEstimate>().FindAllAsync(se =>
+                        se.ScheduleId == earliestSchedule.Id);
+
+                    if (stopEstimates != null && stopEstimates.Any())
+                    {
+                        var earliest = stopEstimates.Min(se => se.ExpectedTime);
+                        var latest = stopEstimates.Max(se => se.ExpectedTime);
+                        route.RunningTime = (latest - earliest).TotalSeconds.ToString();
+                    }
+                }
+
+                route.LastUpdatedBy = userId;
+                route.LastUpdatedTime = DateTime.UtcNow;
+
+                await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
+            }
 
             await _unitOfWork.SaveAsync();
         }
@@ -523,6 +591,36 @@ namespace ShuttleMate.Services.Services
             schedule.LastUpdatedTime = DateTime.UtcNow;
 
             await _stopEstimateService.UpdateAsync(new List<Schedule> { schedule }, schedule.RouteId);
+
+            //var allSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(s => s.RouteId == schedule.RouteId && !s.DeletedTime.HasValue);
+
+            //if (allSchedules != null && allSchedules.Any())
+            //{
+            //    var minTime = allSchedules.Min(s => s.DepartureTime);
+            //    var maxTime = allSchedules.Max(s => s.DepartureTime);
+
+            //    route.OperatingTime = $"{minTime:HH\\:mm} - {maxTime:HH\\:mm}";
+
+            //    var earliestSchedule = allSchedules.OrderBy(s => s.DepartureTime).FirstOrDefault();
+            //    if (earliestSchedule != null)
+            //    {
+            //        var stopEstimates = await _unitOfWork.GetRepository<StopEstimate>().FindAllAsync(se =>
+            //            se.ScheduleId == earliestSchedule.Id);
+
+            //        if (stopEstimates != null && stopEstimates.Any())
+            //        {
+            //            var earliest = stopEstimates.Min(se => se.ExpectedTime);
+            //            var latest = stopEstimates.Max(se => se.ExpectedTime);
+            //            route.RunningTime = (latest - earliest).TotalSeconds.ToString();
+            //        }
+            //    }
+
+            //    route.LastUpdatedBy = userId;
+            //    route.LastUpdatedTime = DateTime.UtcNow;
+
+            //    await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
+            //}
+
             await _unitOfWork.SaveAsync();
         }
 

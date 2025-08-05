@@ -111,6 +111,19 @@ namespace ShuttleMate.API.Controllers
                  data: res
              ));
         }
+        /// <summary>
+        /// HS/PH cập cập ca học(Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần)
+        /// </summary>
+        [HttpPatch("update-school-for-user")]
+        public async Task<IActionResult> UpdateSchoolForUser(Guid? id = null, UpdateSchoolForUserModel? model = null)
+        {
+            await _userService.UpdateSchoolForUser(id, model);
+            return Ok(new BaseResponseModel<string>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 message: "Cập nhật ca học thành công!"
+             ));
+        }
         [HttpPost("assign-role")]
         public async Task<IActionResult> AssignRole([FromBody] AssignUserRoleModel model)
         {
@@ -174,17 +187,17 @@ namespace ShuttleMate.API.Controllers
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetById(Guid userId)
         {
-            UserResponseModel res = await _userService.GetById(userId);
-            return Ok(new BaseResponseModel<UserResponseModel>(
+            UserInforModel res = await _userService.GetById(userId);
+            return Ok(new BaseResponseModel<UserInforModel>(
                  statusCode: StatusCodes.Status200OK,
                  code: ResponseCodeConstants.SUCCESS,
                  data: res
              ));
         }
         [HttpPatch]
-        public async Task<IActionResult> UpdateProfile(UpdateProfileModel model)
+        public async Task<IActionResult> UpdateProfile(Guid? userId = null, UpdateProfileModel model = null)
         {
-            await _userService.UpdateProfiel(model);
+            await _userService.UpdateProfiel(userId, model);
             return Ok(new BaseResponseModel<string>(
                  statusCode: StatusCodes.Status200OK,
                  code: ResponseCodeConstants.SUCCESS,

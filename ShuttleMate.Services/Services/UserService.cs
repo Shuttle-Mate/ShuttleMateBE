@@ -13,6 +13,7 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.AuthModelViews;
 using ShuttleMate.ModelViews.SchoolModelView;
+using ShuttleMate.ModelViews.SchoolShiftModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using System.Numerics;
@@ -93,7 +94,6 @@ namespace ShuttleMate.Services.Services
                 await _emailService.SendEmailAsync(user.Email, "Thông báo từ ShuttleMate", $"Phụ huynh đã xóa bạn khỏi khỏi danh sách học sinh!</div>");
             }
         }
-
         public async Task CreateUserAdmin(CreateUserAdminModel model)
         {
             // Kiểm tra user co tồn tại
@@ -291,12 +291,12 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy ca học!");
             }
             //điều kiện hs trong cùng 1 ca học
-            query = query.Where(x=>x.UserSchoolShifts.Any(x=> x.SchoolShiftId == schoolShiftId  
+            query = query.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId
             && !x.DeletedTime.HasValue));
             //điều kiện học sinh có vé tuyến đường này và vé còn thời gian hiệu lực
-            query = query.Where(x => x.HistoryTickets.Any(y => y.Ticket.RouteId == routeId 
+            query = query.Where(x => x.HistoryTickets.Any(y => y.Ticket.RouteId == routeId
             && y.Ticket.Route.IsActive == true
-            && y.ValidUntil >= DateOnly.FromDateTime(DateTime.Now) 
+            && y.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
             && y.Status == HistoryTicketStatus.PAID
             && !y.DeletedTime.HasValue));
 
@@ -314,7 +314,7 @@ namespace ShuttleMate.Services.Services
                     PhoneNumber = u.PhoneNumber,
                     SchoolName = u.School.Name,
                     HistoryTicketId = u.HistoryTickets.
-                    FirstOrDefault(x=>x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
+                    FirstOrDefault(x => x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
                     && x.Ticket.RouteId == routeId
                     && x.Ticket.Route.IsActive == true
                     && x.Status == HistoryTicketStatus.PAID
@@ -374,7 +374,7 @@ namespace ShuttleMate.Services.Services
                 .Select(u => new AdminResponseUserModel
                 {
                     Id = u.Id,
-                    RoleName = u.UserRoles.Select(ur => ur.Role.Name).FirstOrDefault().ToUpper(),
+                    RoleName = u.UserRoles.Select(ur => ur.Role.Name).FirstOrDefault()!.ToUpper(),
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
@@ -387,7 +387,7 @@ namespace ShuttleMate.Services.Services
                     ParentName = u.Parent.FullName,
                     SchoolName = u.School.Name,
                     PhoneNumber = u.PhoneNumber,
-                    
+
                 })
                 .ToListAsync();
             var totalCount = await query.CountAsync();
@@ -398,6 +398,124 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
             return new BasePaginatedList<AdminResponseUserModel>(users, totalCount, page, pageSize);
         }
+        public async Task UpdateSchoolForUser(Guid? id = null, UpdateSchoolForUserModel? model = null)
+        {
+            // Lấy userId từ HttpContext
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            Guid.TryParse(userId, out Guid cb);
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
+            // Check if current time is within allowed period (7PM Sat to 5PM Sun)
+            var dayOfWeek = vietnamNow.DayOfWeek;
+            var currentTime = vietnamNow.TimeOfDay;
+
+            bool isAllowedTime = false;
+
+            // Saturday case
+            if (dayOfWeek == DayOfWeek.Saturday && currentTime >= new TimeSpan(19, 0, 0))
+            {
+                isAllowedTime = true;
+            }
+            // Sunday case
+            else if (dayOfWeek == DayOfWeek.Sunday && currentTime <= new TimeSpan(17, 0, 0))
+            {
+                isAllowedTime = true;
+            }
+
+            if (!isAllowedTime)
+            {
+                throw new ErrorException(StatusCodes.Status403Forbidden, ErrorCode.Forbidden,
+                    "Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần");
+            }
+
+            if (id != null)
+            {
+                User user = await _unitOfWork.GetRepository<User>()
+                    .Entities.FirstOrDefaultAsync(x => x.Id == id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
+                School school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model!.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường!");
+
+                user.SchoolId = school.Id;
+                user.LastUpdatedTime = vietnamNow;
+
+                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+
+                List<Guid> listSchoolShift = new List<Guid>();
+                //Check xem đúng hết chưa 
+                foreach (var schoolShiftId in model.SchoolShifts!)
+                {
+                    var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
+                    listSchoolShift.Add(schoolShift.Id);
+                }
+                //xóa userShift
+                var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
+                if (userShift != null)
+                {
+                    foreach (var del in userShift)
+                    {
+                        await _unitOfWork.GetRepository<UserSchoolShift>().DeleteAsync(del);
+                    }
+                    await _unitOfWork.SaveAsync();
+                }
+                //Add vào 
+                foreach (var schoolShiftId in listSchoolShift)
+                {
+                    var userShiftNew = new UserSchoolShift
+                    {
+                        Id = Guid.NewGuid(),
+                        SchoolShiftId = schoolShiftId,
+                        StudentId = user.Id,
+                        CreatedTime = vietnamNow,
+                        LastUpdatedTime = vietnamNow
+                    };
+                    await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
+                }
+            }
+            else
+            {
+                User user = await _unitOfWork.GetRepository<User>()
+                    .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
+                School school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model!.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường!");
+
+                user.SchoolId = school.Id;
+                user.LastUpdatedTime = vietnamNow;
+
+                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+
+                List<Guid> listSchoolShift = new List<Guid>();
+                //Check xem đúng hết chưa 
+                foreach (var schoolShiftId in model!.SchoolShifts!)
+                {
+                    var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
+                    listSchoolShift.Add(schoolShift.Id);
+                }
+                //xóa userShift
+                var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
+                if (userShift != null)
+                {
+                    foreach (var del in userShift)
+                    {
+                        await _unitOfWork.GetRepository<UserSchoolShift>().DeleteAsync(del);
+                    }
+                    await _unitOfWork.SaveAsync();
+                }
+                //Add vào 
+                foreach (var schoolShiftId in listSchoolShift)
+                {
+                    var userShiftNew = new UserSchoolShift
+                    {
+                        Id = Guid.NewGuid(),
+                        SchoolShiftId = schoolShiftId,
+                        StudentId = user.Id,
+                        CreatedTime = vietnamNow,
+                        LastUpdatedTime = vietnamNow
+                    };
+                    await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
+                }
+            }
+            await _unitOfWork.SaveAsync();
+        }
         public async Task<UserInforModel> GetInfor()
         {
             // Lấy userId từ HttpContext
@@ -405,10 +523,108 @@ namespace ShuttleMate.Services.Services
 
             Guid.TryParse(userId, out Guid cb);
 
-
             // Lấy thông tin người dùng
-            User user = await _unitOfWork.GetRepository<User>()
+            User? user = await _unitOfWork.GetRepository<User>()
                 .Entities.FirstOrDefaultAsync(x => x.Id == cb);
+
+            // Lấy thông tin trường học (nếu có)
+            SchoolResponse? schoolResponse = null;
+
+            var school = await _unitOfWork.GetRepository<School>()
+                .Entities.Include(x => x.SchoolShifts)
+                .FirstOrDefaultAsync(x => x.Id == user.SchoolId);
+
+            if (school != null)
+            {
+                schoolResponse = new SchoolResponse
+                {
+                    Id = school.Id,
+                    Name = school.Name,
+                    Address = school.Address,
+                    PhoneNumber = school.PhoneNumber,
+                    Email = school.Email,
+                    schoolShiftResponses = school.SchoolShifts?.Select(x => new SchoolShiftResponse
+                    {
+                        Id = x.Id,
+                        Time = x.Time,
+                        ShiftType = x.ShiftType.ToString().ToUpper(),
+                        SessionType = x.SessionType.ToString().ToUpper()
+                    }).ToList()!
+                };
+            }
+
+            // Lấy thông tin parent (nếu có)
+            ParentResponse? parentResponse = null;
+            if (user!.ParentId != null)
+            {
+                var parent = await _unitOfWork.GetRepository<User>()
+                    .Entities.FirstOrDefaultAsync(x => x.Id == user.ParentId);
+                if (parent != null)
+                {
+                    parentResponse = new ParentResponse
+                    {
+                        Id = parent.Id,
+                        Address = parent.Address,
+                        DateOfBirth = parent.DateOfBirth,
+                        Email = parent.Email,
+                        FullName = parent.FullName,
+                        Gender = parent.Gender,
+                        PhoneNumber = parent.PhoneNumber,
+                        ProfileImageUrl = parent.ProfileImageUrl!
+                    };
+                }
+            }
+            // Lấy danh sách children (nếu có)
+            var children = new List<ChildResponse>();
+
+            var childUsers = await _unitOfWork.GetRepository<User>()
+                .Entities.Where(x => x.ParentId == user.Id).ToListAsync();
+            if (childUsers != null)
+            {
+                foreach (var child in childUsers)
+                {
+
+                    // Lấy thông tin trường học (nếu có)
+                    SchoolResponse? childSchoolResponse = null;
+
+                    var childSchool = await _unitOfWork.GetRepository<School>()
+                        .Entities.Include(x => x.SchoolShifts)
+                        .FirstOrDefaultAsync(x => x.Id == child.SchoolId);
+
+                    if (childSchool != null)
+                    {
+                        childSchoolResponse = new SchoolResponse
+                        {
+                            Id = childSchool.Id,
+                            Name = childSchool.Name,
+                            Address = childSchool.Address,
+                            PhoneNumber = childSchool.PhoneNumber,
+                            Email = childSchool.Email,
+                            schoolShiftResponses = childSchool.SchoolShifts?.Select(x => new SchoolShiftResponse
+                            {
+                                Id = x.Id,
+                                Time = x.Time,
+                                ShiftType = x.ShiftType.ToString().ToUpper(),
+                                SessionType = x.SessionType.ToString().ToUpper()
+                            }).ToList()!
+                        };
+                    }
+                    children.Add(new ChildResponse
+                    {
+                        Id = child.Id,
+                        Address = child.Address,
+                        DateOfBirth = child.DateOfBirth,
+                        Email = child.Email,
+                        FullName = child.FullName,
+                        Gender = child.Gender,
+                        PhoneNumber = child.PhoneNumber,
+                        ProfileImageUrl = child.ProfileImageUrl!,
+                        School = childSchoolResponse
+                    });
+                }
+            }
+
+
             UserInforModel inforModel = new UserInforModel
             {
                 Id = user.Id,
@@ -418,19 +634,120 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
-                ProfileImageUrl = _supabaseService.GetPublicUrl(user.ProfileImageUrl),
-
+                ProfileImageUrl = user.ProfileImageUrl!,
+                Parent = parentResponse,
+                Childs = children,
+                School = schoolResponse!,
+                RoleName = user.UserRoles.FirstOrDefault(x => !x.Role.DeletedTime.HasValue)!.Role.Name.ToUpper(),
             };
             return inforModel;
         }
-        public async Task<UserResponseModel> GetById(Guid userId)
+        public async Task<UserInforModel> GetById(Guid userId)
         {
 
             // Lấy thông tin người dùng
             User user = await _unitOfWork.GetRepository<User>()
                 .Entities.FirstOrDefaultAsync(x => x.Id == userId) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại!");
 
-            UserResponseModel inforModel = new UserResponseModel
+            // Lấy thông tin trường học (nếu có)
+            SchoolResponse? schoolResponse = null;
+
+            var school = await _unitOfWork.GetRepository<School>()
+                .Entities.Include(x => x.SchoolShifts)
+                .FirstOrDefaultAsync(x => x.Id == user.SchoolId);
+
+            if (school != null)
+            {
+                schoolResponse = new SchoolResponse
+                {
+                    Id = school.Id,
+                    Name = school.Name,
+                    Address = school.Address,
+                    PhoneNumber = school.PhoneNumber,
+                    Email = school.Email,
+                    schoolShiftResponses = school.SchoolShifts?.Select(x => new SchoolShiftResponse
+                    {
+                        Id = x.Id,
+                        Time = x.Time,
+                        ShiftType = x.ShiftType.ToString().ToUpper(),
+                        SessionType = x.SessionType.ToString().ToUpper()
+                    }).ToList()!
+                };
+            }
+
+            // Lấy thông tin parent (nếu có)
+            ParentResponse? parentResponse = null;
+            if (user!.ParentId != null)
+            {
+                var parent = await _unitOfWork.GetRepository<User>()
+                    .Entities.FirstOrDefaultAsync(x => x.Id == user.ParentId);
+                if (parent != null)
+                {
+                    parentResponse = new ParentResponse
+                    {
+                        Id = parent.Id,
+                        Address = parent.Address,
+                        DateOfBirth = parent.DateOfBirth,
+                        Email = parent.Email,
+                        FullName = parent.FullName,
+                        Gender = parent.Gender,
+                        PhoneNumber = parent.PhoneNumber,
+                        ProfileImageUrl = parent.ProfileImageUrl!
+                    };
+                }
+            }
+            // Lấy danh sách children (nếu có)
+            var children = new List<ChildResponse>();
+
+            var childUsers = await _unitOfWork.GetRepository<User>()
+                .Entities.Where(x => x.ParentId == user.Id).ToListAsync();
+            if (childUsers != null)
+            {
+                foreach (var child in childUsers)
+                {
+
+                    // Lấy thông tin trường học (nếu có)
+                    SchoolResponse? childSchoolResponse = null;
+
+                    var childSchool = await _unitOfWork.GetRepository<School>()
+                        .Entities.Include(x => x.SchoolShifts)
+                        .FirstOrDefaultAsync(x => x.Id == child.SchoolId);
+
+                    if (childSchool != null)
+                    {
+                        childSchoolResponse = new SchoolResponse
+                        {
+                            Id = childSchool.Id,
+                            Name = childSchool.Name,
+                            Address = childSchool.Address,
+                            PhoneNumber = childSchool.PhoneNumber,
+                            Email = childSchool.Email,
+                            schoolShiftResponses = childSchool.SchoolShifts?.Select(x => new SchoolShiftResponse
+                            {
+                                Id = x.Id,
+                                Time = x.Time,
+                                ShiftType = x.ShiftType.ToString().ToUpper(),
+                                SessionType = x.SessionType.ToString().ToUpper()
+                            }).ToList()!
+                        };
+                    }
+                    children.Add(new ChildResponse
+                    {
+                        Id = child.Id,
+                        Address = child.Address,
+                        DateOfBirth = child.DateOfBirth,
+                        Email = child.Email,
+                        FullName = child.FullName,
+                        Gender = child.Gender,
+                        PhoneNumber = child.PhoneNumber,
+                        ProfileImageUrl = child.ProfileImageUrl!,
+                        School = childSchoolResponse
+                    });
+                }
+            }
+
+
+            UserInforModel inforModel = new UserInforModel
             {
                 Id = user.Id,
                 Address = user.Address,
@@ -439,8 +756,11 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
-                ProfileImageUrl = _supabaseService.GetPublicUrl(user.ProfileImageUrl),
-                RoleName = user.UserRoles.FirstOrDefault().Role.Name.ToUpper()
+                ProfileImageUrl = user.ProfileImageUrl!,
+                Parent = parentResponse,
+                Childs = children,
+                School = schoolResponse!,
+                RoleName = user.UserRoles.FirstOrDefault(x => !x.Role.DeletedTime.HasValue)!.Role.Name.ToUpper(),
             };
             return inforModel;
         }
@@ -516,18 +836,37 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.SaveAsync();
         }
-        public async Task UpdateProfiel(UpdateProfileModel model)
+        public async Task UpdateProfiel(Guid? id, UpdateProfileModel model)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             Guid.TryParse(userId, out Guid cb);
-
-
-            User user = await _unitOfWork.GetRepository<User>()
-         .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
-            User school = await _unitOfWork.GetRepository<User>()
-         .Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && x.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() == "SCHOOL" && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Trường học không tồn tại!");
+            if (id != null)
+            {
+                User user = await _unitOfWork.GetRepository<User>()
+                    .Entities.FirstOrDefaultAsync(x => x.Id == id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
+                user.FullName = model.FullName;
+                user.PhoneNumber = model.PhoneNumber;
+                user.Gender = model.Gender;
+                user.Address = model.Address;
+                user.DateOfBirth = model.DateOfBirth;
+                user.ProfileImageUrl = model.ProfileImageUrl;
+                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+            }
+            else
+            {
+                User user = await _unitOfWork.GetRepository<User>()
+                    .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
+                user.FullName = model.FullName;
+                user.PhoneNumber = model.PhoneNumber;
+                user.Gender = model.Gender;
+                user.Address = model.Address;
+                user.DateOfBirth = model.DateOfBirth;
+                user.ProfileImageUrl = model.ProfileImageUrl;
+                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+            }
+            await _unitOfWork.SaveAsync();
 
             //if (model.FullName.Length < 8)
             //{
@@ -548,16 +887,6 @@ namespace ShuttleMate.Services.Services
             //{
             //    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Địa chỉ không được để trống!!");
             //}
-
-            user.FullName = model.FullName;
-            user.PhoneNumber = model.PhoneNumber;
-            user.Gender = model.Gender;
-            user.Address = model.Address;
-            user.DateOfBirth = model.DateOfBirth;
-            user.ProfileImageUrl = model.ProfileImageUrl;
-            user.SchoolId = model.SchoolId;
-            await _unitOfWork.GetRepository<User>().UpdateAsync(user);
-            await _unitOfWork.SaveAsync();
         }
         public async Task<string> BlockUserForAdmin(BlockUserForAdminModel model)
         {

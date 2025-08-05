@@ -11,13 +11,14 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task AssignUserToRoleAsync(Guid userId, Guid roleId);
         Task<UserInforModel> GetInfor();
         Task RemoveUserToRoleAsync(Guid userId);
-        Task UpdateProfiel(UpdateProfileModel model);
+        Task UpdateProfiel(Guid? userId, UpdateProfileModel model);
         Task<BasePaginatedList<AdminResponseUserModel>> GetAllAsync(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null);
         Task<BasePaginatedList<ResponseStudentInRouteAndShiftModel>> GetStudentInRouteAndShift(int page = 0, int pageSize = 10, Guid? routeId = null, Guid? schoolShiftId = null);
         Task AssignParent(AssignParentModel model);
         Task AssignParentForParent(AssignParentForStudentModel model);
         Task CreateUserAdmin(CreateUserAdminModel model);
-        Task<UserResponseModel> GetById(Guid userId);
+        Task UpdateSchoolForUser(Guid? id = null, UpdateSchoolForUserModel? model = null);
+        Task<UserInforModel> GetById(Guid userId);
         Task<IEnumerable<ReponseYourChild>> GetYourChild(Guid Id);
         Task RemoveParent();
         Task RemoveStudent(RemoveStudentModel model);

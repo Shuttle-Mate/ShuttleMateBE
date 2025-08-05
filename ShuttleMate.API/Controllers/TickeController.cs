@@ -23,7 +23,7 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy tất cả các vé.
         /// </summary>
-        /// <param name="type">Loại vé(DAY_PASS, WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO)(tuỳ chọn).</param>
+        /// <param name="type">Loại vé(WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO)(tuỳ chọn).</param>
         /// <param name="search">Tìm theo RouteName, RouteCode, SchoolName (tuỳ chọn).</param>
         /// <param name="price">Sắp xếp theo giá: true là tăng dần, false là giảm dần (tuỳ chọn).</param>
         /// <param name="lowerBound">Cận dưới: khi chỉ có một cận thì >= nó, khi có hai cận thì >= nó và bé hơn hoặc = cận trên (tuỳ chọn).</param>
@@ -55,7 +55,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Type(SINGLE_RIDE, DAY_PASS, WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO)
+        /// Type(WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO)
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateTicket(CreateTicketModel model)
