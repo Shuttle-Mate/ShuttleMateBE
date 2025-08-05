@@ -234,6 +234,7 @@ namespace ShuttleMate.API
             services.AddScoped<IFirebaseService, FirebaseService>();
             services.AddScoped<IChatService, ChatService>();
             services.AddScoped<ISupabaseService, SupabaseService>();
+            services.AddScoped<IUserDeviceService, UserDeviceService>();
         }
 
         public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)
