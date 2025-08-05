@@ -148,6 +148,8 @@ namespace ShuttleMate.Services.Services
         }
         public async Task CreateTicket(CreateTicketModel model)
         {
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             if (model.Price <= 0)
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Giá loại vé phải lớn hơn 0!");
@@ -188,11 +190,11 @@ namespace ShuttleMate.Services.Services
                     var newTicketWEEKLY = new Ticket
                     {
                         Id = Guid.NewGuid(),
-                        CreatedTime = DateTime.Now,
+                        CreatedTime = vietnamNow,
                         Price = model.Price,
                         RouteId = model.RouteId,
                         Type = TicketTypeEnum.WEEKLY,
-                        LastUpdatedTime = DateTime.Now,
+                        LastUpdatedTime = vietnamNow,
                     };
                     await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketWEEKLY);
                     await _unitOfWork.SaveAsync();
@@ -201,11 +203,11 @@ namespace ShuttleMate.Services.Services
                     var newTicketMONTHLY = new Ticket
                     {
                         Id = Guid.NewGuid(),
-                        CreatedTime = DateTime.Now,
+                        CreatedTime = vietnamNow,
                         Price = model.Price,
                         RouteId = model.RouteId,
                         Type = TicketTypeEnum.MONTHLY,
-                        LastUpdatedTime = DateTime.Now,
+                        LastUpdatedTime = vietnamNow,
                     };
                     await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketMONTHLY);
                     await _unitOfWork.SaveAsync();
@@ -214,11 +216,11 @@ namespace ShuttleMate.Services.Services
                     var newTicketSEMESTER_ONE = new Ticket
                     {
                         Id = Guid.NewGuid(),
-                        CreatedTime = DateTime.Now,
+                        CreatedTime = vietnamNow,
                         Price = model.Price,
                         RouteId = model.RouteId,
                         Type = TicketTypeEnum.SEMESTER_ONE,
-                        LastUpdatedTime = DateTime.Now,
+                        LastUpdatedTime = vietnamNow,
                     };
                     await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketSEMESTER_ONE);
                     await _unitOfWork.SaveAsync();
@@ -227,11 +229,11 @@ namespace ShuttleMate.Services.Services
                     var newTicketSEMESTER_TWO = new Ticket
                     {
                         Id = Guid.NewGuid(),
-                        CreatedTime = DateTime.Now,
+                        CreatedTime = vietnamNow,
                         Price = model.Price,
                         RouteId = model.RouteId,
                         Type = TicketTypeEnum.SEMESTER_TWO,
-                        LastUpdatedTime = DateTime.Now,
+                        LastUpdatedTime = vietnamNow,
                     };
                     await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketSEMESTER_TWO);
                     await _unitOfWork.SaveAsync();

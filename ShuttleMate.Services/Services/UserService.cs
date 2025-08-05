@@ -99,7 +99,8 @@ namespace ShuttleMate.Services.Services
             // Kiểm tra user co tồn tại
             var user = await _unitOfWork.GetRepository<User>().Entities
                 .FirstOrDefaultAsync(x => x.Email == model.Email && !x.DeletedTime.HasValue);
-
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             // Kiểm tra xác nhận mật khẩu
             if (user != null)
             {
@@ -205,8 +206,8 @@ namespace ShuttleMate.Services.Services
                         IsActive = true,
                         Name = model.Name,
                         PhoneNumber = model.PhoneNumber,
-                        CreatedTime = DateTime.Now,
-                        LastUpdatedTime = DateTime.Now,
+                        CreatedTime = vietnamNow,
+                        LastUpdatedTime = vietnamNow,
                     };
                     newUser.SchoolId = school.Id;
                     // Thêm người dùng  vào cơ sở dữ liệu
