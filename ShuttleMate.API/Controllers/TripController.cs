@@ -51,9 +51,9 @@ namespace ShuttleMate.API.Controllers
         /// tài xế kết thúc chuyến đi
         /// </summary>
         [HttpPatch("end")]
-        public async Task<IActionResult> CheckOut(Guid tripId)
+        public async Task<IActionResult> EndTrip(Guid tripId, Guid routeId, Guid schoolShiftId)
         {
-            await _tripService.EndTrip(tripId);
+            await _tripService.EndTrip(tripId, routeId, schoolShiftId);
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
