@@ -11,13 +11,13 @@ namespace ShuttleMate.ModelViews.TicketTypeModelViews
     {
         public Guid Id { get; set; }
 
-        public string RouteName { get; set; }
-        public string Schoolname { get; set; }
-        public string Type { get; set; }
-        public decimal Price { get; set; }
-        public string GetOn {  get; set; }
-        public string GetOff { get; set; }
-        public string RunningTime { get; set; }
+        public string? RouteName { get; set; }
+        public string? Schoolname { get; set; }
+        public string? Type { get; set; }
+        public decimal? Price { get; set; }
+        public string? GetOn {  get; set; }
+        public string? GetOff { get; set; }
+        public string? RunningTime { get; set; }
         public Guid RouteId { get; set; }
     }
 }
