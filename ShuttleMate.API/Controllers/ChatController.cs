@@ -19,7 +19,17 @@ public class ChatController : ControllerBase
     {
         _chatService = chatService;
     }
+    [HttpGet("history/{userId}")]
+    public async Task<IActionResult> GetAndCleanChatHistory(Guid userId)
+    {
+        var response = await _chatService.GetAndCleanChatHistory(userId);
 
+        return Ok(new BaseResponseModel<List<ChatHistoryResponse>>(
+            statusCode: StatusCodes.Status200OK,
+            code: ResponseCodeConstants.SUCCESS,
+            data: response
+        ));
+    }
     [HttpPost("send")]
     public async Task<IActionResult> SendMessage([FromBody] ChatRequest model)
     {
@@ -30,5 +40,6 @@ public class ChatController : ControllerBase
             code: ResponseCodeConstants.SUCCESS,
             data: response
         ));
-    }  
+    }
+
 }
