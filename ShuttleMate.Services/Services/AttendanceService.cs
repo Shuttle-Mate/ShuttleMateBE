@@ -224,9 +224,7 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy ca học!");
             }
-            //điều kiện hs trong cùng 1 ca học
             userQuery = userQuery.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == req.schoolShiftId && !x.DeletedTime.HasValue));
-            //điều kiện học sinh có vé tuyến đường này và vé còn thời gian hiệu lực
             userQuery = userQuery.Where(x => x.HistoryTickets.Any(x => x.Ticket.Route.Id == req.routeId
             && x.Ticket.Route.IsActive == true
             && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
@@ -254,6 +252,7 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
 
             var listCheckin = await _unitOfWork.GetRepository<Attendance>().Entities
+                .Include(x => x.HistoryTicket)
                 .Where(x => !x.DeletedTime.HasValue
                         && x.TripId == req.tripId)
                 .ToListAsync();
@@ -261,12 +260,12 @@ namespace ShuttleMate.Services.Services
             //lấy danh sách absent
             // Tạo danh sách các HistoryTicketId đã check-in
             var checkedInHistoryTicketIds = listCheckin
-                .Select(x => x.HistoryTicketId)
+                .Select(x => x.HistoryTicket.UserId)
                 .ToHashSet(); // Tối ưu tìm kiếm O(1)
 
             // Lọc danh sách học sinh chưa check-in
             var listAbsent = listStudent
-                .Where(student => !checkedInHistoryTicketIds.Contains(student.HistoryTicketId));
+                .Where(student => !checkedInHistoryTicketIds.Contains(student.Id));
 
             var totalCount = listAbsent.Count();
 
