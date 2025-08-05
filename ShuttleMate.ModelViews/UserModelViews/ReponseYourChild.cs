@@ -9,7 +9,7 @@ namespace ShuttleMate.ModelViews.UserModelViews
     public class ReponseYourChild
     {
         public Guid Id { get; set; }
-        public string FullName { get; set; }
-        public bool Gender { get; set; }    
+        public string? FullName { get; set; }
+        public bool? Gender { get; set; }    
     }
 }

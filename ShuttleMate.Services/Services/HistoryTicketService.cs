@@ -123,6 +123,7 @@ namespace ShuttleMate.Services.Services
                     RouteName = u.Ticket.Route.RouteName,
                     Ticket = u.Ticket.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
+                    BuyerName = u.User.FullName,
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)
@@ -196,7 +197,7 @@ namespace ShuttleMate.Services.Services
                      RouteName = u.Ticket.Route.RouteName,
                      Ticket = u.Ticket.Type.ToString().ToUpper(),
                      OrderCode = u.Transaction.OrderCode,
-                     ChildName = u.User.FullName,
+                     BuyerName = u.User.FullName,
 
                  })
                 .Skip(page * pageSize)
@@ -267,6 +268,7 @@ namespace ShuttleMate.Services.Services
                     Ticket = u.Ticket.Type.ToString().ToUpper(),
                     FullNameOfUser = u.User.FullName,
                     OrderCode = u.Transaction.OrderCode,
+                    BuyerName = u.User.FullName
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)

@@ -11,15 +11,16 @@ namespace ShuttleMate.ModelViews.HistoryTicketModelView
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
-        public int OrderCode { get; set; }
-        public string FullNameOfUser { get; set; }
+        public int? OrderCode { get; set; }
+        public string? FullNameOfUser { get; set; }
         public Guid TicketId { get; set; }
-        public string RouteName { get; set; }
-        public decimal Price { get; set; }
-        public string Ticket { get; set; }
-        public DateTime PurchaseAt { get; set; }
-        public DateOnly ValidFrom { get; set; }
-        public DateOnly ValidUntil { get; set; }
-        public string Status { get; set; }
+        public string? RouteName { get; set; }
+        public decimal? Price { get; set; }
+        public string? Ticket { get; set; }
+        public DateTime? PurchaseAt { get; set; }
+        public DateOnly? ValidFrom { get; set; }
+        public DateOnly? ValidUntil { get; set; }
+        public string? BuyerName { get; set; }
+        public string? Status { get; set; }
     }
 }
