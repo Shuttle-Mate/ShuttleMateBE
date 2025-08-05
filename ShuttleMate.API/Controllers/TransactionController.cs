@@ -22,18 +22,19 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy tất cả các giao dịch của chính mình(người dùng)
         /// </summary>
-        /// <param name="paymentMethodEnum">Loại thanh toán lần lượt là PayOs = 0, VNPay = 1</param>
-        /// <param name="paymentStatus">trạng thái lần lượt là Unpaid = 0, Paid = 1, Refunded = 2, Canceled = 3</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
+        /// <param name="paymentStatus">trạng thái lần lượt là UNPAID, PAID, REFUNDED, CANCELED</param>
         /// <param name="orderCode">mã của giao dịch</param>
-        /// <param name="CreateTime">true là tăng dần, false là giảm dần</param>
+        /// <param name="createTime">true là tăng dần, false là giảm dần</param>
         /// <param name="description">mô tả</param>
 
         [HttpGet("my")]
-        public async Task<IActionResult> GetAllForUserAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? createTime = null)
+        public async Task<IActionResult> GetAllForUserAsync(int page = 0, int pageSize = 10, string? paymentStatus = null, int? orderCode = null, string? description = null, bool? createTime = null)
         {
-            var transactions = await _transactionService.GetAllForUserAsync(paymentMethodEnum, paymentStatus, orderCode, description, createTime);
+            var transactions = await _transactionService.GetAllForUserAsync(page,pageSize, paymentStatus, orderCode, description, createTime);
 
-            return Ok(new BaseResponseModel<IEnumerable<TransactionResponseModel>>(
+            return Ok(new BaseResponseModel<BasePaginatedList<TransactionResponseModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: transactions
@@ -53,18 +54,19 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy tất cả các giao dịch(Admin)
         /// </summary>
-        /// <param name="paymentMethodEnum">Loại thanh toán lần lượt là PayOs = 0, VNPay = 1</param>
-        /// <param name="paymentStatus">trạng thái lần lượt là Unpaid = 0, Paid = 1, Refunded = 2, Canceled = 3</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
+        /// <param name="paymentStatus">trạng thái lần lượt là UNPAID, PAID, REFUNDED, CANCELED</param>
         /// <param name="orderCode">mã của giao dịch</param>
-        /// <param name="CreateTime">true là tăng dần, false là giảm dần</param>
+        /// <param name="createTime">true là tăng dần, false là giảm dần</param>
         /// <param name="description">mô tả</param>
 
         [HttpGet]
-        public async Task<IActionResult> GetAllForAdminAsync(PaymentMethodEnum? paymentMethodEnum, PaymentStatus? paymentStatus = null, int? orderCode = null, string? description = null, bool? createTime = null)
+        public async Task<IActionResult> GetAllForAdminAsync(int page = 0, int pageSize = 10,  string? paymentStatus = null, int? orderCode = null, string? description = null, bool? createTime = null)
         {
-            var transactions = await _transactionService.GetAllForAdminAsync(paymentMethodEnum, paymentStatus, orderCode, description, createTime);
+            var transactions = await _transactionService.GetAllForAdminAsync(page,pageSize, paymentStatus, orderCode, description, createTime);
 
-            return Ok(new BaseResponseModel<IEnumerable<TransactionAdminResponseModel>>(
+            return Ok(new BaseResponseModel<BasePaginatedList<TransactionAdminResponseModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: transactions

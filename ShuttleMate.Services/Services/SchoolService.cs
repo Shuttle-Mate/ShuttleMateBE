@@ -230,11 +230,6 @@ namespace ShuttleMate.Services.Services
             var totalCount = await query.CountAsync();
 
             var pagedItems = await query
-                .Skip(page * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var routes = await query
                 .Select(u => new RouteToSchoolResponseModel
                 {
                     OutBound = u.OutBound,
@@ -248,11 +243,13 @@ namespace ShuttleMate.Services.Services
                     RunningTime = u.RunningTime,
                     SchoolId = u.SchoolId,
                     SchoolName = u.School.Name,
-                    TotalDistance = u.TotalDistance,                 
+                    TotalDistance = u.TotalDistance,
                 })
+                .Skip(page * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return new BasePaginatedList<RouteToSchoolResponseModel>(routes, totalCount, page, pageSize);
+            return new BasePaginatedList<RouteToSchoolResponseModel>(pagedItems, totalCount, page, pageSize);
         }
         public async Task AssignSchoolForManager(AssignSchoolForManagerModel model)
         {

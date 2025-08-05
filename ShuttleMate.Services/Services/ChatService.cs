@@ -4,7 +4,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
@@ -12,15 +16,13 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.ChatModelView;
 using ShuttleMate.Services.Services.Infrastructure;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Threading.Tasks;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
-
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
+using System.Net;
 namespace ShuttleMate.Services.Services
 {
     public class ChatService : IChatService
@@ -31,22 +33,70 @@ namespace ShuttleMate.Services.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IEmailService _emailService;
         private readonly HttpClient _httpClient;
-        private string _apiKey;
+        private readonly string _apiKey;
         private string _modelUrl;
+        private readonly ILogger<ChatService> _logger;
+        private readonly AsyncPolicy<ChatResponse> _retryPolicy;
+        private readonly AsyncPolicy<ChatResponse> _circuitBreaker;
+        private readonly IAsyncPolicy<ChatResponse> _policyWrap;
+        public ChatService(
+                IUnitOfWork unitOfWork,
+                IMapper mapper,
+                IConfiguration configuration,
+                IHttpContextAccessor contextAccessor,
+                IEmailService emailService,
+                HttpClient httpClient,
+                ILogger<ChatService> logger)
+                {
+                    _unitOfWork = unitOfWork;
+                    _mapper = mapper;
+                    _configuration = configuration;
+                    _contextAccessor = contextAccessor;
+                    _emailService = emailService;
+                    _httpClient = httpClient;
+                    _logger = logger;
 
-        public ChatService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService, HttpClient httpClient)
-        {
+                    _httpClient.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
+                    _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    _apiKey = configuration["Gemini:ApiKey"]!;
 
-            _unitOfWork = unitOfWork;
-            _mapper = mapper;
-            _configuration = configuration;
-            _contextAccessor = contextAccessor;
-            _emailService = emailService;
-            _httpClient = httpClient;
-            _httpClient.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            _apiKey = configuration["Gemini:ApiKey"]!;
-            //_modelUrl = configuration["Gemini:ModelUrl"]!;
+            // Cấu hình Retry Policy
+            _retryPolicy = Policy<ChatResponse>
+                .Handle<Exception>()
+                .WaitAndRetryAsync(new[]
+                {
+                TimeSpan.FromSeconds(1),
+                TimeSpan.FromSeconds(3),
+                TimeSpan.FromSeconds(5)
+                },
+                onRetry: (outcome, delay, retryCount, context) =>
+                {
+                    _logger.LogWarning($"Retry {retryCount} after {delay.TotalSeconds}s. Error: {outcome.Exception?.Message}");
+                });
+
+            // Cấu hình Circuit Breaker với cách tiếp cận khác
+            _circuitBreaker = Policy<ChatResponse>
+                .Handle<Exception>()
+                .AdvancedCircuitBreakerAsync(
+                    failureThreshold: 0.5, // Ngưỡng lỗi 50%
+                    samplingDuration: TimeSpan.FromSeconds(30),
+                    minimumThroughput: 4,
+                    durationOfBreak: TimeSpan.FromMinutes(5),
+                    onBreak: (ex, breakDelay) =>
+                    {
+                        _logger.LogError($"Circuit broken! Will retry after {breakDelay.TotalMinutes} minutes. Reason: {ex.Result.Response}");
+                    },
+                    onReset: () =>
+                    {
+                        _logger.LogInformation("Circuit reset!");
+                    },
+                    onHalfOpen: () =>
+                    {
+                        _logger.LogInformation("Circuit half-open: Testing connection...");
+                    });
+
+            // Kết hợp các policy
+            _policyWrap = Policy.WrapAsync(_retryPolicy, _circuitBreaker);
         }
 
         public async Task<List<ChatHistoryResponse>> GetAndCleanChatHistory(Guid userId)
@@ -93,70 +143,89 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<ChatResponse> SendMessage(ChatRequest request)
         {
-            // Lấy userId từ người dùng hiện tại (cần inject ICurrentUserService)
-            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-
-            Guid.TryParse(userId, out Guid cb);
-            var conversationHistory = await GetConversationHistory(cb);
-
-            // Thêm tin nhắn mới với định dạng đúng
-            conversationHistory.Add(new ChatMessage
+            try
             {
-                Role = "user", // chữ thường
-                Parts = new List<ChatPart> { new ChatPart { Text = request.Message } } // chữ thường
-            });
-
-            var requestData = new
-            {
-                system_instruction = new
+                return await _policyWrap.ExecuteAsync(async () =>
                 {
-                    parts = new[]
+                    // Lấy userId từ người dùng hiện tại
+                    string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+                    Guid.TryParse(userId, out Guid cb);
+
+                    var conversationHistory = await GetConversationHistory(cb);
+
+                    // Thêm tin nhắn mới
+                    conversationHistory.Add(new ChatMessage
                     {
-                    new { text = SystemInstruction }
-                }
-                },
-                contents = conversationHistory.Select(c => new
+                        Role = "user",
+                        Parts = new List<ChatPart> { new ChatPart { Text = request.Message } }
+                    });
+
+                    var requestData = new
+                    {
+                        system_instruction = new { parts = new[] { new { text = SystemInstruction } } },
+                        contents = conversationHistory.Select(c => new
+                        {
+                            role = c.Role,
+                            parts = c.Parts.Select(p => new { text = p.Text })
+                        })
+                    };
+
+                    var jsonContent = JsonConvert.SerializeObject(requestData);
+                    var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                    // Gọi API và nhận HttpResponseMessage
+                    var httpResponse = await _httpClient.PostAsync(
+                        $"v1beta/models/gemini-1.5-flash:generateContent?key={_apiKey}",
+                        httpContent);
+
+                    if (!httpResponse.IsSuccessStatusCode)
+                    {
+                        var errorContent = await httpResponse.Content.ReadAsStringAsync();
+                        throw new ErrorException((int)httpResponse.StatusCode,
+                            httpResponse.StatusCode.ToString(),
+                            $"Gemini API error: {errorContent}");
+                    }
+
+                    var responseContent = await httpResponse.Content.ReadAsStringAsync();
+                    var responseData = JsonConvert.DeserializeObject<GeminiResponse>(responseContent);
+
+                    if (responseData?.Candidates == null || responseData.Candidates.Count == 0)
+                    {
+                        throw new ErrorException(StatusCodes.Status500InternalServerError,
+                            ResponseCodeConstants.INTERNAL_SERVER_ERROR,
+                            "Empty response from Gemini API");
+                    }
+
+                    var aiResponse = responseData.Candidates[0].Content.Parts[0].Text;
+
+                    // Lưu lịch sử hội thoại
+                    conversationHistory.Add(new ChatMessage
+                    {
+                        Role = "model",
+                        Parts = new List<ChatPart> { new ChatPart { Text = aiResponse } }
+                    });
+
+                    await SaveConversationHistory(conversationHistory);
+
+                    return new ChatResponse { Response = aiResponse };
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error in SendMessage");
+                return new ChatResponse
                 {
-                    role = c.Role,
-                    parts = c.Parts.Select(p => new { text = p.Text })
-                })
+                    Response = "Đã xảy ra lỗi khi xử lý yêu cầu. Vui lòng thử lại sau."
+                };
+            }
+        }
+
+        private async Task<ChatResponse> HandleFallbackResponse()
+        {
+            return new ChatResponse
+            {
+                Response = "Hệ thống đang quá tải. Vui lòng thử lại sau."
             };
-
-            var response = await _httpClient.PostAsync(
-                $"v1beta/models/gemini-1.5-flash:generateContent?key={_apiKey}",
-                new StringContent(JsonConvert.SerializeObject(requestData),
-                Encoding.UTF8,
-                "application/json"));
-
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Có lỗi xảy ra vui lòng thử lại!");
-            }
-
-            var responseContent = await response.Content.ReadAsStringAsync();
-            var responseData = JsonConvert.DeserializeObject<GeminiResponse>(responseContent);
-
-            if (responseData?.Candidates == null || responseData.Candidates.Count == 0)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Có lỗi xảy ra vui lòng thử lại!");
-            }
-
-            var aiResponse = responseData.Candidates[0].Content.Parts[0].Text;
-
-            // Save the AI response to conversation history 
-            conversationHistory.Add(new ChatMessage
-            {
-                Role = "model",
-                Parts = new List<ChatPart> { new ChatPart { Text = aiResponse } }
-            });
-
-            await SaveConversationHistory(conversationHistory);
-
-            return (new ChatResponse
-            {
-                Response = aiResponse
-            });
-
         }
 
         // Implement these methods based on your storage solution (database, cache, etc.)
