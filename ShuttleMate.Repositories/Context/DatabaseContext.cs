@@ -39,10 +39,20 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<UserSchoolShift> UserSchoolShifts => Set<UserSchoolShift>();
         public virtual DbSet<Ward> Wards => Set<Ward>();
         public virtual DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
+        public virtual DbSet<UserDevice> UserDevices => Set<UserDevice>();
         #endregion
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<UserDevice>(entity =>
+            {
+                entity.ToTable("UserDevice");
+                entity.HasOne(u => u.User)
+                    .WithMany(d => d.UserDevices)
+                    .HasForeignKey(u => u.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<Attendance>(entity =>
             {
                 entity.ToTable("Attendances");
