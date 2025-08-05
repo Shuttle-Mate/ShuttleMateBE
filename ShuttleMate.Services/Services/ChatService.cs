@@ -2,6 +2,7 @@
 using Google.Apis.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using ShuttleMate.Contract.Repositories.Entities;
@@ -46,6 +47,49 @@ namespace ShuttleMate.Services.Services
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             _apiKey = configuration["Gemini:ApiKey"]!;
             //_modelUrl = configuration["Gemini:ModelUrl"]!;
+        }
+
+        public async Task<List<ChatHistoryResponse>> GetAndCleanChatHistory(Guid userId)
+        {
+            // Lấy múi giờ Việt Nam
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var cutoffTime = vietnamNow.AddHours(-24);
+
+            // 1. Lấy tin nhắn mới nhất trước
+            var latestMessages = await _unitOfWork.GetRepository<ChatBotLog>().Entities
+                .Where(x => x.UserId == userId)
+                .OrderByDescending(m => m.CreatedTime)
+                .Take(20)//lấy đúng 20 tin nhắn 
+                .ToListAsync();
+
+
+            // 2. Xóa tin nhắn cũ hơn 24h so với tin nhắn mới nhất
+            if (latestMessages.Any())
+            {
+                var newestMessageTime = latestMessages.Max(x => x.CreatedTime);
+                var oldMessagesCutoff = newestMessageTime.AddHours(-24);
+
+                var oldMessages = await _unitOfWork.GetRepository<ChatBotLog>().Entities
+                    .Where(x => x.UserId == userId && x.CreatedTime < oldMessagesCutoff
+                    ).ToListAsync();
+
+                if (oldMessages.Any())
+                {
+                    await _unitOfWork.GetRepository<ChatBotLog>().DeleteAsync(oldMessages);
+                    await _unitOfWork.SaveAsync();
+                }
+            }
+
+            // 3. Ánh xạ kết quả trả về
+            return latestMessages.Select(m => new ChatHistoryResponse
+            {
+                Id = m.Id,
+                Role = m.Role.ToString().ToUpper(),
+                Content = m.Content,
+                ModelUsed = m.ModelUsed,
+                CreatedTime = m.CreatedTime
+            }).ToList();
         }
         public async Task<ChatResponse> SendMessage(ChatRequest request)
         {

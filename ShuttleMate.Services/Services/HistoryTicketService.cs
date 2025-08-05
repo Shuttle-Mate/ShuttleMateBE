@@ -535,8 +535,8 @@ namespace ShuttleMate.Services.Services
                 BuyerName = payOSRequest.buyerName,
                 CreatedBy = user.Id.ToString(),
                 LastUpdatedBy = user.Id.ToString(),
-                CreatedTime = DateTime.Now,
-                LastUpdatedTime = DateTime.Now,
+                CreatedTime = vietnamNow,
+                LastUpdatedTime = vietnamNow,
                 HistoryTicketId = historyTicket.Id,
                 //... các thông tin khác (nếu cần)...
             };
@@ -559,13 +559,13 @@ namespace ShuttleMate.Services.Services
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-
+            //id cua phu huynh
             Guid.TryParse(userId, out Guid cb);
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             var todayVN = DateOnly.FromDateTime(vietnamNow);
             //kiểm tra id của phụ huynh
-            var parent = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.StudentId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
+            var parent = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
             var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
             //học sinh
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.StudentId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy học sinh!");
@@ -772,8 +772,8 @@ namespace ShuttleMate.Services.Services
                 BuyerName = payOSRequest.buyerName,
                 CreatedBy = userId,
                 LastUpdatedBy = user.Id.ToString(),
-                CreatedTime = DateTime.Now,
-                LastUpdatedTime = DateTime.Now,
+                CreatedTime = vietnamNow,
+                LastUpdatedTime = vietnamNow,
                 HistoryTicketId = historyTicket.Id,
                 //... các thông tin khác (nếu cần)...
             };
