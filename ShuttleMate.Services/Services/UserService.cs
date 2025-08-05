@@ -30,8 +30,9 @@ namespace ShuttleMate.Services.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly string _apiKey;
         private readonly IEmailService _emailService;
+        private readonly ISupabaseService _supabaseService;
 
-        public UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService)
+        public UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService, ISupabaseService supabaseService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -39,6 +40,7 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _apiKey = configuration["VietMap:ApiKey"] ?? throw new Exception("API key is missing from configuration.");
             _emailService = emailService;
+            _supabaseService = supabaseService;
         }
 
         public async Task<IEnumerable<ReponseYourChild>> GetYourChild(Guid Id)
@@ -305,7 +307,7 @@ namespace ShuttleMate.Services.Services
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
-                    ProfileImageUrl = u.ProfileImageUrl,
+                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.ProfileImageUrl),
                     Address = u.Address,
                     Email = u.Email,
                     ParentName = u.Parent.FullName,
@@ -376,7 +378,7 @@ namespace ShuttleMate.Services.Services
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
-                    ProfileImageUrl = u.ProfileImageUrl,
+                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.ProfileImageUrl),
                     Address = u.Address,
                     EmailVerified = u.EmailVerified,
                     Violate = u.Violate,
@@ -416,8 +418,8 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
-                ProfileImageUrl = user.ProfileImageUrl,
-                
+                ProfileImageUrl = _supabaseService.GetPublicUrl(user.ProfileImageUrl),
+
             };
             return inforModel;
         }
@@ -437,7 +439,7 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
-                ProfileImageUrl = user.ProfileImageUrl,
+                ProfileImageUrl = _supabaseService.GetPublicUrl(user.ProfileImageUrl),
                 RoleName = user.UserRoles.FirstOrDefault().Role.Name.ToUpper()
             };
             return inforModel;
