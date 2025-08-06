@@ -29,7 +29,6 @@ namespace ShuttleMate.API.Controllers
         /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
-        //[Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> GetAllPromotions(
         [FromQuery] string? search,
@@ -58,7 +57,6 @@ namespace ShuttleMate.API.Controllers
         /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
-        //[Authorize(Roles = "Student", "Parent")]
         [HttpGet("my")]
         public async Task<IActionResult> GetAllPromotionsMy(
         [FromQuery] string? search,
