@@ -43,7 +43,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="roleName"> STUDENT, PARENT, OPERATOR, DRIVER, SCHOOL</param>
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
-        [HttpGet("get-all-users")]
+        [HttpGet]
         public async Task<IActionResult> GetAllUsers(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
         {
             var users = await _userService.GetAllAsync(page, pageSize, name, gender, roleName, violate, email, phone, schoolId, parentId);
@@ -62,7 +62,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         /// <param name="routeId">Lấy id tuyền(bắt buộc).</param>
         /// <param name="schoolShiftId">Lấy id ca học(bắt buộc).</param>
-        [HttpGet("student-in-route-and-shift")]
+        [HttpGet("attendance-lis")]
         public async Task<IActionResult> GetStudentInRouteAndShift(int page = 0, int pageSize = 10, Guid? routeId = null, Guid? schoolShiftId = null)
         {
             var users = await _userService.GetStudentInRouteAndShift(page, pageSize, routeId, schoolShiftId);
@@ -76,11 +76,11 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy tất cả con của phụ huynh(Parent)
         /// </summary>
-        /// <param name="id">Id của phụ huynh</param>
-        [HttpGet("get-child")]
-        public async Task<IActionResult> GetYourChild(Guid id)
+        /// <param name="parentId">Id của phụ huynh</param>
+        [HttpGet("{parentId}/children")]
+        public async Task<IActionResult> GetYourChild(Guid parentId)
         {
-            var users = await _userService.GetYourChild(id);
+            var users = await _userService.GetYourChild(parentId);
 
             return Ok(new BaseResponseModel<IEnumerable<ReponseYourChild>>(
                 statusCode: StatusCodes.Status200OK,
@@ -91,10 +91,10 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Admin khóa tài khoản của người dùng
         /// </summary>
-        [HttpDelete]
-        public async Task<IActionResult> BlockUserForAdmin(BlockUserForAdminModel model)
+        [HttpDelete("{userId}/block")]
+        public async Task<IActionResult> BlockUserForAdmin(Guid userId)
         {
-            var res = await _userService.BlockUserForAdmin(model);
+            var res = await _userService.BlockUserForAdmin(userId);
             return Ok(new BaseResponseModel<string>(
                  statusCode: StatusCodes.Status200OK,
                  code: ResponseCodeConstants.SUCCESS,
@@ -104,10 +104,10 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Admin mở khóa tài khoản của người dùng
         /// </summary>
-        [HttpPatch("UnBlock-User-For-Admin")]
-        public async Task<IActionResult> UnBlockUserForAdmin(UnBlockUserForAdminModel model)
+        [HttpPatch("{userId}/unblock")]
+        public async Task<IActionResult> UnBlockUserForAdmin(Guid userId)
         {
-            var res = await _userService.UnBlockUserForAdmin(model);
+            var res = await _userService.UnBlockUserForAdmin(userId);
             return Ok(new BaseResponseModel<string>(
                  statusCode: StatusCodes.Status200OK,
                  code: ResponseCodeConstants.SUCCESS,
@@ -117,10 +117,10 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// HS/PH cập cập ca học(Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần)
         /// </summary>
-        [HttpPatch("update-school-for-user")]
-        public async Task<IActionResult> UpdateSchoolForUser(Guid? id = null, UpdateSchoolForUserModel? model = null)
+        [HttpPatch("{studentId}/school")]
+        public async Task<IActionResult> UpdateSchoolForUser(Guid? studentId = null, UpdateSchoolForUserModel? model = null)
         {
-            await _userService.UpdateSchoolForUser(id, model);
+            await _userService.UpdateSchoolForUser(studentId, model);
             return Ok(new BaseResponseModel<string>(
                  statusCode: StatusCodes.Status200OK,
                  code: ResponseCodeConstants.SUCCESS,
@@ -139,26 +139,12 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Admin gán parent
+        /// Admin/student gán parent
         /// </summary>
-        [HttpPost("assign-parent")]
-        public async Task<IActionResult> AssignParent([FromBody] AssignParentModel model)
+        [HttpPost("{studentId}/parent")]
+        public async Task<IActionResult> AssignParent(Guid studentId, AssignParentModel model)
         {
-            await _userService.AssignParent(model);
-
-            return Ok(new BaseResponseModel<string>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                message: "Gán vai trò cho phụ huynh thành công!"
-            ));
-        }
-        /// <summary>
-        /// Student gán parent
-        /// </summary>
-        [HttpPost("assign-parent/student")]
-        public async Task<IActionResult> AssignParentForStudent([FromBody] AssignParentForStudentModel model)
-        {
-            await _userService.AssignParentForParent(model);
+            await _userService.AssignParent(studentId, model);
 
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
@@ -177,7 +163,7 @@ namespace ShuttleMate.API.Controllers
                 message: "Xóa vai trò cho người dùng thành công!"
             ));
         }
-        [HttpGet("get-infor")]
+        [HttpGet("me")]
         public async Task<IActionResult> GetInfor()
         {
             UserInforModel res = await _userService.GetInfor();
@@ -197,8 +183,8 @@ namespace ShuttleMate.API.Controllers
                  data: res
              ));
         }
-        [HttpPatch]
-        public async Task<IActionResult> UpdateProfile(Guid? userId = null, UpdateProfileModel model = null)
+        [HttpPatch("{userId}")]
+        public async Task<IActionResult> UpdateProfile(Guid? userId = null, UpdateProfileModel? model = null)
         {
             await _userService.UpdateProfiel(userId, model);
             return Ok(new BaseResponseModel<string>(

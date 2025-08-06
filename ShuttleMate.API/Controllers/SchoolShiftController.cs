@@ -25,7 +25,7 @@ namespace ShuttleMate.API.Controllers
         /// </summary>
         /// <param name="ticketId">id của vé học sinh/phụ huynh đặt.</param>
 
-        [HttpGet("list-school-shift-by-ticketid")]
+        [HttpGet("{ticketId}/school-shifts")]
         public async Task<IActionResult> GetSchoolShiftListByTicketId(Guid ticketId)
         {
             var res = await _schoolShiftService.GetSchoolShiftListByTicketId(ticketId);

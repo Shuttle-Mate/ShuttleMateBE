@@ -9,6 +9,5 @@ namespace ShuttleMate.ModelViews.UserModelViews
     public class AssignParentModel
     {
         public Guid ParentId { get; set; }
-        public Guid UserId { get; set; }
     }
 }

@@ -113,7 +113,7 @@ namespace ShuttleMate.Services.Services
                 
             return transaction;
         }
-        public async Task<BasePaginatedList<TransactionAdminResponseModel>> GetAllForAdminAsync(int page = 0, int pageSize = 10,  string? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null)
+        public async Task<BasePaginatedList<TransactionAdminResponseModel>> GetAllForAdminAsync(int page = 0, int pageSize = 10,  string? paymentStatus = null, int? orderCode = null, string? description = null, bool? CreateTime = null, Guid? userId = null)
         {
             var transaction = _unitOfWork.GetRepository<Transaction>();
 
@@ -140,6 +140,10 @@ namespace ShuttleMate.Services.Services
             else
             {
                 query = query.OrderByDescending(x => x.CreatedTime);
+            }
+            if(userId != null)
+            {
+                query = query.Where(x => x.HistoryTicket.UserId == userId);
             }
 
             var totalCount = await query.CountAsync();
