@@ -11,7 +11,7 @@
         public string EndTime { get; set; }
         public string ShuttleName { get; set; }
         public string LicensePlate { get; set; }
-        public string ViehicleType { get; set; }
+        public string VehicleType { get; set; }
         public string Color { get; set; }
         public int SeatCount { get; set; }
         public string Brand { get; set; }
