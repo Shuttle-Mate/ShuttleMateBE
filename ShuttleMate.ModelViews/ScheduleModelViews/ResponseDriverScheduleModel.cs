@@ -9,7 +9,17 @@
         public string RouteName { get; set; }
         public string StartTime { get; set; }
         public string EndTime { get; set; }
+        public string ShuttleName { get; set; }
         public string LicensePlate { get; set; }
+        public string ViehicleType { get; set; }
+        public string Color { get; set; }
+        public int SeatCount { get; set; }
+        public string Brand { get; set; }
+        public string Model { get; set; }
+        public DateTime RegistrationDate { get; set; }
+        public DateTime InspectionDate { get; set; }
+        public DateTime NextInspectionDate { get; set; }
+        public DateTime InsuranceExpiryDate { get; set; }
         public int AttendedStudentCount { get; set; }
         public int ExpectedStudentCount { get; set; }
         public string EstimatedDuration { get; set; }

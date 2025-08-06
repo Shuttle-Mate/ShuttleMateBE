@@ -31,32 +31,9 @@
 
         public enum FeedbackCategoryEnum
         {
-            // Vận hành xe buýt
-            LATE_ARRIVAL,              // Xe đến trễ
-            EARLY_ARRIVAL,             // Xe đến quá sớm
-            MISSED_PICKUP,             // Xe không đến đón
-            UNSAFE_DRIVING,            // Lái xe ẩu, vượt tốc độ
-            VEHICLE_CLEANLINESS,       // Vệ sinh xe không đảm bảo
-            OVERCROWDED_BUS,           // Xe quá tải
-            DRIVER_BEHAVIOR,           // Thái độ tài xế không tốt
-
-            // Ứng dụng & kỹ thuật
-            APP_CRASH,                 // Ứng dụng bị treo/crash
-            GPS_INACCURACY,            // Vị trí xe không chính xác
-            NOTIFICATION_ISSUE,        // Không nhận được thông báo
-            UI_UX_ISSUE,               // Giao diện khó dùng
-
-            // Thanh toán & vé
-            PAYMENT_FAILED,            // Thanh toán thất bại
-            INCORRECT_CHARGE,          // Bị trừ tiền sai
-            TICKET_NOT_RECEIVED,       // Không nhận được vé
-            PROMOTION_ISSUE,           // Lỗi mã khuyến mãi
-
-            // Phản hồi chung
-            GENERAL_SUGGESTION,        // Góp ý chung
-            COMPLIMENT,                // Khen ngợi
-            COMPLAINT,                 // Khiếu nại không rõ nhóm
-            OTHER                      // Khác
+            SHUTTLE_OPERATION,             // Vận hành xe (đến trễ, đến quá sớm, không đến đón, lái xe nguy hiểm, vệ sinh xe, quá tải, thái độ tài xế)
+            APP_TECHNICAL,                 // Ứng dụng & kỹ thuật (ứng dụng treo, GPS sai, không nhận thông báo, giao diện khó dùng)
+            OTHER                          // Khác
         }
 
         public enum NotificationStatusEnum

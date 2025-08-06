@@ -83,7 +83,6 @@ namespace ShuttleMate.Services.Services
 
             var scheduleRepo = _unitOfWork.GetRepository<Schedule>();
             var overrideRepo = _unitOfWork.GetRepository<ScheduleOverride>();
-            var routeRepo = _unitOfWork.GetRepository<Route>();
 
             var schedules = await scheduleRepo.Entities
                 .Where(s => s.DriverId == driverIdGuid && !s.DeletedTime.HasValue)
@@ -115,15 +114,17 @@ namespace ShuttleMate.Services.Services
 
                 var stopEstimates = await _unitOfWork.GetRepository<StopEstimate>().Entities
                     .Where(se => se.ScheduleId == s.Id)
-                    .OrderBy(se => s.Direction == RouteDirectionEnum.IN_BOUND ? se.Stop.RouteStops.FirstOrDefault(rs => rs.RouteId == s.RouteId).StopOrder :
-                                                                              -se.Stop.RouteStops.FirstOrDefault(rs => rs.RouteId == s.RouteId).StopOrder)
+                    .OrderBy(se => s.Direction == RouteDirectionEnum.IN_BOUND
+                        ? se.Stop.RouteStops.FirstOrDefault(rs => rs.RouteId == s.RouteId).StopOrder
+                        : -se.Stop.RouteStops.FirstOrDefault(rs => rs.RouteId == s.RouteId).StopOrder)
                     .ToListAsync();
 
-                TimeOnly startTime, endTime;
-                startTime = stopEstimates.First().ExpectedTime;
-                endTime = stopEstimates.Last().ExpectedTime;
+                if (!stopEstimates.Any()) continue;
 
+                var startTime = stopEstimates.First().ExpectedTime;
+                var endTime = stopEstimates.Last().ExpectedTime;
                 var duration = endTime - startTime;
+
                 var routeStops = s.Route?.RouteStops?.Where(x => !x.DeletedTime.HasValue).ToList() ?? new();
                 var routeInfo = BuildRouteInfo(routeStops, s.Direction);
 
@@ -132,19 +133,18 @@ namespace ShuttleMate.Services.Services
                     .Select(us => us.StudentId)
                     .ToListAsync();
 
-                int expectedCount = expectedStudentIds.Count;
-
                 var attendedCount = await _unitOfWork.GetRepository<Attendance>().Entities
                     .Where(a =>
                         expectedStudentIds.Contains(a.HistoryTicket.UserId) &&
                         a.Trip.TripDate == today &&
                         a.Trip.Schedule.RouteId == s.RouteId &&
                         a.Trip.Schedule.SchoolShiftId == s.SchoolShiftId &&
-                        (a.Status == AttendanceStatusEnum.CHECKED_IN || a.Status == AttendanceStatusEnum.CHECKED_OUT)
-                    )
+                        (a.Status == AttendanceStatusEnum.CHECKED_IN || a.Status == AttendanceStatusEnum.CHECKED_OUT))
                     .Select(a => a.HistoryTicket.UserId)
                     .Distinct()
                     .CountAsync();
+
+                var shuttle = s.Shuttle;
 
                 responseList.Add(new ResponseTodayScheduleForDriverModel
                 {
@@ -155,9 +155,19 @@ namespace ShuttleMate.Services.Services
                     RouteName = s.Route?.RouteName ?? "",
                     StartTime = startTime.ToString("HH:mm"),
                     EndTime = endTime.ToString("HH:mm"),
-                    LicensePlate = s.Shuttle?.LicensePlate ?? "",
+                    ShuttleName = shuttle?.Name ?? "",
+                    LicensePlate = shuttle?.LicensePlate ?? "",
+                    ViehicleType = shuttle?.VehicleType ?? "",
+                    Color = shuttle?.Color ?? "",
+                    SeatCount = shuttle?.SeatCount ?? 0,
+                    Brand = shuttle?.Brand ?? "",
+                    Model = shuttle?.Model ?? "",
+                    RegistrationDate = shuttle?.RegistrationDate ?? DateTime.MinValue,
+                    InspectionDate = shuttle?.InspectionDate ?? DateTime.MinValue,
+                    NextInspectionDate = shuttle?.NextInspectionDate ?? DateTime.MinValue,
+                    InsuranceExpiryDate = shuttle?.InsuranceExpiryDate ?? DateTime.MinValue,
                     AttendedStudentCount = attendedCount,
-                    ExpectedStudentCount = expectedCount,
+                    ExpectedStudentCount = expectedStudentIds.Count,
                     EstimatedDuration = $"{(int)duration.TotalHours}h{duration.Minutes}m",
                     Direction = s.Direction.ToString(),
                     Route = routeInfo
@@ -170,6 +180,7 @@ namespace ShuttleMate.Services.Services
                 var startTime = s.DepartureTime;
                 var endTime = startTime.AddHours(1);
                 var duration = endTime - startTime;
+
                 var routeStops = s.Route?.RouteStops?.Where(x => !x.DeletedTime.HasValue).ToList() ?? new();
                 var routeInfo = BuildRouteInfo(routeStops, s.Direction);
 
@@ -178,19 +189,18 @@ namespace ShuttleMate.Services.Services
                     .Select(us => us.StudentId)
                     .ToListAsync();
 
-                int expectedCount = expectedStudentIds.Count;
-
                 var attendedCount = await _unitOfWork.GetRepository<Attendance>().Entities
                     .Where(a =>
                         expectedStudentIds.Contains(a.HistoryTicket.UserId) &&
                         a.Trip.TripDate == today &&
                         a.Trip.Schedule.RouteId == s.RouteId &&
                         a.Trip.Schedule.SchoolShiftId == s.SchoolShiftId &&
-                        (a.Status == AttendanceStatusEnum.CHECKED_IN || a.Status == AttendanceStatusEnum.CHECKED_OUT)
-                    )
+                        (a.Status == AttendanceStatusEnum.CHECKED_IN || a.Status == AttendanceStatusEnum.CHECKED_OUT))
                     .Select(a => a.HistoryTicket.UserId)
                     .Distinct()
                     .CountAsync();
+
+                var shuttle = o.Shuttle;
 
                 responseList.Add(new ResponseTodayScheduleForDriverModel
                 {
@@ -201,9 +211,19 @@ namespace ShuttleMate.Services.Services
                     RouteName = s.Route?.RouteName ?? "",
                     StartTime = startTime.ToString("HH:mm"),
                     EndTime = endTime.ToString("HH:mm"),
-                    LicensePlate = o.Shuttle?.LicensePlate ?? "",
+                    ShuttleName = shuttle?.Name ?? "",
+                    LicensePlate = shuttle?.LicensePlate ?? "",
+                    ViehicleType = shuttle?.VehicleType ?? "",
+                    Color = shuttle?.Color ?? "",
+                    SeatCount = shuttle?.SeatCount ?? 0,
+                    Brand = shuttle?.Brand ?? "",
+                    Model = shuttle?.Model ?? "",
+                    RegistrationDate = shuttle?.RegistrationDate ?? DateTime.MinValue,
+                    InspectionDate = shuttle?.InspectionDate ?? DateTime.MinValue,
+                    NextInspectionDate = shuttle?.NextInspectionDate ?? DateTime.MinValue,
+                    InsuranceExpiryDate = shuttle?.InsuranceExpiryDate ?? DateTime.MinValue,
                     AttendedStudentCount = attendedCount,
-                    ExpectedStudentCount = expectedCount,
+                    ExpectedStudentCount = expectedStudentIds.Count,
                     EstimatedDuration = $"{(int)duration.TotalHours}h{duration.Minutes}m",
                     Direction = s.Direction.ToString(),
                     Route = routeInfo
