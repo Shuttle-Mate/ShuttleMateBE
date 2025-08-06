@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Org.BouncyCastle.Ocsp;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
@@ -29,18 +30,27 @@ namespace ShuttleMate.API.Controllers
             ));
         }
 
+        /// <summary>
+        /// Lấy các trạm dừng gần nhất và tuyến liên quan.
+        /// </summary>
+        /// <param name="lat">Vĩ độ của địa điểm bắt đầu (bắt buộc).</param>
+        /// <param name="lng">Kinh độ của địa điểm bắt đầu (bắt buộc).</param>
+        /// <param name="schoolId">Id của trường (bắt buộc).</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         [HttpGet]
         public async Task<IActionResult> GetStopWithRoute(
-            [FromQuery] double lat,
-            [FromQuery] double lng,
-            [FromQuery] GetRouteStopQuery req
-            )
+        [FromQuery] double lat,
+        [FromQuery] double lng,
+        [FromQuery] Guid schoolId,
+        [FromQuery] int page = 0,
+        [FromQuery] int pageSize = 10
+        )
         {
-            var res = await _routeStopService.SearchStopWithRoutes(lat, lng, req);
             return Ok(new BaseResponseModel<BasePaginatedList<StopWithRouteResponseModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: res
+                data: await _routeStopService.SearchStopWithRoutes(lat, lng, schoolId, page, pageSize)
             ));
         }
     }
