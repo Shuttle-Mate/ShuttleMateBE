@@ -255,6 +255,10 @@ namespace ShuttleMate.Services.Services
             if (route.DeletedTime.HasValue)
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đã bị xóa.");
 
+            if (model.Schedules == null || !model.Schedules.Any())
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                    "Danh sách lịch trình không được để trống.");
+
             var newSchedules = new List<Schedule>();
 
             foreach (var scheduleDetail in model.Schedules)
@@ -285,6 +289,10 @@ namespace ShuttleMate.Services.Services
 
                 if (schoolShift.SchoolId != route.SchoolId)
                     throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ca học {GetSchoolShiftDescription(schoolShift)} không thuộc về trường của tuyến này.");
+
+                if (scheduleDetail.DayOfWeeks == null || !scheduleDetail.DayOfWeeks.Any())
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                        "Danh sách ngày trong tuần không được để trống.");
 
                 var existingSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(x =>
                     (x.ShuttleId == scheduleDetail.ShuttleId ||
