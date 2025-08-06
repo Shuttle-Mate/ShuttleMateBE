@@ -230,35 +230,29 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
 
         }
-        public async Task AssignParent(AssignParentModel model)
+        public async Task AssignParent(Guid studentId, AssignParentModel model)
         {
             var user = await _unitOfWork.GetRepository<User>()
-                .Entities.FirstOrDefaultAsync(x => x.Id == model.UserId && !x.DeletedTime.HasValue)
+                .Entities.FirstOrDefaultAsync(x => x.Id == studentId && !x.DeletedTime.HasValue)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại!");
             var parent = await _unitOfWork.GetRepository<User>()
-                .Entities.FirstOrDefaultAsync(x => x.Id == model.ParentId && !x.DeletedTime.HasValue)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Phụ huynh không tồn tại!");
-            if (parent.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "PARENT")
+                .Entities.FirstOrDefaultAsync(x => x.Id == model.ParentId && !x.DeletedTime.HasValue);
+            if(parent == null)
             {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò phụ huynh!");
+                parent = await _unitOfWork.GetRepository<User>()
+                .Entities.FirstOrDefaultAsync(x => x.Id == user.ParentId && !x.DeletedTime.HasValue);
+                if (parent.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "PARENT")
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò phụ huynh!");
+                }
+                if (parent.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "PARENT")
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò phụ huynh!");
+                }
+                user.ParentId = parent.Id;
+                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+                await _unitOfWork.SaveAsync();
             }
-            user.ParentId = parent.Id;
-            await _unitOfWork.GetRepository<User>().UpdateAsync(user);
-            await _unitOfWork.SaveAsync();
-        }
-        public async Task AssignParentForParent(AssignParentForStudentModel model)
-        {
-            // Lấy userId từ HttpContext
-            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-
-            Guid.TryParse(userId, out Guid cb);
-
-            var user = await _unitOfWork.GetRepository<User>()
-                .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại!");
-            var parent = await _unitOfWork.GetRepository<User>()
-                .Entities.FirstOrDefaultAsync(x => x.Id == model.ParentId && !x.DeletedTime.HasValue)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Phụ huynh không tồn tại!");
             if (parent.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "PARENT")
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò phụ huynh!");
@@ -833,7 +827,7 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.SaveAsync();
         }
-        public async Task UpdateProfiel(Guid? id, UpdateProfileModel model)
+        public async Task UpdateProfiel(Guid? id = null, UpdateProfileModel? model = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -885,9 +879,9 @@ namespace ShuttleMate.Services.Services
             //    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Địa chỉ không được để trống!!");
             //}
         }
-        public async Task<string> BlockUserForAdmin(BlockUserForAdminModel model)
+        public async Task<string> BlockUserForAdmin(Guid userId)
         {
-            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.UserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng!");
+            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == userId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng!");
             user.Violate = true;
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
@@ -895,9 +889,9 @@ namespace ShuttleMate.Services.Services
             await SendBlockUserEmail(user);
             return "Khóa người dùng thành công!";
         }
-        public async Task<string> UnBlockUserForAdmin(UnBlockUserForAdminModel model)
+        public async Task<string> UnBlockUserForAdmin(Guid userId)
         {
-            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.UserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng!");
+            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == userId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng!");
             user.Violate = false;
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();

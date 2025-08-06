@@ -60,11 +60,12 @@ namespace ShuttleMate.API.Controllers
         /// <param name="orderCode">mã của giao dịch</param>
         /// <param name="createTime">true là tăng dần, false là giảm dần</param>
         /// <param name="description">mô tả</param>
+        /// <param name="userId">id của người dùng</param>
 
         [HttpGet]
-        public async Task<IActionResult> GetAllForAdminAsync(int page = 0, int pageSize = 10,  string? paymentStatus = null, int? orderCode = null, string? description = null, bool? createTime = null)
+        public async Task<IActionResult> GetAllForAdminAsync(int page = 0, int pageSize = 10,  string? paymentStatus = null, int? orderCode = null, string? description = null, bool? createTime = null, Guid? userId  = null)
         {
-            var transactions = await _transactionService.GetAllForAdminAsync(page,pageSize, paymentStatus, orderCode, description, createTime);
+            var transactions = await _transactionService.GetAllForAdminAsync(page,pageSize, paymentStatus, orderCode, description, createTime, userId);
 
             return Ok(new BaseResponseModel<BasePaginatedList<TransactionAdminResponseModel>>(
                 statusCode: StatusCodes.Status200OK,
