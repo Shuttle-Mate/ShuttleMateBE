@@ -51,6 +51,7 @@ namespace ShuttleMate.Services.Services
         private readonly int _requestsPerMinute;
         private readonly int _cacheDurationMinutes;
         private readonly int _maxDatabaseSearchAttempts = 3;
+        private readonly TimeZoneInfo _vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
 
 
         public ChatService(
@@ -80,6 +81,7 @@ namespace ShuttleMate.Services.Services
             _httpClient.BaseAddress = new Uri(_configuration["OpenAI:BaseUrl"] ?? "https://api.openai.com/v1/");
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _configuration["OpenAI:ApiKey"]);
+            _httpClient.Timeout = TimeSpan.FromSeconds(30);
 
             // Configure policies
             _retryPolicy = Policy<ChatResponse>
@@ -99,8 +101,7 @@ namespace ShuttleMate.Services.Services
 
             _circuitBreaker = Policy<ChatResponse>
                 .Handle<Exception>()
-                .OrResult(r => r.Response?.Contains("API error") == true)
-                .AdvancedCircuitBreakerAsync(
+                .OrResult(r => r.Response != null && r.Response.Contains("API error", StringComparison.OrdinalIgnoreCase)).AdvancedCircuitBreakerAsync(
                     failureThreshold: 0.3,
                     samplingDuration: TimeSpan.FromSeconds(30),
                     minimumThroughput: 5,
@@ -149,38 +150,44 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<ChatResponse> SendMessage(ChatRequest request)
         {
+
             try
             {
                 return await _policyWrap.ExecuteAsync(async () =>
                 {
+
+                    var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                    var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
                     // Get user ID
                     string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
                     Guid.TryParse(userId, out Guid cb);
 
                     // Check cache first
-                    var cacheKey = $"{userId}_{request.Message.GetHashCode()}";
+                    var cacheKey = $"{userId}_{Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(request.Message)))}"; 
                     if (_cache.TryGetValue(cacheKey, out ChatResponse cachedResponse))
                     {
                         _logger.LogInformation("Returning cached response");
                         return cachedResponse;
                     }
 
-                    // Apply rate limiting
                     await _rateLimitLock.WaitAsync();
                     try
                     {
-                        if (_userLastRequestTime.TryGetValue(userId, out var lastRequest))
+                        var nowUtc = DateTime.UtcNow;
+                        var nowInVN = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _vnTimeZone);
+
+                        if (_userLastRequestTime.TryGetValue(userId, out var lastRequestUtc))
                         {
-                            var timeSinceLastRequest = DateTime.UtcNow - lastRequest;
+                            var lastRequestInVN = TimeZoneInfo.ConvertTimeFromUtc(lastRequestUtc, _vnTimeZone);
+                            var timeSinceLastRequest = nowInVN - lastRequestInVN;
+
                             if (timeSinceLastRequest.TotalSeconds < 60.0 / _requestsPerMinute)
                             {
-                                return new ChatResponse
-                                {
-                                    Response = "Bạn đang gửi tin nhắn quá nhanh. Vui lòng chờ giây lát."
-                                };
+                                _logger.LogWarning($"Rate limit: User {userId} last request at {lastRequestInVN:HH:mm:ss} VN");
+                                return new ChatResponse { Response = "Vui lòng thử lại sau ít phút nữa" };
                             }
                         }
-                        _userLastRequestTime[userId] = DateTime.UtcNow;
+                        _userLastRequestTime[userId] = nowUtc; // Luôn lưu UTC
                     }
                     finally
                     {
@@ -201,7 +208,7 @@ namespace ShuttleMate.Services.Services
                         messages.Add(new
                         {
                             role = message.Role == "model" ? "assistant" : message.Role,
-                            content = message.Parts.FirstOrDefault()?.Text
+                            content = message.Parts?.FirstOrDefault()?.Text ?? string.Empty,
                         });
                     }
                     messages.Add(new { role = "user", content = request.Message });
@@ -230,8 +237,7 @@ namespace ShuttleMate.Services.Services
 
                     if (!response.IsSuccessStatusCode)
                     {
-                        var errorContent = await response.Content.ReadAsStringAsync();
-                        _logger.LogError($"OpenAI API Error: {response.StatusCode} - {errorContent}");
+                        var errorContent = response.Content != null ? await response.Content.ReadAsStringAsync() : string.Empty; _logger.LogError($"OpenAI API Error: {response.StatusCode} - {errorContent}");
                         throw new ErrorException((int)response.StatusCode,
                             response.StatusCode.ToString(),
                             $"OpenAI API error: {errorContent}");
@@ -317,7 +323,7 @@ namespace ShuttleMate.Services.Services
                 {
                     Role = role,
                     Content = message.Parts.FirstOrDefault()?.Text ?? string.Empty,
-                    ModelUsed = "gemini-1.5-flash",
+                    ModelUsed = "gpt-3.5-turbo",
                     UserId = cb,
                     CreatedTime = vietnamNow,
                     LastUpdatedTime = vietnamNow
@@ -360,7 +366,7 @@ namespace ShuttleMate.Services.Services
                 sb.AppendLine($"- Học kỳ hiện tại: {currentSemester}");
 
                 sb.AppendLine($"\n**LỊCH HỌC**");
-                foreach (var shift in school.SchoolShifts.OrderBy(s => s.Time))
+                foreach (var shift in school.SchoolShifts?.OrderBy(s => s.Time) ?? Enumerable.Empty<SchoolShift>())
                 {
                     sb.AppendLine($"- Ca {shift.ShiftType}: {shift.Time} ({shift.SessionType})");
                 }
@@ -432,7 +438,10 @@ namespace ShuttleMate.Services.Services
 
         private async Task<string> GetCurrentSemester(List<School> schools)
         {
-            var today = DateOnly.FromDateTime(DateTime.Now);
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var today = DateOnly.FromDateTime(vietnamNow);
 
             foreach (var school in schools)
             {
@@ -468,7 +477,9 @@ namespace ShuttleMate.Services.Services
         {
             if (school == null) return "Không xác định";
 
-            var today = DateOnly.FromDateTime(DateTime.Now);
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var today = DateOnly.FromDateTime(vietnamNow);
 
             if (school.StartSemOne.HasValue && school.EndSemOne.HasValue &&
                 today >= school.StartSemOne.Value && today <= school.EndSemOne.Value)
