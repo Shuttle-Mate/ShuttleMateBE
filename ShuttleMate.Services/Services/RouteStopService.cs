@@ -183,22 +183,57 @@ namespace ShuttleMate.Services.Services
             if (lat == 0 || lng == 0)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Phải truyền tọa độ lat, lng");
 
-            var stops = await _unitOfWork.GetRepository<Stop>()
+            var rawStops = await _unitOfWork.GetRepository<Stop>()
                 .GetQueryable()
                 .Where(s => !s.DeletedTime.HasValue)
                 .Include(s => s.RouteStops)
                     .ThenInclude(rs => rs.Route)
                 .ToListAsync();
 
+            foreach (var stop in rawStops)
+            {
+                stop.RouteStops = stop.RouteStops
+                    .Where(rs => !rs.Route.DeletedTime.HasValue && rs.Route.SchoolId == schoolId)
+                    .ToList();
+            }
+
+            var filteredStops = rawStops
+                .Where(s =>
+                    s.RouteStops.All(rs =>
+                    {
+                        var routeStops = rs.Route.RouteStops
+                            .Where(x => !x.Stop.DeletedTime.HasValue)
+                            .OrderBy(x => x.StopOrder)
+                            .ToList();
+                        if (routeStops.Count <= 2) return false;
+
+                        var first = routeStops.First();
+                        var last = routeStops.Last();
+                        return rs.StopId != first.StopId && rs.StopId != last.StopId;
+                    }))
+                .ToList();
+
+            if (!filteredStops.Any())
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có trạm hợp lệ sau khi lọc đầu/cuối!");
+
+            var stops = filteredStops;
+
             if (!stops.Any())
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có trạm nào tồn tại!");
 
-            var waypoints = stops.Select(s => $"{s.Lat},{s.Lng}").ToList();
-            var pointParams = string.Join("&", waypoints.Select(p => $"point={p}"));
+            var userPoint = $"{lat},{lng}";
+            var stopPoints = stops.Select(s => $"{s.Lat},{s.Lng}").ToList();
+            var allPoints = new List<string> { userPoint };
+            allPoints.AddRange(stopPoints);
+            var pointParams = string.Join("&", allPoints.Select(p => $"point={p}"));
+            var sourceParam = "sources=0";
+            var destinationParam = "destinations=" + string.Join(";", Enumerable.Range(1, stopPoints.Count));
 
             var matrixUrl = $"https://maps.vietmap.vn/api/matrix?api-version=1.1"
                           + $"&apikey={_vietMapSettings.ApiKey}"
-                          + $"&point={lat},{lng}&{pointParams}"
+                          + $"&{pointParams}"
+                          + $"&{sourceParam}"
+                          + $"&{destinationParam}"
                           + "&vehicle=foot&points_encoded=false&annotations=distance,duration";
 
             var response = await _httpClient.GetAsync(matrixUrl);
