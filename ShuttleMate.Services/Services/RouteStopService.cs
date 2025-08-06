@@ -258,7 +258,7 @@ namespace ShuttleMate.Services.Services
                 Distance = distanceList[i],
                 Duration = durationList[i]
             })
-            .Where(x => x.Stop.RouteStops.Any(rs => !rs.Route.DeletedTime.HasValue && rs.Route.SchoolId == schoolId))
+            .Where(x => x.Duration <= 900 && x.Stop.RouteStops.Any(rs => !rs.Route.DeletedTime.HasValue && rs.Route.SchoolId == schoolId))
             .OrderBy(x => x.Distance);
 
             var totalCount = stopsWithDistance.Count();
