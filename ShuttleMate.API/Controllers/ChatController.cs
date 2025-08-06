@@ -19,10 +19,15 @@ public class ChatController : ControllerBase
     {
         _chatService = chatService;
     }
+    /// <summary>
+    /// Lấy lịch sử đoạn chat.
+    /// </summary>
+    /// <param name="number">số từ 0, 1, 2,...: cứ tăng 1 đơn vị là lấy đoạn chat trong khung 24h về sau.</param>
+    /// <param name="userId">Id của người dùng.</param>
     [HttpGet("history/{userId}")]
-    public async Task<IActionResult> GetAndCleanChatHistory(Guid userId)
+    public async Task<IActionResult> GetAndCleanChatHistory(int number,Guid userId)
     {
-        var response = await _chatService.GetAndCleanChatHistory(userId);
+        var response = await _chatService.GetChatHistoryByTimeWindow(number, userId);
 
         return Ok(new BaseResponseModel<List<ChatHistoryResponse>>(
             statusCode: StatusCodes.Status200OK,

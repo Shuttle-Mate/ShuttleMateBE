@@ -268,7 +268,6 @@ namespace ShuttleMate.Services.Services
                     Ticket = u.Ticket.Type.ToString().ToUpper(),
                     FullNameOfUser = u.User.FullName,
                     OrderCode = u.Transaction.OrderCode,
-                    BuyerName = u.User.FullName
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)
