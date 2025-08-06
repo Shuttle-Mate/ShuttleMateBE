@@ -13,63 +13,16 @@ using System.Text.Json;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/payment")]
+    [Route("api/")]
     [ApiController]
-    public class PaymentController : ControllerBase
+    public class HistoryTicketController : ControllerBase
     {
         private IHistoryTicketService _historyTicketService;
-        public PaymentController(IHistoryTicketService historyTicketService)
+        public HistoryTicketController(IHistoryTicketService historyTicketService)
         {
             _historyTicketService = historyTicketService;
         }
 
-        /// <summary>
-        /// Lấy tất cả các vé của chính mình(người dùng)
-        /// </summary>
-        /// <param name="status">trạng thái(UNPAID, PAID, CANCELLED, USED) (tuỳ chọn)</param>
-        /// <param name="ticketType">Loại vé(WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO) (tuỳ chọn).</param>
-        /// <param name="purchaseAt">Thời gian đặt vé (tuỳ chọn).</param>
-        /// <param name="createTime">true là tăng dần, false là giảm dần.(tuỳ chọn).</param>
-        /// <param name="validFrom">tra theo thời gian có hiệu lực tuỳ chọn).</param>
-        /// <param name="validUntil">tra theo thời gian hết hiệu lực (tuỳ chọn).</param>
-        /// <param name="ticketId">tra theo vé (tuỳ chọn).</param>
-        /// <param name="page">Trang (mặc định 0).</param>
-        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
-        [HttpGet("my")]
-        public async Task<IActionResult> GetAllForUserAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? purchaseAt = null, bool? createTime = null, DateOnly? validFrom = null, DateOnly? validUntil = null, Guid? ticketId = null, string? ticketType = null)
-        {
-            var tickets = await _historyTicketService.GetAllForUserAsync(page, pageSize, status, purchaseAt, createTime, validFrom, validUntil, ticketId, ticketType);
-
-            return Ok(new BaseResponseModel<BasePaginatedList<HistoryTicketResponseModel>>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                data: tickets
-            ));
-        }
-        /// <summary>
-        /// Lấy tất cả các vé của học sinh(phụ huynh)
-        /// </summary>
-        /// <param name="status">trạng thái(UNPAID, PAID, CANCELLED, USED) (tuỳ chọn).</param>
-        /// <param name="purchaseAt">Thời gian đặt vé (tuỳ chọn).</param>
-        /// <param name="createTime">true là tăng dần, false là giảm dần (tuỳ chọn).</param>
-        /// <param name="validFrom">tra theo thời gian có hiệu lực (tuỳ chọn).</param>
-        /// <param name="validUntil">tra theo thời gian hết hiệu lực (tuỳ chọn).</param>
-        /// <param name="ticketId">tra theo vé</param>
-        /// <param name="ticketType">Loại vé(WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO) (tuỳ chọn).</param>
-        /// <param name="studentId">Id của học sinh (tuỳ chọn).</param>
-        /// <param name="page">Trang (mặc định 0).</param>
-        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
-        [HttpGet("student")]
-        public async Task<IActionResult> GetAllForParentAsync(int page = 0, int pageSize = 10, string? ticketType = null, string? status = null, DateTime? purchaseAt = null, bool? createTime = null, DateOnly? validFrom = null, DateOnly? validUntil = null, Guid? ticketId = null, Guid? studentId = null)
-        {
-            var tickets = await _historyTicketService.GetAllForParentAsync(page, pageSize, status, purchaseAt, createTime, validFrom, validUntil, ticketId, studentId, ticketType);
-
-            return Ok(new BaseResponseModel<BasePaginatedList<HistoryTicketResponseModel>>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                data: tickets
-            ));
-        }
         /// <summary>
         /// Lấy tất cả các vé(Admin)
         /// </summary>
@@ -79,11 +32,11 @@ namespace ShuttleMate.API.Controllers
         /// <param name="validFrom">tra theo thời gian có hiệu lực (tuỳ chọn).</param>
         /// <param name="validUntil">tra theo thời gian hết hiệu lực (tuỳ chọn).</param>
         /// <param name="ticketId">tra theo vé (tuỳ chọn).</param>
-        /// <param name="userId">tra theo người mua (tuỳ chọn).</param>
+        /// <param name="userId">tra theo người mua (bỏ id vào khi là hs, ph thì bỏ id của con vào khi muốn lọc con lấy id từ api /api/user/get-child).</param>
         /// <param name="ticketType">Loại vé(WEEKLY, MONTHLY, SEMESTER_ONE, SEMESTER_TWO) (tuỳ chọn).</param>
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
-        [HttpGet]
+        [HttpGet("history-ticket")]
         public async Task<IActionResult> GetAllForAdminAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? purchaseAt = null, bool? createTime = null, DateOnly? validFrom = null, DateOnly? validUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null)
         {
             var tickets = await _historyTicketService.GetAllForAdminAsync(page, pageSize, status, purchaseAt, createTime, validFrom, validUntil, userId, ticketId, ticketType);
@@ -97,7 +50,7 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy status của history ticket
         /// </summary>
-        [HttpGet("status")]
+        [HttpGet("history-ticket/status")]
         public async Task<IActionResult> ResponseHistoryTicketStatus(Guid historyTicketId)
         {
             string response = await _historyTicketService.ResponseHistoryTicketStatus(historyTicketId);
@@ -109,26 +62,13 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// Mua vé (PAYOS): ValidFrom ko áp dụng cho vé loại SEMESTER_ONE, SEMESTER_TWO(STUDENT)
+        /// Mua vé (PAYOS): ValidFrom ko áp dụng cho vé loại SEMESTER_ONE, SEMESTER_TWO(STUDENT), StudentId trong model khi nào là parent mới nhập lấy từ api /api/user/get-child
+        /// 
         /// </summary>
-        [HttpPost]
+        [HttpPost("payment")]
         public async Task<IActionResult> CreateHistoryTicket(CreateHistoryTicketModel model)
         {
             CreateHistoryTicketResponse response = await _historyTicketService.CreateHistoryTicket(model);
-
-            return Ok(new BaseResponseModel<CreateHistoryTicketResponse>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                data: response
-            ));
-        }
-        /// <summary>
-        /// Mua vé (PAYOS): ValidFrom ko áp dụng cho vé loại SEMESTER_ONE, SEMESTER_TWO(PARENT)
-        /// </summary>
-        [HttpPost("buy-ticket-for-parent")]
-        public async Task<IActionResult> CreateHistoryTicketForParent(CreateHistoryTicketForParentModel model)
-        {
-            CreateHistoryTicketResponse response = await _historyTicketService.CreateHistoryTicketForParent(model);
 
             return Ok(new BaseResponseModel<CreateHistoryTicketResponse>(
                 statusCode: StatusCodes.Status200OK,
@@ -141,7 +81,7 @@ namespace ShuttleMate.API.Controllers
         /// Hàm xử lí sau khi thanh toán(PAYOS)
         /// </summary>
         [AllowAnonymous]
-        [HttpPost("payos-callback")]
+        [HttpPost("history-ticket/payos-callback")]
         public async Task<IActionResult> PayOSCallback([FromBody] PayOSWebhookRequest request)
         {
             try
