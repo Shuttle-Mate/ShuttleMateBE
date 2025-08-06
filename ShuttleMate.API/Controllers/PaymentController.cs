@@ -15,10 +15,10 @@ namespace ShuttleMate.API.Controllers
 {
     [Route("api/payment")]
     [ApiController]
-    public class HistoryTicketController : ControllerBase
+    public class PaymentController : ControllerBase
     {
         private IHistoryTicketService _historyTicketService;
-        public HistoryTicketController(IHistoryTicketService historyTicketService)
+        public PaymentController(IHistoryTicketService historyTicketService)
         {
             _historyTicketService = historyTicketService;
         }
@@ -97,7 +97,7 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy status của history ticket
         /// </summary>
-        [HttpGet("response-historyticket-status")]
+        [HttpGet("status")]
         public async Task<IActionResult> ResponseHistoryTicketStatus(Guid historyTicketId)
         {
             string response = await _historyTicketService.ResponseHistoryTicketStatus(historyTicketId);
