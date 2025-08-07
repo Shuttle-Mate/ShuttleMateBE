@@ -28,6 +28,7 @@ namespace ShuttleMate.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllWithdrawalRequests(
         [FromQuery] string? status,
+        [FromQuery] Guid? userId,
         [FromQuery] bool sortAsc = false,
         [FromQuery] int page = 0,
         [FromQuery] int pageSize = 10)
@@ -35,40 +36,19 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<BasePaginatedList<ResponseWithdrawalRequestModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _withdrawalRequestService.GetAllAsync(status, sortAsc, page, pageSize)));
-        }
-
-        /// <summary>
-        /// Lấy danh sách yêu cầu hoàn tiền của tôi.
-        /// </summary>
-        /// <param name="status">Trạng thái: IN_PROGRESS, COMPLETED, REJECTED (tùy chọn).</param>
-        /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
-        /// <param name="page">Trang (mặc định 0).</param>
-        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
-        //[Authorize(Roles = "Student", "Parent")]
-        [HttpGet("my")]
-        public async Task<IActionResult> GetAllMyWithdrawalRequests(
-        [FromQuery] string? status,
-        [FromQuery] bool sortAsc = false,
-        [FromQuery] int page = 0,
-        [FromQuery] int pageSize = 10)
-        {
-            return Ok(new BaseResponseModel<BasePaginatedList<ResponseWithdrawalRequestModel>>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                data: await _withdrawalRequestService.GetAllMyAsync(status, sortAsc, page, pageSize)));
+                data: await _withdrawalRequestService.GetAllAsync(status, userId, sortAsc, page, pageSize)));
         }
 
         /// <summary>
         /// Lấy chi tiết yêu cầu hoàn tiền.
         /// </summary>
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetWithdrawalRequestById(Guid id)
+        [HttpGet("{withdrawalRequestId}")]
+        public async Task<IActionResult> GetWithdrawalRequestById(Guid withdrawalRequestId)
         {
             return Ok(new BaseResponseModel<ResponseWithdrawalRequestModel>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _withdrawalRequestService.GetByIdAsync(id)));
+                data: await _withdrawalRequestService.GetByIdAsync(withdrawalRequestId)));
         }
 
         /// <summary>
@@ -89,10 +69,10 @@ namespace ShuttleMate.API.Controllers
         /// Cập nhật một yêu cầu hoàn tiền.
         /// </summary>
         //[Authorize(Roles = "Student", "Parent")]
-        [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateWithdrawalRequest(Guid id, UpdateWithdrawalRequestModel model)
+        [HttpPatch("{withdrawalRequestId}")]
+        public async Task<IActionResult> UpdateWithdrawalRequest(Guid withdrawalRequestId, UpdateWithdrawalRequestModel model)
         {
-            await _withdrawalRequestService.UpdateAsync(id, model);
+            await _withdrawalRequestService.UpdateAsync(withdrawalRequestId, model);
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
@@ -104,10 +84,10 @@ namespace ShuttleMate.API.Controllers
         /// Cập nhật trạng thái một yêu cầu hoàn tiền thành đã hoàn thành.
         /// </summary>
         //[Authorize(Roles = "Admin, Operator")]
-        [HttpPatch("{id}/completed")]
-        public async Task<IActionResult> ChangeWithdrawalRequestStatusToCompleted(Guid id)
+        [HttpPatch("{withdrawalRequestId}/completed")]
+        public async Task<IActionResult> ChangeWithdrawalRequestStatusToCompleted(Guid withdrawalRequestId)
         {
-            await _withdrawalRequestService.CompleteAsync(id);
+            await _withdrawalRequestService.CompleteAsync(withdrawalRequestId);
             return Ok(new BaseResponseModel<string?>(
                statusCode: StatusCodes.Status200OK,
                code: ResponseCodeConstants.SUCCESS,
@@ -118,10 +98,10 @@ namespace ShuttleMate.API.Controllers
         /// Từ chối yêu cầu hoàn tiền.
         /// </summary>
         //[Authorize(Roles = "Admin, Operator")]
-        [HttpPatch("{id}/rejected")]
-        public async Task<IActionResult> ChangeWithdrawalRequestStatusToRejected(Guid id, RejectWithdrawalRequestModel model)
+        [HttpPatch("{withdrawalRequestId}/rejected")]
+        public async Task<IActionResult> ChangeWithdrawalRequestStatusToRejected(Guid withdrawalRequestId, RejectWithdrawalRequestModel model)
         {
-            await _withdrawalRequestService.RejectAsync(id, model);
+            await _withdrawalRequestService.RejectAsync(withdrawalRequestId, model);
             return Ok(new BaseResponseModel<string?>(
                statusCode: StatusCodes.Status200OK,
                code: ResponseCodeConstants.SUCCESS,
@@ -132,10 +112,10 @@ namespace ShuttleMate.API.Controllers
         /// Xóa một yêu cầu hoàn tiền.
         /// </summary>
         //[Authorize(Roles = "Student", "Parent")]
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteWithdrawalRequest(Guid id)
+        [HttpDelete("{withdrawalRequestId}")]
+        public async Task<IActionResult> DeleteWithdrawalRequest(Guid withdrawalRequestId)
         {
-            await _withdrawalRequestService.DeleteAsync(id);
+            await _withdrawalRequestService.DeleteAsync(withdrawalRequestId);
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,

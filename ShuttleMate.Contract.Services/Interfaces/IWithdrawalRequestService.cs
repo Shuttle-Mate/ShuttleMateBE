@@ -5,13 +5,12 @@ namespace ShuttleMate.Contract.Services.Interfaces
 {
     public interface IWithdrawalRequestService
     {
-        Task<BasePaginatedList<ResponseWithdrawalRequestModel>> GetAllAsync(string? status, bool sortAsc = false, int page = 0, int pageSize = 10);
-        Task<BasePaginatedList<ResponseWithdrawalRequestModel>> GetAllMyAsync(string? status, bool sortAsc = false, int page = 0, int pageSize = 10);
-        Task<ResponseWithdrawalRequestModel> GetByIdAsync(Guid id);
+        Task<BasePaginatedList<ResponseWithdrawalRequestModel>> GetAllAsync(string? status, Guid? userId, bool sortAsc = false, int page = 0, int pageSize = 10);
+        Task<ResponseWithdrawalRequestModel> GetByIdAsync(Guid withdrawalRequestId);
         Task CreateAsync(CreateWithdrawalRequestModel model);
-        Task UpdateAsync(Guid id, UpdateWithdrawalRequestModel model);
-        Task CompleteAsync(Guid id);
-        Task RejectAsync(Guid id, RejectWithdrawalRequestModel model);
-        Task DeleteAsync(Guid id);
+        Task UpdateAsync(Guid withdrawalRequestId, UpdateWithdrawalRequestModel model);
+        Task CompleteAsync(Guid withdrawalRequestId);
+        Task RejectAsync(Guid withdrawalRequestId, RejectWithdrawalRequestModel model);
+        Task DeleteAsync(Guid withdrawalRequestId);
     }
 }

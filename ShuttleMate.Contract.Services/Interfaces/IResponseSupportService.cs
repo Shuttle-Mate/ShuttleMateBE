@@ -5,6 +5,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
     public interface IResponseSupportService
     {
         Task CreateAsync(CreateResponseSupportModel model);
-        Task DeleteAsync(Guid id);
+        Task DeleteAsync(Guid responseSupportId);
     }
 }

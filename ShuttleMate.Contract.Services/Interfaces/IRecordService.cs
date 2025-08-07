@@ -1,13 +1,14 @@
-﻿using ShuttleMate.ModelViews.RecordModelViews;
+﻿using ShuttleMate.Core.Bases;
+using ShuttleMate.ModelViews.RecordModelViews;
 
 namespace ShuttleMate.Contract.Services.Interfaces
 {
     public interface IRecordService
     {
-        Task<IEnumerable<ResponseRecordModel>> GetAllAsync();
-        Task<ResponseRecordModel> GetByIdAsync(Guid id);
+        Task<BasePaginatedList<ResponseRecordModel>> GetAllAsync(Guid? tripId, DateTime? from, DateTime? to, bool sortAsc = false, int page = 0, int pageSize = 10);
+        Task<ResponseRecordModel> GetByIdAsync(Guid recordId);
         Task CreateAsync(CreateRecordModel model);
-        Task UpdateAsync(Guid id, UpdateRecordModel model);
-        Task DeleteAsync(Guid id);
+        Task UpdateAsync(Guid recordId, UpdateRecordModel model);
+        Task DeleteAsync(Guid recordId);
     }
 }
