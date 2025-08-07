@@ -18,20 +18,20 @@ namespace ShuttleMate.API.Controllers
         {
             _attendanceService = attendanceService;
         }
-        /// <summary>
-        /// Lấy danh sách điểm danh của người dùng hiện tại (có thể lọc theo ngày).
-        /// </summary>
-        [HttpGet("my")]
-        public async Task<IActionResult> GetMyAttendance([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
-        {
-            var res = await _attendanceService.GetMyAttendance(fromDate, toDate);
+        ///// <summary>
+        ///// Lấy danh sách điểm danh của người dùng hiện tại (có thể lọc theo ngày).
+        ///// </summary>
+        //[HttpGet("my")]
+        //public async Task<IActionResult> GetMyAttendance([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        //{
+        //    var res = await _attendanceService.GetMyAttendance(fromDate, toDate);
 
-            return Ok(new BaseResponseModel<object>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                data: res
-            ));
-        }
+        //    return Ok(new BaseResponseModel<object>(
+        //        statusCode: StatusCodes.Status200OK,
+        //        code: ResponseCodeConstants.SUCCESS,
+        //        data: res
+        //    ));
+        //}
         /// <summary>
         /// Checkin
         /// </summary>
@@ -76,7 +76,7 @@ namespace ShuttleMate.API.Controllers
         /// FE: CheckOutTime = 0001-01-01 00:00:00.0000000 => chưa checkout, hiển thị thời gian null
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetAllAttendance([FromQuery]GetAttendanceQuery query)
+        public async Task<IActionResult> GetAllAttendance([FromQuery] GetAttendanceQuery query)
         {
             var res = await _attendanceService.GetAll(query);
             return Ok(new BaseResponseModel<BasePaginatedList<ResponseAttendanceModel>>(
@@ -114,8 +114,8 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Xóa/Ẩn Attendance
         /// </summary>
-        [HttpDelete]
-        public async Task<IActionResult> DeleteAttendance(Guid attendanceId)
+        [HttpDelete("{attendanceId}")]
+        public async Task<IActionResult> DeleteAttendance([FromRoute]Guid attendanceId)
         {
             await _attendanceService.DeleteAttendance(attendanceId);
             return Ok(new BaseResponseModel<string>(
