@@ -201,12 +201,14 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ListStudentInSchoolResponse>(result, totalCount, page, pageSize);
         }
 
-        public async Task<BasePaginatedList<RouteToSchoolResponseModel>> GetAllRouteToSchool(int page = 0, int pageSize = 10, string? search = null, bool? isActive = null, bool sortAsc = false)
+        public async Task<BasePaginatedList<RouteToSchoolResponseModel>> GetAllRouteToSchool(int page = 0, int pageSize = 10, string? search = null,  bool sortAsc = false, Guid ? schoolId = null)
         {
             var query = _unitOfWork.GetRepository<Route>()
                 .GetQueryable()
                 .Include(x => x.School)
-                .Where(x => x.IsActive == true && !x.DeletedTime.HasValue);
+                .Where(x => x.IsActive == true 
+                        && x.SchoolId == schoolId
+                        && !x.DeletedTime.HasValue);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -216,11 +218,6 @@ namespace ShuttleMate.Services.Services
                     x.RouteName.ToLower().Contains(lowered) ||
                     x.InBound.ToLower().Contains(lowered) ||
                     x.OutBound.ToLower().Contains(lowered));
-            }
-
-            if (isActive != null)
-            {
-                query = query.Where(x => x.IsActive == isActive);
             }
 
             query = sortAsc
@@ -341,9 +338,9 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<School>().UpdateAsync(school);
             await _unitOfWork.SaveAsync();
         }
-        public async Task DeleteSchool (DeleteSchoolModel model)
+        public async Task DeleteSchool (Guid schoolId)
         {
-            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == schoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
 
             school.DeletedTime = DateTime.Now;
             school.LastUpdatedTime = DateTime.Now;

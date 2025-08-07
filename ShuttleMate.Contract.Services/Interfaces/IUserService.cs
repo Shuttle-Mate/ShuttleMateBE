@@ -1,6 +1,7 @@
 ﻿using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.ModelViews.AuthModelViews;
+using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.UserModelViews;
 
 namespace ShuttleMate.Contract.Services.Interfaces
@@ -21,6 +22,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<UserInforModel> GetById(Guid userId);
         Task<IEnumerable<ReponseYourChild>> GetYourChild(Guid Id);
         Task RemoveParent();
+        Task AssignSchoolForManager(AssignSchoolForManagerModel model);
         Task RemoveStudent(RemoveStudentModel model);
     }
 }
