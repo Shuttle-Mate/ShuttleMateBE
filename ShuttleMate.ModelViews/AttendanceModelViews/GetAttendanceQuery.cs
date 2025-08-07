@@ -17,6 +17,12 @@ namespace ShuttleMate.ModelViews.AttendanceModelViews
         /// Lọc theo TripId
         /// </summary>
         public Guid? tripId { get; set; } = null!;
+        /// <summary>
+        /// Lọc theo userId
+        /// </summary>
+        public Guid? userId { get; set; } = null!;
+        public DateTime? fromDate { get; set; } = null!;
+        public DateTime? toDate { get; set; } = null!;
     }
 
     public class GetAbsentQuery : PaginationReq

@@ -54,13 +54,13 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy chi tiết trạm dừng.
         /// </summary>
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetStopById(Guid id)
+        [HttpGet("{stopIdid}")]
+        public async Task<IActionResult> GetStopById(Guid stopId)
         {
             return Ok(new BaseResponseModel<ResponseStopModel>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _stopService.GetByIdAsync(id)));
+                data: await _stopService.GetByIdAsync(stopId)));
         }
 
         /// <summary>
@@ -81,9 +81,9 @@ namespace ShuttleMate.API.Controllers
         /// Cập nhật một trạm dừng.
         /// </summary>
         [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateStop(Guid id, UpdateStopModel model)
+        public async Task<IActionResult> UpdateStop(Guid stopId, UpdateStopModel model)
         {
-            await _stopService.UpdateAsync(id, model);
+            await _stopService.UpdateAsync(stopId, model);
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
@@ -95,9 +95,9 @@ namespace ShuttleMate.API.Controllers
         /// Xóa một trạm dừng.
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteStop(Guid id)
+        public async Task<IActionResult> DeleteStop(Guid stopId)
         {
-            await _stopService.DeleteAsync(id);
+            await _stopService.DeleteAsync(stopId);
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
