@@ -242,7 +242,7 @@ namespace ShuttleMate.Services.Services
                     throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy loại vé!");
             }
         }
-        public async Task UpdateTicket(UpdateTicketModel model)
+        public async Task UpdateTicket(Guid ticketId, UpdateTicketModel model)
         {
 
             if (model.Price <= 0)
@@ -253,7 +253,7 @@ namespace ShuttleMate.Services.Services
             && x.IsActive == true
             && x.School.IsActive == true
             && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
-            var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketTypeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
+            var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == ticketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
 
             ticket.Price = model.Price;
             ticket.RouteId = model.RouteId;

@@ -36,22 +36,6 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
-        /// lấy tất cả ca học trường mình quản lí.(SCHOOL)
-        /// </summary>
-        /// <param name="sessionType">lọc theo START, END.</param>
-        /// <param name="shiftType">Lọc theo MORNING, AFTERNOON.</param>
-        /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
-        /// <param name="page">Trang (mặc định 0).</param>
-        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
-        [HttpGet]
-        public async Task<IActionResult> GetAllSchoolShift(int page = 0, int pageSize = 10, string? sessionType = null, string? shiftType = null, bool sortAsc = false)
-        {
-            return Ok(new BaseResponseModel<BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>>(
-            statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                data: await _schoolShiftService.GetAllSchoolShift(page, pageSize, sessionType,shiftType, sortAsc)));
-        }
-        /// <summary>
         /// lấy tất cả ca học của trường.(ADMIN)
         /// </summary>
         /// <param name="sessionType">lọc theo START, END.</param>
@@ -86,9 +70,9 @@ namespace ShuttleMate.API.Controllers
         /// Cập nhật ca học: ShiftType(START, END), SessionType(MORNING, AFTERNOON)
         /// </summary>
         [HttpPatch]
-        public async Task<IActionResult> UpdateSchoolShift(UpdateSchoolShiftModel model)
+        public async Task<IActionResult> UpdateSchoolShift(Guid id, UpdateSchoolShiftModel model)
         {
-            await _schoolShiftService.UpdateSchoolShift(model);
+            await _schoolShiftService.UpdateSchoolShift(id, model);
 
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
@@ -100,9 +84,9 @@ namespace ShuttleMate.API.Controllers
         /// Xóa ca học
         /// </summary>
         [HttpDelete]
-        public async Task<IActionResult> DeleteSchoolShift(DeleteSchoolShiftModel model)
+        public async Task<IActionResult> DeleteSchoolShift(Guid id)
         {
-            await _schoolShiftService.DeleteSchoolShift(model);
+            await _schoolShiftService.DeleteSchoolShift(id);
 
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,

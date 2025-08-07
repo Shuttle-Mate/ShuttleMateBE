@@ -526,7 +526,7 @@ namespace ShuttleMate.Services.Services
                 HistoryTicketId = historyTicket.Id,
                 checkoutUrl = checkoutUrl.checkoutUrl,
                 qrCode = checkoutUrl.qrCode,
-                status = ConvertStatusToString(historyTicket.Status),
+                status = historyTicket.Status.ToString().ToUpper(),
             };
             return response;
         }
@@ -763,7 +763,7 @@ namespace ShuttleMate.Services.Services
                 HistoryTicketId = historyTicket.Id,
                 checkoutUrl = checkoutUrl.checkoutUrl,
                 qrCode = checkoutUrl.qrCode,
-                status = ConvertStatusToString(historyTicket.Status),
+                status = historyTicket.Status.ToString().ToUpper(),
             };
             return response;
         }

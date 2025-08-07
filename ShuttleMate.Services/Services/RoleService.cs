@@ -55,22 +55,22 @@ namespace ShuttleMate.Services.Services
 
             return listRole;
         }
-        public async Task UpdateRole(UpdateRoleModel model)
+        public async Task UpdateRole(Guid roleId,UpdateRoleModel model)
         {
             if (string.IsNullOrWhiteSpace(model.Name))
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tên không được để trống!");
             }
-            var role = await _unitOfWork.GetRepository<Role>().Entities.FirstOrDefaultAsync(x =>x.Id == model.Id &&  !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy vai trò!");
+            var role = await _unitOfWork.GetRepository<Role>().Entities.FirstOrDefaultAsync(x =>x.Id ==roleId &&  !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy vai trò!");
 
             role.Name = model.Name;
             await _unitOfWork.GetRepository<Role>().UpdateAsync(role);
             await _unitOfWork.SaveAsync();
         }
-        public async Task DeleteRole(DeleteRoleModel model)
+        public async Task DeleteRole(Guid roleId)
         {
             //xóa trong bảng role
-            var role = await _unitOfWork.GetRepository<Role>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy vai trò!");
+            var role = await _unitOfWork.GetRepository<Role>().Entities.FirstOrDefaultAsync(x => x.Id == roleId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy vai trò!");
             role.DeletedTime = DateTime.Now;
             await _unitOfWork.GetRepository<Role>().UpdateAsync(role);
             //xóa trong bảng UserRole
