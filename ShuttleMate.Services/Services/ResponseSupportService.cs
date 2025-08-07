@@ -63,20 +63,18 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid responseSupportId)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             var responseSupportRepo = _unitOfWork.GetRepository<ResponseSupport>();
             var supportRequestRepo = _unitOfWork.GetRepository<SupportRequest>();
 
-            var responseSupport = await responseSupportRepo.GetByIdAsync(id)
+            var responseSupport = await responseSupportRepo.GetByIdAsync(responseSupportId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Phản hồi hỗ trợ không tồn tại.");
 
             if (responseSupport.DeletedTime.HasValue)
-            {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Phản hồi hỗ trợ đã bị xóa.");
-            }
 
             responseSupport.LastUpdatedTime = CoreHelper.SystemTimeNow;
             responseSupport.LastUpdatedBy = userId;
@@ -89,7 +87,7 @@ namespace ShuttleMate.Services.Services
                 .FindAllAsync(rs =>
                     rs.SupportRequestId == responseSupport.SupportRequestId &&
                     !rs.DeletedTime.HasValue &&
-                    rs.Id != id);
+                    rs.Id != responseSupportId);
 
             if (!remainingResponses.Any())
             {

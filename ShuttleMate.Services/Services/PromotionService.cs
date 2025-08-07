@@ -32,13 +32,15 @@ namespace ShuttleMate.Services.Services
             bool? isExpired,
             DateTime? startEndDate,
             DateTime? endEndDate,
-            bool sortAsc = false,
+            Guid? userId,
+            bool sortAsc = true,
             int page = 0,
             int pageSize = 10)
         {
             var query = _unitOfWork.GetRepository<Promotion>()
                 .GetQueryable()
                 .Include(p => p.Ticket)
+                .Include(p => p.UserPromotions)
                 .Where(p => !p.DeletedTime.HasValue);
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -56,6 +58,11 @@ namespace ShuttleMate.Services.Services
             if (isExpired.HasValue)
                 query = query.Where(p => p.IsExpiredOrReachLimit == isExpired.Value);
 
+            if (userId.HasValue)
+            {
+                query = query.Where(p => p.UserPromotions.Any(up => up.UserId == userId.Value));
+            }
+
             query = sortAsc
                 ? query.OrderBy(p => p.EndDate)
                 : query.OrderByDescending(p => p.EndDate);
@@ -70,57 +77,6 @@ namespace ShuttleMate.Services.Services
             var result = _mapper.Map<List<ResponsePromotionModel>>(pagedItems);
 
             return new BasePaginatedList<ResponsePromotionModel>(result, totalCount, page, pageSize);
-        }
-
-        public async Task<BasePaginatedList<ResponsePromotionModel>> GetAllMyAsync(
-            string? search,
-            string? type,
-            bool? isExpired,
-            DateTime? startEndDate,
-            DateTime? endEndDate,
-            bool sortAsc = false,
-            int page = 0,
-            int pageSize = 10)
-        {
-            var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-            var guidUserId = Guid.Parse(userId);
-
-            var query = _unitOfWork.GetRepository<Promotion>()
-                .GetQueryable()
-                .Include(p => p.Ticket)
-                .Where(p =>
-                    !p.DeletedTime.HasValue &&
-                    p.UserPromotions.Any(up => up.UserId == guidUserId));
-
-            if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(p => p.Name.ToLower().Contains(search.Trim().ToLower()));
-
-            if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse<TypePromotionEnum>(type, true, out var parsedType))
-                query = query.Where(p => p.Type == parsedType);
-
-            if (startEndDate.HasValue)
-                query = query.Where(p => p.EndDate >= startEndDate.Value);
-
-            if (endEndDate.HasValue)
-                query = query.Where(p => p.EndDate <= endEndDate.Value);
-
-            if (isExpired.HasValue)
-                query = query.Where(p => p.IsExpiredOrReachLimit == isExpired.Value);
-
-            query = sortAsc
-                ? query.OrderBy(p => p.EndDate)
-                : query.OrderByDescending(p => p.EndDate);
-
-            var totalCount = await query.CountAsync();
-
-            var items = await query
-                .Skip(page * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var mapped = _mapper.Map<List<ResponsePromotionModel>>(items);
-
-            return new BasePaginatedList<ResponsePromotionModel>(mapped, totalCount, page, pageSize);
         }
 
         public async Task<IEnumerable<ResponsePromotionModel>> GetAllUnsavedAsync()
@@ -145,15 +101,15 @@ namespace ShuttleMate.Services.Services
             return _mapper.Map<IEnumerable<ResponsePromotionModel>>(unsavedPromotions);
         }
 
-        public async Task<IEnumerable<ResponseUserPromotionModel>> GetAllUsersSavedAsync(Guid id)
+        public async Task<IEnumerable<ResponseUserPromotionModel>> GetAllUsersSavedAsync(Guid promotionId)
         {
-            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(id)
+            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(promotionId)
                     ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi không tồn tại.");
 
             if (promotion.DeletedTime.HasValue)
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã bị xóa.");
 
-            var userPromotions = await _unitOfWork.GetRepository<UserPromotion>().FindAllAsync(up => up.PromotionId == id);
+            var userPromotions = await _unitOfWork.GetRepository<UserPromotion>().FindAllAsync(up => up.PromotionId == promotionId);
 
             if (!userPromotions.Any())
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có người dùng nào lưu khuyến mãi.");
@@ -175,9 +131,9 @@ namespace ShuttleMate.Services.Services
             return result.ToList();
         }
 
-        public async Task<ResponsePromotionModel> GetByIdAsync(Guid id)
+        public async Task<ResponsePromotionModel> GetByIdAsync(Guid promotionId)
         {
-            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(id)
+            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(promotionId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi không tồn tại.");
 
             if (promotion.DeletedTime.HasValue)
@@ -243,9 +199,9 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task UpdateAsync(Guid id, UpdatePromotionModel model)
+        public async Task UpdateAsync(Guid promotionId, UpdatePromotionModel model)
         {
-            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(id)
+            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(promotionId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi không tồn tại.");
 
             if (promotion.DeletedTime.HasValue)
@@ -308,11 +264,11 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid promotionId)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(id)
+            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(promotionId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi không tồn tại.");
 
             if (promotion.DeletedTime.HasValue)
@@ -324,34 +280,6 @@ namespace ShuttleMate.Services.Services
             promotion.DeletedBy = userId;
 
             await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
-            await _unitOfWork.SaveAsync();
-        }
-
-        public async Task SavePromotionAsync(Guid id)
-        {
-            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-            Guid.TryParse(userId, out Guid userIdGuid);
-
-            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(id)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi không tồn tại.");
-
-            if (promotion.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã bị xóa.");
-
-            var isSaved = await _unitOfWork.GetRepository<UserPromotion>().Entities.AnyAsync(up => up.UserId == userIdGuid && up.PromotionId == id);
-
-            if (isSaved)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Khuyến mãi đã được lưu.");
-            }
-
-            var userPromotion = new UserPromotion
-            {
-                UserId = userIdGuid,
-                PromotionId = id
-            };
-
-            await _unitOfWork.GetRepository<UserPromotion>().InsertAsync(userPromotion);
             await _unitOfWork.SaveAsync();
         }
     }

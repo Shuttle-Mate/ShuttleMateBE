@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
@@ -25,41 +26,72 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
         }
 
-        public async Task<IEnumerable<ResponseFeedbackModel>> GetAllAdminAsync()
+        public async Task<BasePaginatedList<ResponseFeedbackModel>> GetAllAsync(
+            string? search,
+            string? category,
+            DateOnly? from,
+            DateOnly? to,
+            Guid? userId,
+            Guid? tripId,
+            int? minRating,
+            int? maxRating,
+            bool sortAsc = false,
+            int page = 0,
+            int pageSize = 10)
         {
-            var feedbacks = await _unitOfWork.GetRepository<Feedback>().FindAllAsync(a => !a.DeletedTime.HasValue);
+            var query = _unitOfWork.GetRepository<Feedback>()
+                .GetQueryable()
+                .Include(f => f.User)
+                .Include(f => f.Trip)
+                .Where(f => !f.DeletedTime.HasValue);
 
-            if (!feedbacks.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có đánh giá nào.");
-            }
+            if (!string.IsNullOrWhiteSpace(search))
+                query = query.Where(f => f.Message.ToLower().Contains(search.Trim().ToLower()));
 
-            return _mapper.Map<IEnumerable<ResponseFeedbackModel>>(feedbacks);
+            if (!string.IsNullOrWhiteSpace(category) && Enum.TryParse<FeedbackCategoryEnum>(category, true, out var parsedCategory))
+                query = query.Where(f => f.FeedbackCategory == parsedCategory);
+
+            if (from.HasValue)
+                query = query.Where(f => f.CreatedTime.Date >= from.Value.ToDateTime(TimeOnly.MinValue));
+
+            if (to.HasValue)
+                query = query.Where(f => f.CreatedTime.Date <= to.Value.ToDateTime(TimeOnly.MaxValue));
+
+            if (userId.HasValue)
+                query = query.Where(f => f.UserId == userId.Value);
+
+            if (tripId.HasValue)
+                query = query.Where(f => f.TripId == tripId.Value);
+
+            if (minRating.HasValue)
+                query = query.Where(f => f.Rating >= minRating.Value);
+
+            if (maxRating.HasValue)
+                query = query.Where(f => f.Rating <= maxRating.Value);
+
+            query = sortAsc
+                ? query.OrderBy(f => f.CreatedTime)
+                : query.OrderByDescending(f => f.CreatedTime);
+
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = _mapper.Map<List<ResponseFeedbackModel>>(pagedItems);
+
+            return new BasePaginatedList<ResponseFeedbackModel>(result, totalCount, page, pageSize);
         }
 
-        public async Task<IEnumerable<ResponseFeedbackModel>> GetAllMyAsync()
+        public async Task<ResponseFeedbackModel> GetByIdAsync(Guid feedbackId)
         {
-            var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-
-            var myFeedbacks = await _unitOfWork.GetRepository<Feedback>().FindAllAsync(a => !a.DeletedTime.HasValue && a.UserId.ToString() == userId);
-
-            if (!myFeedbacks.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có đánh giá nào.");
-            }
-
-            return _mapper.Map<IEnumerable<ResponseFeedbackModel>>(myFeedbacks);
-        }
-
-        public async Task<ResponseFeedbackModel> GetByIdAsync(Guid id)
-        {
-            var feedback = await _unitOfWork.GetRepository<Feedback>().GetByIdAsync(id)
+            var feedback = await _unitOfWork.GetRepository<Feedback>().GetByIdAsync(feedbackId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Đánh giá không tồn tại.");
 
             if (feedback.DeletedTime.HasValue)
-            {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Đánh giá đã bị xóa.");
-            }
 
             return _mapper.Map<ResponseFeedbackModel>(feedback);
         }
@@ -69,6 +101,12 @@ namespace ShuttleMate.Services.Services
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             Guid.TryParse(userId, out Guid userIdGuid);
             model.TrimAllStrings();
+
+            var trip = await _unitOfWork.GetRepository<Trip>().GetByIdAsync(model.TripId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi không tồn tại.");
+
+            if (trip.DeletedTime.HasValue)
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi đã bị xóa.");
 
             if (!Enum.TryParse<FeedbackCategoryEnum>(model.FeedbackCategory, true, out var categoryEnum) || !Enum.IsDefined(typeof(FeedbackCategoryEnum), categoryEnum))
             {
@@ -96,11 +134,11 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid feedbackId)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            var feedback = await _unitOfWork.GetRepository<Feedback>().GetByIdAsync(id)
+            var feedback = await _unitOfWork.GetRepository<Feedback>().GetByIdAsync(feedbackId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Đánh giá không tồn tại.");
 
             if (feedback.DeletedTime.HasValue)

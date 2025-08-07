@@ -28,6 +28,7 @@ namespace ShuttleMate.Services.Services
 
         public async Task<BasePaginatedList<ResponseWithdrawalRequestModel>> GetAllAsync(
             string? status,
+            Guid? userId,
             bool sortAsc = false,
             int page = 0,
             int pageSize = 10)
@@ -42,39 +43,8 @@ namespace ShuttleMate.Services.Services
                 query = query.Where(x => x.Status == parsedStatus);
             }
 
-            query = sortAsc
-                ? query.OrderBy(x => x.CreatedTime)
-                : query.OrderByDescending(x => x.CreatedTime);
-
-            var totalCount = await query.CountAsync();
-
-            var pagedItems = await query
-                .Skip(page * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var result = _mapper.Map<List<ResponseWithdrawalRequestModel>>(pagedItems);
-
-            return new BasePaginatedList<ResponseWithdrawalRequestModel>(result, totalCount, page, pageSize);
-        }
-
-        public async Task<BasePaginatedList<ResponseWithdrawalRequestModel>> GetAllMyAsync(
-            string? status,
-            bool sortAsc = false,
-            int page = 0,
-            int pageSize = 10)
-        {
-            var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-
-            var query = _unitOfWork.GetRepository<WithdrawalRequest>()
-                .GetQueryable()
-                .Include(x => x.User)
-                .Where(x => !x.DeletedTime.HasValue && x.UserId.ToString() == userId);
-
-            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<WithdrawalRequestStatusEnum>(status, true, out var parsedStatus))
-            {
-                query = query.Where(x => x.Status == parsedStatus);
-            }
+            if (userId.HasValue)
+                query = query.Where(f => f.UserId == userId.Value);
 
             query = sortAsc
                 ? query.OrderBy(x => x.CreatedTime)
@@ -92,9 +62,9 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ResponseWithdrawalRequestModel>(result, totalCount, page, pageSize);
         }
 
-        public async Task<ResponseWithdrawalRequestModel> GetByIdAsync(Guid id)
+        public async Task<ResponseWithdrawalRequestModel> GetByIdAsync(Guid withdrawalRequestId)
         {
-            var withdrawalRequest = await _unitOfWork.GetRepository<WithdrawalRequest>().GetByIdAsync(id)
+            var withdrawalRequest = await _unitOfWork.GetRepository<WithdrawalRequest>().GetByIdAsync(withdrawalRequestId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hoàn tiền không tồn tại.");
 
             if (withdrawalRequest.DeletedTime.HasValue)
@@ -143,12 +113,12 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task UpdateAsync(Guid id, UpdateWithdrawalRequestModel model)
+        public async Task UpdateAsync(Guid withdrawalRequestId, UpdateWithdrawalRequestModel model)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             model.TrimAllStrings();
 
-            var withdrawalRequest = await _unitOfWork.GetRepository<WithdrawalRequest>().GetByIdAsync(id)
+            var withdrawalRequest = await _unitOfWork.GetRepository<WithdrawalRequest>().GetByIdAsync(withdrawalRequestId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hoàn tiền không tồn tại.");
 
             if (withdrawalRequest.DeletedTime.HasValue)
@@ -177,11 +147,11 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task CompleteAsync(Guid id)
+        public async Task CompleteAsync(Guid withdrawalRequestId)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            var withdrawalRequest = await _unitOfWork.GetRepository<WithdrawalRequest>().GetByIdAsync(id)
+            var withdrawalRequest = await _unitOfWork.GetRepository<WithdrawalRequest>().GetByIdAsync(withdrawalRequestId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hoàn tiền không tồn tại.");
 
             if (withdrawalRequest.DeletedTime.HasValue)
@@ -201,11 +171,11 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task RejectAsync(Guid id, RejectWithdrawalRequestModel model)
+        public async Task RejectAsync(Guid withdrawalRequestId, RejectWithdrawalRequestModel model)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            var withdrawalRequest = await _unitOfWork.GetRepository<WithdrawalRequest>().GetByIdAsync(id)
+            var withdrawalRequest = await _unitOfWork.GetRepository<WithdrawalRequest>().GetByIdAsync(withdrawalRequestId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hoàn tiền không tồn tại.");
 
             if (withdrawalRequest.DeletedTime.HasValue)
@@ -229,11 +199,11 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid withdrawalRequestId)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            var withdrawalRequest = await _unitOfWork.GetRepository<WithdrawalRequest>().GetByIdAsync(id)
+            var withdrawalRequest = await _unitOfWork.GetRepository<WithdrawalRequest>().GetByIdAsync(withdrawalRequestId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hoàn tiền không tồn tại.");
 
             if (withdrawalRequest.DeletedTime.HasValue)
