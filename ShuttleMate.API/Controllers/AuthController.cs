@@ -43,7 +43,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
 
-        [HttpPatch("resend-confirm-email")]
+        [HttpPatch("confirmation/resend")]
         public async Task<IActionResult> ResendConfirmationEmail(EmailModelView model)
         {
             await _authService.ResendConfirmationEmail(model);
@@ -88,7 +88,7 @@ namespace ShuttleMate.API.Controllers
             ));
         }
 
-        [HttpPatch("forget-password/confirm-otp")]
+        [HttpPatch("confirmation/forgot-password")]
         public async Task<IActionResult> ConfirmOTPResetPassword(ConfirmOTPModelView model)
         {
             Guid res = await _authService.VerifyOtp(model);

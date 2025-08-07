@@ -237,7 +237,7 @@ namespace ShuttleMate.Services.Services
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại!");
             var parent = await _unitOfWork.GetRepository<User>()
                 .Entities.FirstOrDefaultAsync(x => x.Id == model.ParentId && !x.DeletedTime.HasValue);
-            if(parent == null)
+            if (parent == null)
             {
                 parent = await _unitOfWork.GetRepository<User>()
                 .Entities.FirstOrDefaultAsync(x => x.Id == user.ParentId && !x.DeletedTime.HasValue);
@@ -402,6 +402,9 @@ namespace ShuttleMate.Services.Services
             var dayOfWeek = vietnamNow.DayOfWeek;
             var currentTime = vietnamNow.TimeOfDay;
 
+            User admin = await _unitOfWork.GetRepository<User>()
+                .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
+
             bool isAllowedTime = false;
 
             // Saturday case
@@ -414,11 +417,13 @@ namespace ShuttleMate.Services.Services
             {
                 isAllowedTime = true;
             }
-
-            if (!isAllowedTime)
+            if (!admin.UserRoles.Any(x => x.Role.Name == "ADMIN" || x.Role.Name == "OPERATOR"))
             {
-                throw new ErrorException(StatusCodes.Status403Forbidden, ErrorCode.Forbidden,
-                    "Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần");
+                if (!isAllowedTime)
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest,
+                        "Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần");
+                }
             }
 
             if (id != null)

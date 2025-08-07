@@ -68,10 +68,10 @@ namespace ShuttleMate.API.Controllers
                 message: "Tạo loại vé thành công!"
             ));
         }
-        [HttpPatch]
-        public async Task<IActionResult> UpdateTicket(UpdateTicketModel model)
+        [HttpPatch("{ticketId}")]
+        public async Task<IActionResult> UpdateTicket(Guid ticketId, UpdateTicketModel model)
         {
-            await _ticketService.UpdateTicket(model);
+            await _ticketService.UpdateTicket(ticketId, model);
 
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
@@ -79,7 +79,7 @@ namespace ShuttleMate.API.Controllers
                 message: "Cập nhật loại vé thành công!"
             ));
         }
-        [HttpDelete]
+        [HttpDelete("{ticketId}")]
         public async Task<IActionResult> DeleteTicket(Guid ticketId)
         {
             await _ticketService.DeleteTicket(ticketId);

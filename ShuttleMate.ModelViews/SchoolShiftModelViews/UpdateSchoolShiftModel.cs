@@ -9,7 +9,6 @@ namespace ShuttleMate.ModelViews.SchoolShiftModelViews
 {
     public class UpdateSchoolShiftModel
     {
-        public Guid Id { get; set; }    
         public TimeOnly Time { get; set; }
         public string ShiftType { get; set; }
         public string SessionType { get; set; }

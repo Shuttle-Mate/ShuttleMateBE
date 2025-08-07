@@ -50,7 +50,7 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy status của history ticket
         /// </summary>
-        [HttpGet("history-ticket/status")]
+        [HttpGet("payment/status")]
         public async Task<IActionResult> ResponseHistoryTicketStatus(Guid historyTicketId)
         {
             string response = await _historyTicketService.ResponseHistoryTicketStatus(historyTicketId);

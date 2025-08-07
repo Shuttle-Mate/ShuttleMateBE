@@ -14,7 +14,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>> GetAllSchoolShiftForAdmin(int page = 0, int pageSize = 10, string? sessionType = null, string? shiftType = null, bool sortAsc = false, Guid? schoolId = null);
         Task<List<ResponseSchoolShiftListByTicketIdMode>> GetSchoolShiftListByTicketId(Guid ticketId);
         Task CreateSchoolShift(CreateSchoolShiftModel model);
-        Task UpdateSchoolShift(UpdateSchoolShiftModel model);
-        Task DeleteSchoolShift(DeleteSchoolShiftModel model);
+        Task UpdateSchoolShift(Guid id, UpdateSchoolShiftModel model);
+        Task DeleteSchoolShift(Guid id);
     }
 }

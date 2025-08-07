@@ -11,7 +11,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
     {
         Task CreateRole(RoleModel model);
         Task<List<ResponseRoleModel>> GetAll();
-        Task UpdateRole(UpdateRoleModel model);
-        Task DeleteRole(DeleteRoleModel model);
+        Task UpdateRole(Guid roleId, UpdateRoleModel model);
+        Task DeleteRole(Guid roleId);
     }
 }
