@@ -23,6 +23,10 @@ using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
 using System.Net;
+using System.Collections.Concurrent;
+using Microsoft.Extensions.Caching.Memory;
+using OpenAI.Responses;
+using System.Net.Http.Json;
 namespace ShuttleMate.Services.Services
 {
     public class ChatService : IChatService
@@ -33,106 +37,109 @@ namespace ShuttleMate.Services.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IEmailService _emailService;
         private readonly HttpClient _httpClient;
-        private readonly string _apiKey;
-        private string _modelUrl;
         private readonly ILogger<ChatService> _logger;
+        private readonly IMemoryCache _cache;
+
+        // Policy configurations
         private readonly AsyncPolicy<ChatResponse> _retryPolicy;
         private readonly AsyncPolicy<ChatResponse> _circuitBreaker;
         private readonly IAsyncPolicy<ChatResponse> _policyWrap;
+
+        // Rate limiting
+        private static readonly ConcurrentDictionary<string, DateTime> _userLastRequestTime = new();
+        private static readonly SemaphoreSlim _rateLimitLock = new(1, 1);
+        private readonly int _requestsPerMinute;
+        private readonly int _cacheDurationMinutes;
+        private readonly int _maxDatabaseSearchAttempts = 3;
+        private readonly TimeZoneInfo _vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+
+
         public ChatService(
-                IUnitOfWork unitOfWork,
-                IMapper mapper,
-                IConfiguration configuration,
-                IHttpContextAccessor contextAccessor,
-                IEmailService emailService,
-                HttpClient httpClient,
-                ILogger<ChatService> logger)
-                {
-                    _unitOfWork = unitOfWork;
-                    _mapper = mapper;
-                    _configuration = configuration;
-                    _contextAccessor = contextAccessor;
-                    _emailService = emailService;
-                    _httpClient = httpClient;
-                    _logger = logger;
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IConfiguration configuration,
+            IHttpContextAccessor contextAccessor,
+            IEmailService emailService,
+            HttpClient httpClient,
+            ILogger<ChatService> logger,
+            IMemoryCache cache)
+        {
+            _unitOfWork = unitOfWork;
+            _mapper = mapper;
+            _configuration = configuration;
+            _contextAccessor = contextAccessor;
+            _emailService = emailService;
+            _httpClient = httpClient;
+            _logger = logger;
+            _cache = cache;
 
-                    _httpClient.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
-                    _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                    _apiKey = configuration["Gemini:ApiKey"]!;
+            // Load configurations
+            _requestsPerMinute = _configuration.GetValue("OpenAI:RateLimiting:RequestsPerMinute", 5);
+            _cacheDurationMinutes = _configuration.GetValue("Caching:DurationMinutes", 30);
 
-            // Cấu hình Retry Policy
+            // Configure HTTP client
+            _httpClient.BaseAddress = new Uri(_configuration["OpenAI:BaseUrl"] ?? "https://api.openai.com/v1/");
+            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _configuration["OpenAI:ApiKey"]);
+            _httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+            // Configure policies
             _retryPolicy = Policy<ChatResponse>
                 .Handle<Exception>()
-                .WaitAndRetryAsync(new[]
-                {
-                TimeSpan.FromSeconds(1),
-                TimeSpan.FromSeconds(3),
-                TimeSpan.FromSeconds(5)
-                },
-                onRetry: (outcome, delay, retryCount, context) =>
-                {
-                    _logger.LogWarning($"Retry {retryCount} after {delay.TotalSeconds}s. Error: {outcome.Exception?.Message}");
-                });
-
-            // Cấu hình Circuit Breaker với cách tiếp cận khác
-            _circuitBreaker = Policy<ChatResponse>
-                .Handle<Exception>()
-                .AdvancedCircuitBreakerAsync(
-                    failureThreshold: 0.5, // Ngưỡng lỗi 50%
-                    samplingDuration: TimeSpan.FromSeconds(30),
-                    minimumThroughput: 4,
-                    durationOfBreak: TimeSpan.FromMinutes(5),
-                    onBreak: (ex, breakDelay) =>
+                .OrResult(r => r.Response?.Contains("rate limit") == true)
+                .WaitAndRetryAsync(
+                    sleepDurations: new[]
                     {
-                        _logger.LogError($"Circuit broken! Will retry after {breakDelay.TotalMinutes} minutes. Reason: {ex.Result.Response}");
+                        TimeSpan.FromSeconds(1),
+                        TimeSpan.FromSeconds(3),
+                        TimeSpan.FromSeconds(5)
                     },
-                    onReset: () =>
+                    onRetry: (outcome, delay, retryCount, context) =>
                     {
-                        _logger.LogInformation("Circuit reset!");
-                    },
-                    onHalfOpen: () =>
-                    {
-                        _logger.LogInformation("Circuit half-open: Testing connection...");
+                        _logger.LogWarning($"Retry {retryCount} after {delay.TotalSeconds}s. Error: {outcome.Exception?.Message ?? outcome.Result?.Response}");
                     });
 
-            // Kết hợp các policy
+            _circuitBreaker = Policy<ChatResponse>
+                .Handle<Exception>()
+                .OrResult(r => r.Response != null && r.Response.Contains("API error", StringComparison.OrdinalIgnoreCase)).AdvancedCircuitBreakerAsync(
+                    failureThreshold: 0.3,
+                    samplingDuration: TimeSpan.FromSeconds(30),
+                    minimumThroughput: 5,
+                    durationOfBreak: TimeSpan.FromMinutes(2),
+                    onBreak: (ex, breakDelay) =>
+                    {
+                        _logger.LogError($"Circuit broken! Will retry after {breakDelay.TotalMinutes} minutes. Reason: {ex.Exception?.Message ?? ex.Result?.Response}");
+                    },
+                    onReset: () => _logger.LogInformation("Circuit reset!"),
+                    onHalfOpen: () => _logger.LogInformation("Circuit half-open: Testing connection..."));
+
             _policyWrap = Policy.WrapAsync(_retryPolicy, _circuitBreaker);
         }
 
-        public async Task<List<ChatHistoryResponse>> GetAndCleanChatHistory(Guid userId)
+        public async Task<List<ChatHistoryResponse>> GetChatHistoryByTimeWindow(int number, Guid userId)
         {
             // Lấy múi giờ Việt Nam
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
-            var cutoffTime = vietnamNow.AddHours(-24);
 
-            // 1. Lấy tin nhắn mới nhất trước
-            var latestMessages = await _unitOfWork.GetRepository<ChatBotLog>().Entities
-                .Where(x => x.UserId == userId)
+            // Tính toán khoảng thời gian dựa trên number
+            var endTime = vietnamNow.AddHours(-24 * number);
+            var startTime = endTime.AddHours(-24);
+
+            _logger.LogInformation($"Loading messages between {startTime} and {endTime} for user {userId}");
+
+
+            // Lấy tin nhắn trong khoảng thời gian 24h tương ứng
+            var messages = await _unitOfWork.GetRepository<ChatBotLog>().Entities
+                .Where(x => x.UserId == userId
+                         && x.CreatedTime >= startTime
+                         && x.CreatedTime < endTime)
                 .OrderByDescending(m => m.CreatedTime)
-                .Take(20)//lấy đúng 20 tin nhắn 
+                //.Take(20) // Lấy tối đa 20 tin nhắn
                 .ToListAsync();
 
-
-            // 2. Xóa tin nhắn cũ hơn 24h so với tin nhắn mới nhất
-            if (latestMessages.Any())
-            {
-                var newestMessageTime = latestMessages.Max(x => x.CreatedTime);
-                var oldMessagesCutoff = newestMessageTime.AddHours(-24);
-
-                var oldMessages = await _unitOfWork.GetRepository<ChatBotLog>().Entities
-                    .Where(x => x.UserId == userId && x.CreatedTime < oldMessagesCutoff
-                    ).ToListAsync();
-
-                if (oldMessages.Any())
-                {
-                    await _unitOfWork.GetRepository<ChatBotLog>().DeleteAsync(oldMessages);
-                    await _unitOfWork.SaveAsync();
-                }
-            }
-
-            // 3. Ánh xạ kết quả trả về
-            return latestMessages.Select(m => new ChatHistoryResponse
+            // Ánh xạ kết quả trả về
+            return messages.Select(m => new ChatHistoryResponse
             {
                 Id = m.Id,
                 Role = m.Role.ToString().ToUpper(),
@@ -143,83 +150,140 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<ChatResponse> SendMessage(ChatRequest request)
         {
+
             try
             {
                 return await _policyWrap.ExecuteAsync(async () =>
                 {
-                    // Lấy userId từ người dùng hiện tại
+
+                    var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                    var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+                    // Get user ID
                     string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
                     Guid.TryParse(userId, out Guid cb);
 
-                    var conversationHistory = await GetConversationHistory(cb);
-
-                    // Thêm tin nhắn mới
-                    conversationHistory.Add(new ChatMessage
+                    // Check cache first
+                    var cacheKey = $"{userId}_{Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(request.Message)))}"; 
+                    if (_cache.TryGetValue(cacheKey, out ChatResponse cachedResponse))
                     {
-                        Role = "user",
-                        Parts = new List<ChatPart> { new ChatPart { Text = request.Message } }
-                    });
-
-                    var requestData = new
-                    {
-                        system_instruction = new { parts = new[] { new { text = SystemInstruction } } },
-                        contents = conversationHistory.Select(c => new
-                        {
-                            role = c.Role,
-                            parts = c.Parts.Select(p => new { text = p.Text })
-                        })
-                    };
-
-                    var jsonContent = JsonConvert.SerializeObject(requestData);
-                    var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
-                    // Gọi API và nhận HttpResponseMessage
-                    var httpResponse = await _httpClient.PostAsync(
-                        $"v1beta/models/gemini-1.5-flash:generateContent?key={_apiKey}",
-                        httpContent);
-
-                    if (!httpResponse.IsSuccessStatusCode)
-                    {
-                        var errorContent = await httpResponse.Content.ReadAsStringAsync();
-                        throw new ErrorException((int)httpResponse.StatusCode,
-                            httpResponse.StatusCode.ToString(),
-                            $"Gemini API error: {errorContent}");
+                        _logger.LogInformation("Returning cached response");
+                        return cachedResponse;
                     }
 
-                    var responseContent = await httpResponse.Content.ReadAsStringAsync();
-                    var responseData = JsonConvert.DeserializeObject<GeminiResponse>(responseContent);
+                    await _rateLimitLock.WaitAsync();
+                    try
+                    {
+                        var nowUtc = DateTime.UtcNow;
+                        var nowInVN = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, _vnTimeZone);
 
-                    if (responseData?.Candidates == null || responseData.Candidates.Count == 0)
+                        if (_userLastRequestTime.TryGetValue(userId, out var lastRequestUtc))
+                        {
+                            var lastRequestInVN = TimeZoneInfo.ConvertTimeFromUtc(lastRequestUtc, _vnTimeZone);
+                            var timeSinceLastRequest = nowInVN - lastRequestInVN;
+
+                            if (timeSinceLastRequest.TotalSeconds < 60.0 / _requestsPerMinute)
+                            {
+                                _logger.LogWarning($"Rate limit: User {userId} last request at {lastRequestInVN:HH:mm:ss} VN");
+                                return new ChatResponse { Response = "Vui lòng thử lại sau ít phút nữa" };
+                            }
+                        }
+                        _userLastRequestTime[userId] = nowUtc; // Luôn lưu UTC
+                    }
+                    finally
+                    {
+                        _rateLimitLock.Release();
+                    }
+
+                    // Prepare conversation
+                    var systemInfo = await GetSystemInformation(cb);
+                    var conversationHistory = await GetConversationHistory(cb);
+
+                    var messages = new List<object>
+                    {
+                        new { role = "system", content = systemInfo }
+                    };
+
+                    foreach (var message in conversationHistory)
+                    {
+                        messages.Add(new
+                        {
+                            role = message.Role == "model" ? "assistant" : message.Role,
+                            content = message.Parts?.FirstOrDefault()?.Text ?? string.Empty,
+                        });
+                    }
+                    messages.Add(new { role = "user", content = request.Message });
+
+                    // Call OpenAI API
+                    var requestData = new
+                    {
+                        model = _configuration["OpenAI:Model"] ?? "gpt-3.5-turbo",
+                        messages,
+                        temperature = 0.3,
+                        max_tokens = _configuration.GetValue("OpenAI:MaxTokens", 100),
+                        top_p = 1.0,
+                        frequency_penalty = 0.5,
+                        presence_penalty = 0.5
+                    };
+
+                    var response = await _httpClient.PostAsJsonAsync("chat/completions", requestData);
+
+                    // Handle rate limits from API
+                    if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                    {
+                        var retryAfter = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(5);
+                        await Task.Delay(retryAfter);
+                        return await SendMessage(request); // Retry after delay
+                    }
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorContent = response.Content != null ? await response.Content.ReadAsStringAsync() : string.Empty; _logger.LogError($"OpenAI API Error: {response.StatusCode} - {errorContent}");
+                        throw new ErrorException((int)response.StatusCode,
+                            response.StatusCode.ToString(),
+                            $"OpenAI API error: {errorContent}");
+                    }
+
+                    var content = await response.Content.ReadFromJsonAsync<ModelViews.ChatModelView.OpenAIResponse>();
+                    if (content?.Choices == null || content.Choices.Count == 0)
                     {
                         throw new ErrorException(StatusCodes.Status500InternalServerError,
                             ResponseCodeConstants.INTERNAL_SERVER_ERROR,
-                            "Empty response from Gemini API");
+                            "Empty response from OpenAI API");
                     }
 
-                    var aiResponse = responseData.Candidates[0].Content.Parts[0].Text;
+                    var aiResponse = content.Choices[0].Message.Content;
 
-                    // Lưu lịch sử hội thoại
-                    conversationHistory.Add(new ChatMessage
+                    // Cache the response
+                    _cache.Set(cacheKey, new ChatResponse { Response = aiResponse },
+                        TimeSpan.FromMinutes(_cacheDurationMinutes));
+
+                    // Save conversation history
+                    await SaveConversationHistory(new List<ChatMessage>
                     {
-                        Role = "model",
-                        Parts = new List<ChatPart> { new ChatPart { Text = aiResponse } }
+                        new ChatMessage
+                        {
+                            Role = "user",
+                            Parts = new List<ChatPart> { new ChatPart { Text = request.Message } }
+                        },
+                        new ChatMessage
+                        {
+                            Role = "assistant",
+                            Parts = new List<ChatPart> { new ChatPart { Text = aiResponse } }
+                        }
                     });
-
-                    await SaveConversationHistory(conversationHistory);
 
                     return new ChatResponse { Response = aiResponse };
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error in SendMessage");
+                _logger.LogError(ex, "Error in SendMessage");
                 return new ChatResponse
                 {
-                    Response = "Đã xảy ra lỗi khi xử lý yêu cầu. Vui lòng thử lại sau."
+                    Response = "Xin lỗi, tôi đang gặp sự cố kỹ thuật. Vui lòng thử lại sau."
                 };
             }
         }
-
         private async Task<ChatResponse> HandleFallbackResponse()
         {
             return new ChatResponse
@@ -259,7 +323,7 @@ namespace ShuttleMate.Services.Services
                 {
                     Role = role,
                     Content = message.Parts.FirstOrDefault()?.Text ?? string.Empty,
-                    ModelUsed = "gemini-1.5-flash",
+                    ModelUsed = "gpt-3.5-turbo",
                     UserId = cb,
                     CreatedTime = vietnamNow,
                     LastUpdatedTime = vietnamNow
@@ -270,47 +334,167 @@ namespace ShuttleMate.Services.Services
             }
             await _unitOfWork.SaveAsync();
         }
-        private readonly string SystemInstruction = @"
-            🏥 1. Thông tin chung về phòng khám
-            
-                Tên phòng khám: Phòng khám Đa khoa ABC
-            
-                Địa chỉ: Số 123, đường Nguyễn Huệ, TP Quảng Ngãi
-            
-                Số điện thoại: 0901 234 567
-            
-                Email: phongkhamabc@gmail.com
-            
-                Giờ làm việc:
-            
-                    Thứ 2 - Thứ 7: 7h00 - 20h00
-            
-                    Chủ nhật: 7h00 - 12h00
-            
-            ⚕️ 2. Danh sách dịch vụ khám chữa bệnh
-            STT	Tên dịch vụ	Giá tiền	Mô tả ngắn
-            1	Khám tổng quát	200.000đ	Kiểm tra toàn diện sức khỏe
-            2	Khám nội tổng quát	150.000đ	Chẩn đoán các bệnh lý nội khoa
-            3	Siêu âm bụng tổng quát	250.000đ	Phát hiện bất thường trong ổ bụng
-            4	Xét nghiệm máu cơ bản	180.000đ	Kiểm tra chỉ số máu thông thường
-            5	Khám tai mũi họng	150.000đ	Kiểm tra viêm xoang, viêm họng,...
-            6	Khám sản phụ khoa	250.000đ	Tư vấn, khám phụ khoa cho nữ giới
-            7	Khám nhi khoa	150.000đ	Khám cho trẻ em
-            👨‍⚕️ 3. Danh sách bác sĩ
-            Họ và tên	Chuyên khoa	Kinh nghiệm	Lịch làm việc
-            BS. Nguyễn Văn A	Nội tổng quát	15 năm	T2 - T7 (7h - 17h)
-            BS. Trần Thị B	Sản phụ khoa	10 năm	T2 - CN (7h - 20h)
-            BS. Lê Văn C	Tai Mũi Họng	12 năm	T2 - T7 (8h - 18h)
-            BS. Phạm Thị D	Nhi khoa	8 năm	T2 - CN (7h - 20h)
-            🔄 4. Chính sách đặt lịch & khám bệnh
-            
-                Đặt lịch: Qua điện thoại hoặc qua website (nếu có).
-            
-                Chính sách hủy lịch: Thông báo trước 24h.
-            
-                Khám không đặt lịch trước: Vẫn được phục vụ, nhưng có thể phải chờ.
-            
-                Thanh toán: Tiền mặt, chuyển khoản, hoặc qua ví điện tử (Momo, ZaloPay).";
+        private async Task<string> GetSystemInformation(Guid userId)
+        {
+            var user = await _unitOfWork.GetRepository<User>()
+                .Entities
+                .Include(u => u.School)
+                .ThenInclude(s => s.SchoolShifts)
+                .Include(u => u.School)
+                .ThenInclude(s => s.Routes)
+                .ThenInclude(r => r.Tickets)
+                .FirstOrDefaultAsync(x => x.Id == userId && !x.DeletedTime.HasValue && x.Violate == false);
+
+            if (user == null)
+            {
+                return "Không tìm thấy thông tin người dùng hoặc người dùng bị hạn chế";
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine("### THÔNG TIN HỆ THỐNG SHUTTLEMATE");
+            sb.AppendLine($"Người dùng: {user.FullName} ({user.Email})");
+
+            // Xử lý khi user có trường học
+            if (user.SchoolId != null && user.School != null)
+            {
+                var school = user.School;
+                var currentSemester = await GetCurrentSemester(new List<School> { school });
+
+                sb.AppendLine($"\n**THÔNG TIN TRƯỜNG HỌC CỦA BẠN**");
+                sb.AppendLine($"- Tên trường: {school.Name}");
+                sb.AppendLine($"- Địa chỉ: {school.Address}");
+                sb.AppendLine($"- Học kỳ hiện tại: {currentSemester}");
+
+                sb.AppendLine($"\n**LỊCH HỌC**");
+                foreach (var shift in school.SchoolShifts?.OrderBy(s => s.Time) ?? Enumerable.Empty<SchoolShift>())
+                {
+                    sb.AppendLine($"- Ca {shift.ShiftType}: {shift.Time} ({shift.SessionType})");
+                }
+
+                sb.AppendLine($"\n**TUYẾN XE CỦA TRƯỜNG BẠN**");
+                foreach (var route in school.Routes.Where(r => r.IsActive))
+                {
+                    sb.AppendLine($"- Tuyến {route.RouteName} ({route.RouteCode})");
+                    sb.AppendLine($"  Thời gian hoạt động: {route.OperatingTime}");
+
+                    var tickets = route.Tickets.GroupBy(t => t.Type);
+                    foreach (var ticketGroup in tickets)
+                    {
+                        var firstTicket = ticketGroup.First();
+                        sb.AppendLine($"  + Vé {GetTicketTypeName(ticketGroup.Key)}: {firstTicket.Price.ToString("N0")} VND");
+                    }
+                }
+            }
+            else
+            {
+                // Xử lý khi user chưa có trường học
+                var allSchools = await _unitOfWork.GetRepository<School>()
+                    .Entities
+                    .Include(s => s.Routes)
+                    .ThenInclude(r => r.Tickets)
+                    .Where(x => !x.DeletedTime.HasValue)
+                    .OrderBy(x => x.Name) // Có thể thay bằng sắp xếp theo khoảng cách nếu có thông tin vị trí
+                    .Take(3) // Lấy 3 trường tiêu biểu
+                    .ToListAsync();
+
+                sb.AppendLine("\n**BẠN CHƯA CÓ TRƯỜNG HỌC ĐƯỢC GÁN**");
+                sb.AppendLine("Dưới đây là một số trường học tiêu biểu trong hệ thống:");
+
+                foreach (var school in allSchools)
+                {
+                    sb.AppendLine($"\n- Trường: {school.Name} ({school.Address})");
+
+                    var popularRoutes = school.Routes
+                        .Where(r => r.IsActive)
+                        .OrderByDescending(r => r.Tickets.Count)
+                        .Take(2); // Lấy 2 tuyến phổ biến nhất
+
+                    if (popularRoutes.Any())
+                    {
+                        sb.AppendLine("  Các tuyến xe phổ biến:");
+                        foreach (var route in popularRoutes)
+                        {
+                            sb.AppendLine($"  + Tuyến {route.RouteName} ({route.RouteCode})");
+                            var cheapestTicket = route.Tickets.OrderBy(t => t.Price).FirstOrDefault();
+                            if (cheapestTicket != null)
+                            {
+                                sb.AppendLine($"    Giá vé từ: {cheapestTicket.Price.ToString("N0")} VND");
+                            }
+                        }
+                    }
+                }
+
+                sb.AppendLine("\nVui lòng liên hệ quản trị viên để được gán vào trường học phù hợp.");
+            }
+
+            sb.AppendLine("\n**HƯỚNG DẪN SỬ DỤNG**");
+            sb.AppendLine("- Hỏi về lịch trình: 'Lịch học của tôi ngày mai thế nào?'");
+            sb.AppendLine("- Hỏi về tuyến xe: 'Tuyến xe nào đi qua quận 1?'");
+            sb.AppendLine("- Hỏi về vé: 'Có các loại vé nào'");
+            sb.AppendLine("- Hỗ trợ: 'Tôi muốn đăng ký vé tháng'");
+
+            return sb.ToString();
+        }
+
+        private async Task<string> GetCurrentSemester(List<School> schools)
+        {
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var today = DateOnly.FromDateTime(vietnamNow);
+
+            foreach (var school in schools)
+            {
+                if (school.StartSemOne.HasValue && school.EndSemOne.HasValue &&
+                    today >= school.StartSemOne.Value && today <= school.EndSemOne.Value)
+                {
+                    return "Học kỳ 1";
+                }
+
+                if (school.StartSemTwo.HasValue && school.EndSemTwo.HasValue &&
+                    today >= school.StartSemTwo.Value && today <= school.EndSemTwo.Value)
+                {
+                    return "Học kỳ 2";
+                }
+            }
+
+            return "Kỳ nghỉ";
+        }
+
+        private string GetTicketTypeName(TicketTypeEnum type)
+        {
+            return type switch
+            {
+                TicketTypeEnum.WEEKLY => "tuần",
+                TicketTypeEnum.MONTHLY => "tháng",
+                TicketTypeEnum.SEMESTER_ONE => "kỳ",
+                TicketTypeEnum.SEMESTER_TWO => "kỳ",
+                _ => type.ToString()
+            };
+        }
+
+        private string GetCurrentSemester(School school)
+        {
+            if (school == null) return "Không xác định";
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var today = DateOnly.FromDateTime(vietnamNow);
+
+            if (school.StartSemOne.HasValue && school.EndSemOne.HasValue &&
+                today >= school.StartSemOne.Value && today <= school.EndSemOne.Value)
+            {
+                return "Học kỳ 1";
+            }
+
+            if (school.StartSemTwo.HasValue && school.EndSemTwo.HasValue &&
+                today >= school.StartSemTwo.Value && today <= school.EndSemTwo.Value)
+            {
+                return "Học kỳ 2";
+            }
+
+            return "Kỳ nghỉ";
+        }
 
     }
 }

@@ -122,8 +122,51 @@ namespace ShuttleMate.Services.Services
             string OTP = GenerateOtp();
             newUser.EmailCode = int.Parse(OTP);
             newUser.CodeGeneratedTime = DateTime.Now;
-            await _emailService.SendEmailAsync(model.Email, "Xác nhận tài khoản", $"Vui lòng xác nhận tài khoản của bạn, OTP của bạn là: <div class='otp'>{OTP}</div>");
-
+            await _emailService.SendEmailAsync(
+                model.Email,
+                                                        "Mã OTP xác nhận tài khoản",
+                $@"
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background-color: #FAF9F7;'>
+                    <h2 style='color: #124DA3; border-bottom: 2px solid #F37022; padding-bottom: 10px;'>Mã OTP của bạn</h2>
+                    
+                    <p style='color: #333;'>Xin chào,</p>
+                    
+                    <p style='color: #333;'>Mã OTP một lần để xác nhận tài khoản của bạn là:</p>
+                    
+                    <div style='font-size: 24px; font-weight: bold; letter-spacing: 2px; 
+                                color: #124DA3; background: white; padding: 15px; 
+                                display: inline-block; margin: 15px 0; border-radius: 4px;
+                                border: 2px dashed #F37022;'>
+                        {OTP}
+                    </div>
+                    
+                    <p style='color: #333;'>Mã này có hiệu lực trong <strong style='color: #124DA3;'>2 phút</strong>.</p>
+                    
+                    <a href='#' style='display: inline-block; background-color: #F37022; color: white; 
+                                      padding: 10px 20px; text-decoration: none; border-radius: 4px;
+                                      margin: 15px 0; font-weight: bold;'>
+                        Xác nhận ngay
+                    </a>
+                    
+                    <p style='color: #ff0000;'><strong>⚠️ Lưu ý:</strong> Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+                    
+                    <p style='color: #4EB748; font-style: italic;'>
+                        <strong>✔️ Thành công:</strong> Yêu cầu OTP của bạn đã được tạo!
+                    </p>
+                    
+                    <p style='color: #333; font-size: 14px;'>
+                        Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.
+                    </p>
+                    
+                    <div style='margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee;'>
+                        <p style='color: #124DA3; font-weight: bold;'>Đội ngũ hỗ trợ ShuttleMate </p>
+                        <p style='font-size: 12px; color: #999;'>
+                            © {DateTime.Now.Year} ShuttleMate . Bảo lưu mọi quyền.
+                        </p>
+                    </div>
+                </div>
+                "
+            );
             await _unitOfWork.SaveAsync();
 
         }
@@ -138,8 +181,52 @@ namespace ShuttleMate.Services.Services
             int OTP = Int32.Parse(GenerateOtp());
             user.EmailCode = OTP;
             user.CodeGeneratedTime = DateTime.Now;
-            await _emailService.SendEmailAsync(emailModelView.Email, "Xác nhận tài khoản",
-           $"Vui lòng xác nhận tài khoản của bạn, OTP của bạn là:  <div class='otp'>{OTP}</div>");
+            await _emailService.SendEmailAsync(
+                user.Email,
+                            "Mã OTP xác nhận tài khoản",
+                $@"
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background-color: #FAF9F7;'>
+                    <h2 style='color: #124DA3; border-bottom: 2px solid #F37022; padding-bottom: 10px;'>Mã OTP của bạn</h2>
+                    
+                    <p style='color: #333;'>Xin chào,</p>
+                    
+                    <p style='color: #333;'>Mã OTP một lần để xác nhận tài khoản của bạn là:</p>
+                    
+                    <div style='font-size: 24px; font-weight: bold; letter-spacing: 2px; 
+                                color: #124DA3; background: white; padding: 15px; 
+                                display: inline-block; margin: 15px 0; border-radius: 4px;
+                                border: 2px dashed #F37022;'>
+                        {OTP}
+                    </div>
+                    
+                    <p style='color: #333;'>Mã này có hiệu lực trong <strong style='color: #124DA3;'>2 phút</strong>.</p>
+                    
+                    <a href='#' style='display: inline-block; background-color: #F37022; color: white; 
+                                      padding: 10px 20px; text-decoration: none; border-radius: 4px;
+                                      margin: 15px 0; font-weight: bold;'>
+                        Xác nhận ngay
+                    </a>
+                    
+                    <p style='color: #ff0000;'><strong>⚠️ Lưu ý:</strong> Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+                    
+                    <p style='color: #4EB748; font-style: italic;'>
+                        <strong>✔️ Thành công:</strong> Yêu cầu OTP của bạn đã được tạo!
+                    </p>
+                    
+                    <p style='color: #333; font-size: 14px;'>
+                        Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.
+                    </p>
+                    
+                    <div style='margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee;'>
+                        <p style='color: #124DA3; font-weight: bold;'>Đội ngũ hỗ trợ ShuttleMate </p>
+                        <p style='color: #124DA3; font-weight: bold;'>Mọi chi tiết xin liên hệ: shuttlemate.service@gmail.com</p>
+                        <p style='font-size: 12px; color: #999;'>
+                            © {DateTime.Now.Year} ShuttleMate . Bảo lưu mọi quyền.
+                        </p>
+                    </div>
+                </div>
+                "
+            );
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
 

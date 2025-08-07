@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ShuttleMate.ModelViews.UserModelViews
+namespace ShuttleMate.ModelViews.ChatModelView
 {
-    public class AssignParentModel
+    public class Choice
     {
-        public Guid ParentId { get; set; }
+        public Message Message { get; set; }
     }
 }

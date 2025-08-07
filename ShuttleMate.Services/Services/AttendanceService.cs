@@ -19,6 +19,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ShuttleMate.Services.Services
 {
@@ -99,6 +100,7 @@ namespace ShuttleMate.Services.Services
             var pageSize = req.pageSize > 0 ? req.pageSize : 10;
 
             var query = _unitOfWork.GetRepository<Attendance>().Entities
+                .Include(x => x.HistoryTicket)
                 .Where(x => !x.DeletedTime.HasValue);
             //.OrderBy(x => x.Status);
 
@@ -106,6 +108,21 @@ namespace ShuttleMate.Services.Services
             if (req.tripId.HasValue && req.tripId.Value != Guid.Empty)
             {
                 query = query.Where(x => x.TripId == req.tripId.Value);
+            }
+
+            if (req.userId.HasValue && req.userId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.HistoryTicket.UserId == req.userId.Value);
+            }
+
+            if (req.fromDate.HasValue)
+            {
+                query = query.Where(a => a.CheckInTime >= req.fromDate.Value);
+            }
+
+            if (req.toDate.HasValue)
+            {
+                query = query.Where(a => a.CheckInTime <= req.toDate.Value);
             }
 
             query = query.OrderBy(x => x.Status);

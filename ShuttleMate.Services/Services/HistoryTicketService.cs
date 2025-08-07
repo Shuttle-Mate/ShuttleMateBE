@@ -268,7 +268,6 @@ namespace ShuttleMate.Services.Services
                     Ticket = u.Ticket.Type.ToString().ToUpper(),
                     FullNameOfUser = u.User.FullName,
                     OrderCode = u.Transaction.OrderCode,
-                    BuyerName = u.User.FullName
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)
@@ -302,16 +301,19 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<CreateHistoryTicketResponse> CreateHistoryTicket(CreateHistoryTicketModel model)
         {
+
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             Guid.TryParse(userId, out Guid cb);
 
+            Guid targetUserId = model.StudentId ?? cb;
+
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             var todayVN = DateOnly.FromDateTime(vietnamNow);
             var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
-            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
+            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == targetUserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
             if (model.ListSchoolShiftId.Count == 0)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng chọn ca học của bạn!");
@@ -325,29 +327,13 @@ namespace ShuttleMate.Services.Services
                 TicketId = model.TicketId,
                 Status = HistoryTicketStatus.UNPAID,
                 PurchaseAt = vietnamNow,
-                UserId = cb,
+                UserId = user.Id,
                 LastUpdatedTime = vietnamNow,
                 CreatedBy = userId
             };
 
-
             switch (ticket.Type)
             {
-                //case TicketTypeEnum.SINGLE_RIDE:
-                //    if (model.ValidFrom <= DateOnly.FromDateTime(DateTime.Now))
-                //    {
-                //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
-                //    }
-                //    historyTicket.ValidUntil = model.ValidFrom;
-                //    break;
-
-                //case TicketTypeEnum.DAY_PASS:
-                //    if (model.ValidFrom <= todayVN)
-                //    {
-                //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
-                //    }
-                //    historyTicket.ValidUntil = model.ValidFrom;
-                //    break;
                 case TicketTypeEnum.WEEKLY:
                     if (model.ValidFrom <= todayVN)
                     {
@@ -455,7 +441,7 @@ namespace ShuttleMate.Services.Services
             //Xóa  
             var userShift = await _unitOfWork.GetRepository<UserSchoolShift>()
                 .Entities
-                .Where(x => x.StudentId == cb && !x.DeletedTime.HasValue).ToListAsync();
+                .Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
             // Xoá các userShift trước
             if (userShift != null)
             {
@@ -477,7 +463,7 @@ namespace ShuttleMate.Services.Services
                 {
                     Id = Guid.NewGuid(),
                     SchoolShiftId = schoolShiftId,
-                    StudentId = cb,
+                    StudentId = user.Id,
                     CreatedTime = vietnamNow,
                     LastUpdatedTime = vietnamNow
                 };
@@ -522,7 +508,7 @@ namespace ShuttleMate.Services.Services
                 BuyerEmail = payOSRequest.buyerEmail,
                 BuyerPhone = payOSRequest.buyerPhone,
                 BuyerName = payOSRequest.buyerName,
-                CreatedBy = user.Id.ToString(),
+                CreatedBy = userId,
                 LastUpdatedBy = user.Id.ToString(),
                 CreatedTime = vietnamNow,
                 LastUpdatedTime = vietnamNow,
@@ -540,7 +526,7 @@ namespace ShuttleMate.Services.Services
                 HistoryTicketId = historyTicket.Id,
                 checkoutUrl = checkoutUrl.checkoutUrl,
                 qrCode = checkoutUrl.qrCode,
-                status = ConvertStatusToString(historyTicket.Status),
+                status = historyTicket.Status.ToString().ToUpper(),
             };
             return response;
         }
@@ -777,7 +763,7 @@ namespace ShuttleMate.Services.Services
                 HistoryTicketId = historyTicket.Id,
                 checkoutUrl = checkoutUrl.checkoutUrl,
                 qrCode = checkoutUrl.qrCode,
-                status = ConvertStatusToString(historyTicket.Status),
+                status = historyTicket.Status.ToString().ToUpper(),
             };
             return response;
         }
@@ -893,7 +879,7 @@ namespace ShuttleMate.Services.Services
                 case "00": // Thành công
 
                     var user = await _unitOfWork.GetRepository<User>().Entities
-                        .FirstOrDefaultAsync(x => x.Id.ToString() == transaction.CreatedBy 
+                        .FirstOrDefaultAsync(x => x.Id.ToString() == transaction.CreatedBy
                         && x.Violate == false
                         && !x.DeletedTime.HasValue);
 
@@ -911,7 +897,7 @@ namespace ShuttleMate.Services.Services
                         .FirstOrDefaultAsync(x => x.ParentId == user.Id
                         && x.Violate == false
                         && !x.DeletedTime.HasValue);
-                        if(child != null)
+                        if (child != null)
                         {
                             //Gửi mail hóa đơn thanh toán thành công 
                             await SendTicketPaymentSuccessEmailForParent(user, child, historyTicket);

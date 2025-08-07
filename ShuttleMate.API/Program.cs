@@ -34,6 +34,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
 builder.Services.AddConfig(builder.Configuration);
 builder.Services.AddHttpClient();
 
