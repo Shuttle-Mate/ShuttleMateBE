@@ -1,9 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
-using ShuttleMate.Contract.Repositories.Base;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
@@ -12,7 +9,6 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.StopModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
-using System.Net.Http.Json;
 
 namespace ShuttleMate.Services.Services
 {
@@ -21,22 +17,13 @@ namespace ShuttleMate.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
-        private readonly VietMapSettings _vietMapSettings;
-        private readonly HttpClient _httpClient;
-        private readonly IMemoryCache _cache;
 
-        public StopService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IOptions<VietMapSettings> vietMapSettings, HttpClient httpClient, IMemoryCache cache)
+        public StopService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
-            _vietMapSettings = vietMapSettings.Value;
-            _httpClient = httpClient;
-            _cache = cache;
         }
-
-        private const string VietMapSearchApiUrl = "https://maps.vietmap.vn/api/search/demo";
-        private const string VietMapPlaceApiUrl = "https://maps.vietmap.vn/api/place/demo";
 
         public async Task<BasePaginatedList<ResponseStopModel>> GetAllAsync(
             string? search,
@@ -79,38 +66,13 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ResponseStopModel>(result, totalCount, page, pageSize);
         }
 
-        //public async Task<IEnumerable<ResponseSearchStopModel>> SearchAsync(string address)
-        //{
-        //    if (_cache.TryGetValue(address, out IEnumerable<ResponseSearchStopModel> cachedResult))
-        //    {
-        //        return cachedResult;
-        //    }
-
-        //    string apiUrl = $"{VietMapSearchApiUrl}?apikey={_vietMapSettings.ApiKey}&text={address}";
-        //    var response = await _httpClient.GetFromJsonAsync<List<ResponseVietMapSearchModelcs>>(apiUrl);
-
-        //    var result = response?
-        //        .Select(x => new ResponseSearchStopModel
-        //        {
-        //            RefId = x.RefId,
-        //            Address = x.Address
-        //        })
-        //        .ToList() ?? new List<ResponseSearchStopModel>();
-
-        //    _cache.Set(address, result, TimeSpan.FromMinutes(10));
-
-        //    return result;
-        //}
-
-        public async Task<ResponseStopModel> GetByIdAsync(Guid id)
+        public async Task<ResponseStopModel> GetByIdAsync(Guid stopId)
         {
-            var stop = await _unitOfWork.GetRepository<Stop>().GetByIdAsync(id)
+            var stop = await _unitOfWork.GetRepository<Stop>().GetByIdAsync(stopId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Trạm dừng không tồn tại.");
 
             if (stop.DeletedTime.HasValue)
-            {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Trạm dừng đã bị xóa.");
-            }
 
             return _mapper.Map<ResponseStopModel>(stop);
         }
@@ -156,12 +118,12 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task UpdateAsync(Guid id, UpdateStopModel model)
+        public async Task UpdateAsync(Guid stopId, UpdateStopModel model)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             model.TrimAllStrings();
 
-            var stop = await _unitOfWork.GetRepository<Stop>().GetByIdAsync(id)
+            var stop = await _unitOfWork.GetRepository<Stop>().GetByIdAsync(stopId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Trạm dừng không tồn tại.");
 
             if (stop.DeletedTime.HasValue)
@@ -178,25 +140,21 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid stopId)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             var stop = await _unitOfWork.GetRepository<Stop>()
                 .GetQueryable()
                 .Include(x => x.RouteStops)
-                .FirstOrDefaultAsync(x => x.Id == id)
+                .FirstOrDefaultAsync(x => x.Id == stopId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Trạm dừng không tồn tại.");
 
             if (stop.DeletedTime.HasValue)
-            {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Trạm dừng đã bị xóa.");
-            }
 
             if (stop.RouteStops != null && stop.RouteStops.Any())
-            {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không thể xóa trạm dừng đang được sử dụng trong tuyến.");
-            }
 
             stop.LastUpdatedTime = CoreHelper.SystemTimeNow;
             stop.LastUpdatedBy = userId;

@@ -25,27 +25,51 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
         }
 
-        public async Task<IEnumerable<ResponseRecordModel>> GetAllAsync()
+        public async Task<BasePaginatedList<ResponseRecordModel>> GetAllAsync(
+            Guid? tripId,
+            DateTime? from,
+            DateTime? to,
+            bool sortAsc = false,
+            int page = 0,
+            int pageSize = 10)
         {
-            var records = await _unitOfWork.GetRepository<ShuttleLocationRecord>().FindAllAsync(a => !a.DeletedTime.HasValue);
+            var query = _unitOfWork.GetRepository<ShuttleLocationRecord>()
+                .GetQueryable()
+                .Include(r => r.Trip)
+                .Where(r => !r.DeletedTime.HasValue);
 
-            if (!records.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có bản ghi vị trí nào.");
-            }
+            if (tripId.HasValue)
+                query = query.Where(r => r.TripId == tripId.Value);
 
-            return _mapper.Map<IEnumerable<ResponseRecordModel>>(records);
+            if (from.HasValue)
+                query = query.Where(r => r.TimeStamp >= from.Value);
+
+            if (to.HasValue)
+                query = query.Where(r => r.TimeStamp <= to.Value);
+
+            query = sortAsc
+                ? query.OrderBy(r => r.TimeStamp)
+                : query.OrderByDescending(r => r.TimeStamp);
+
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = _mapper.Map<List<ResponseRecordModel>>(pagedItems);
+
+            return new BasePaginatedList<ResponseRecordModel>(result, totalCount, page, pageSize);
         }
 
-        public async Task<ResponseRecordModel> GetByIdAsync(Guid id)
+        public async Task<ResponseRecordModel> GetByIdAsync(Guid recordId)
         {
-            var record = await _unitOfWork.GetRepository<ShuttleLocationRecord>().GetByIdAsync(id)
+            var record = await _unitOfWork.GetRepository<ShuttleLocationRecord>().GetByIdAsync(recordId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Bản ghi vị trí không tồn tại.");
 
             if (record.DeletedTime.HasValue)
-            {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Bản ghi vị trí đã bị xóa.");
-            }
 
             return _mapper.Map<ResponseRecordModel>(record);
         }
@@ -90,9 +114,9 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task UpdateAsync(Guid id, UpdateRecordModel model)
+        public async Task UpdateAsync(Guid recordId, UpdateRecordModel model)
         {
-            var record = await _unitOfWork.GetRepository<ShuttleLocationRecord>().GetByIdAsync(id)
+            var record = await _unitOfWork.GetRepository<ShuttleLocationRecord>().GetByIdAsync(recordId)
         ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Bản ghi vị trí không tồn tại.");
 
             if (record.DeletedTime.HasValue)
@@ -136,12 +160,12 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid recordId)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             Guid.TryParse(userId, out Guid cb);
 
-            var record = await _unitOfWork.GetRepository<ShuttleLocationRecord>().GetByIdAsync(id)
+            var record = await _unitOfWork.GetRepository<ShuttleLocationRecord>().GetByIdAsync(recordId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Bản ghi vị trí không tồn tại.");
 
             if (record.DeletedTime.HasValue)

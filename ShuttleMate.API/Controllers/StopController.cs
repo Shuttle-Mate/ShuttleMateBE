@@ -39,28 +39,16 @@ namespace ShuttleMate.API.Controllers
                 data: await _stopService.GetAllAsync(search, wardId, sortAsc, page, pageSize)));
         }
 
-        ///// <summary>
-        ///// Tìm kiếm địa chỉ để tạo trạm dừng.
-        ///// </summary>
-        //[HttpGet("search")]
-        //public async Task<IActionResult> SearchAddress([FromQuery] string address)
-        //{
-        //    return Ok(new BaseResponseModel<IEnumerable<ResponseSearchStopModel>>(
-        //        statusCode: StatusCodes.Status200OK,
-        //        code: ResponseCodeConstants.SUCCESS,
-        //        data: await _stopService.SearchAsync(address)));
-        //}
-
         /// <summary>
         /// Lấy chi tiết trạm dừng.
         /// </summary>
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetStopById(Guid id)
+        [HttpGet("{stopId}")]
+        public async Task<IActionResult> GetStopById(Guid stopId)
         {
             return Ok(new BaseResponseModel<ResponseStopModel>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _stopService.GetByIdAsync(id)));
+                data: await _stopService.GetByIdAsync(stopId)));
         }
 
         /// <summary>
@@ -73,35 +61,35 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                message: "Tạo trạm dừng thành công!"
+                message: "Tạo trạm dừng thành công."
             ));
         }
 
         /// <summary>
         /// Cập nhật một trạm dừng.
         /// </summary>
-        [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateStop(Guid id, UpdateStopModel model)
+        [HttpPatch("{stopId}")]
+        public async Task<IActionResult> UpdateStop(Guid stopId, UpdateStopModel model)
         {
-            await _stopService.UpdateAsync(id, model);
+            await _stopService.UpdateAsync(stopId, model);
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                message: "Cập nhật trạm dừng thành công!"
+                message: "Cập nhật trạm dừng thành công."
             ));
         }
 
         /// <summary>
         /// Xóa một trạm dừng.
         /// </summary>
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteStop(Guid id)
+        [HttpDelete("{stopId}")]
+        public async Task<IActionResult> DeleteStop(Guid stopId)
         {
-            await _stopService.DeleteAsync(id);
+            await _stopService.DeleteAsync(stopId);
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                message: "Xóa trạm dừng thành công!"
+                message: "Xóa trạm dừng thành công."
             ));
         }
     }
