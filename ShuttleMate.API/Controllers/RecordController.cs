@@ -6,7 +6,7 @@ using ShuttleMate.ModelViews.RecordModelViews;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/record")]
     [ApiController]
     public class RecordController : ControllerBase
     {
@@ -20,32 +20,43 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Lấy toàn bộ bản ghi vị trí.
         /// </summary>
+        /// <param name="tripId">ID chuyến đi (tùy chọn).</param>
+        /// <param name="from">Lọc từ dấu thời gian (tùy chọn).</param>
+        /// <param name="to">Lọc đến dấu thời gian (tùy chọn).</param>
+        /// <param name="sortAsc">Sắp xếp tăng dần theo dấu thời gian (true) hoặc giảm dần (false, mặc định).</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         [HttpGet]
-        public async Task<IActionResult> GetAllRecordsAdmin()
+        public async Task<IActionResult> GetAllRecords(
+        [FromQuery] Guid? tripId,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] bool sortAsc = false,
+        [FromQuery] int page = 0,
+        [FromQuery] int pageSize = 10)
         {
-            return Ok(new BaseResponseModel<IEnumerable<ResponseRecordModel>>(
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseRecordModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _recordService.GetAllAsync()));
+                data: await _recordService.GetAllAsync(tripId, from, to, sortAsc, page, pageSize)
+            ));
         }
 
         /// <summary>
-        /// Lấy bản ghi vị trí bằng id.
+        /// Lấy chi tiết bản ghi vị trí.
         /// </summary>
-        /// <param name="id">ID của bản ghi vị trí cần lấy</param>
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetRecordById(Guid id)
+        [HttpGet("{recordId}")]
+        public async Task<IActionResult> GetRecordById(Guid recordId)
         {
             return Ok(new BaseResponseModel<ResponseRecordModel>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _recordService.GetByIdAsync(id)));
+                data: await _recordService.GetByIdAsync(recordId)));
         }
 
         /// <summary>
         /// Tạo một bản ghi vị trí mới.
         /// </summary>
-        /// <param name="model">Thông tin bản ghi vị trí cần tạo</param>
         [HttpPost]
         public async Task<IActionResult> CreateRecord(CreateRecordModel model)
         {
@@ -57,14 +68,12 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Cập nhật trạng thái một bản ghi vị trí.
+        /// Cập nhật một bản ghi vị trí.
         /// </summary>
-        /// <param name="id">ID của bản ghi vị trí cần cập nhật trạng thái</param>
-        /// <param name="model">Thông tin cập nhật cho bản ghi vị trí</param>
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateRecord(Guid id, UpdateRecordModel model)
+        [HttpPut("{recordId}")]
+        public async Task<IActionResult> UpdateRecord(Guid recordId, UpdateRecordModel model)
         {
-            await _recordService.UpdateAsync(id, model);
+            await _recordService.UpdateAsync(recordId, model);
             return Ok(new BaseResponseModel<string?>(
                statusCode: StatusCodes.Status200OK,
                code: ResponseCodeConstants.SUCCESS,
@@ -74,16 +83,14 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Xóa một bản ghi vị trí.
         /// </summary>
-        /// <param name="id">id của bản ghi vị trí cần xóa.</param>
-        ///
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteRecord(Guid id)
+        [HttpDelete("{recordId}")]
+        public async Task<IActionResult> DeleteRecord(Guid recordId)
         {
-            await _recordService.DeleteAsync(id);
+            await _recordService.DeleteAsync(recordId);
             return Ok(new BaseResponseModel<string?>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                message: "Xóa bản ghi vị trí công."));
+                message: "Xóa bản ghi vị trí thành công."));
         }
     }
 }

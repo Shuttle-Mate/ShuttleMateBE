@@ -35,14 +35,14 @@ namespace ShuttleMate.API.Controllers
         /// Xóa một phản hồi hỗ trợ.
         /// </summary>
         //[Authorize(Roles = "Admin, Operator")]
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteFeedback(Guid id)
+        [HttpDelete("{responseSupportId}")]
+        public async Task<IActionResult> DeleteFeedback(Guid responseSupportId)
         {
-            await _responseSupportService.DeleteAsync(id);
+            await _responseSupportService.DeleteAsync(responseSupportId);
             return Ok(new BaseResponseModel<string?>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                message: "Xóa phản hồi hỗ trợ công."));
+                message: "Xóa phản hồi hỗ trợ thành công."));
         }
     }
 }
