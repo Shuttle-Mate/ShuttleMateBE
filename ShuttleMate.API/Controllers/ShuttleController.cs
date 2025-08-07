@@ -74,8 +74,8 @@ namespace ShuttleMate.API.Controllers
                 message: "Cập nhật xe thành công"
             ));
         }
-        [HttpDelete]
-        public async Task<IActionResult> DeleteShuttle(Guid shuttleId)
+        [HttpDelete("{shuttleId}")]
+        public async Task<IActionResult> DeleteShuttle([FromRoute]Guid shuttleId)
         {
             await _shuttleService.DeleteShuttle(shuttleId);
             return Ok(new BaseResponseModel<string>(
