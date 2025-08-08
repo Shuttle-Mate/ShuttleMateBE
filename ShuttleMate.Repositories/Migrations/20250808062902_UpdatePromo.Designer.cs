@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ShuttleMate.Repositories.Context;
 
@@ -11,9 +12,11 @@ using ShuttleMate.Repositories.Context;
 namespace ShuttleMate.Repositories.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20250808062902_UpdatePromo")]
+    partial class UpdatePromo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -31,14 +34,14 @@ namespace ShuttleMate.Repositories.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("CheckInLocation")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("CheckInLocation")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CheckInTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("CheckOutLocation")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("CheckOutLocation")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CheckOutTime")
                         .HasColumnType("datetime2");
@@ -77,10 +80,6 @@ namespace ShuttleMate.Repositories.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CheckInLocation");
-
-                    b.HasIndex("CheckOutLocation");
 
                     b.HasIndex("HistoryTicketId");
 
@@ -1739,16 +1738,6 @@ namespace ShuttleMate.Repositories.Migrations
 
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Attendance", b =>
                 {
-                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.Stop", "StopCheckInLocation")
-                        .WithMany("AttendanceCheckInLocations")
-                        .HasForeignKey("CheckInLocation")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("ShuttleMate.Contract.Repositories.Entities.Stop", "StopCheckOutLocation")
-                        .WithMany("AttendanceCheckOutLocations")
-                        .HasForeignKey("CheckOutLocation")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.HasOne("ShuttleMate.Contract.Repositories.Entities.HistoryTicket", "HistoryTicket")
                         .WithMany("Attendances")
                         .HasForeignKey("HistoryTicketId")
@@ -1762,10 +1751,6 @@ namespace ShuttleMate.Repositories.Migrations
                         .IsRequired();
 
                     b.Navigation("HistoryTicket");
-
-                    b.Navigation("StopCheckInLocation");
-
-                    b.Navigation("StopCheckOutLocation");
 
                     b.Navigation("Trip");
                 });
@@ -2246,10 +2231,6 @@ namespace ShuttleMate.Repositories.Migrations
 
             modelBuilder.Entity("ShuttleMate.Contract.Repositories.Entities.Stop", b =>
                 {
-                    b.Navigation("AttendanceCheckInLocations");
-
-                    b.Navigation("AttendanceCheckOutLocations");
-
                     b.Navigation("RouteStops");
 
                     b.Navigation("StopEstimates");

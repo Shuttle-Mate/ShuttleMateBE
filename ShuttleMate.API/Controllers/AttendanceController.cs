@@ -62,7 +62,7 @@ namespace ShuttleMate.API.Controllers
         /// Checkout tất cả chuyến đi này
         /// </summary>
         [HttpPatch("check-out/trip")]
-        public async Task<IActionResult> CheckOutList(Guid tripId, string checkOutLocation, string? notes = null)
+        public async Task<IActionResult> CheckOutList(Guid tripId, Guid checkOutLocation, string? notes = null)
         {
             await _attendanceService.BulkCheckOutByTrip(tripId, checkOutLocation, notes);
             return Ok(new BaseResponseModel<string>(

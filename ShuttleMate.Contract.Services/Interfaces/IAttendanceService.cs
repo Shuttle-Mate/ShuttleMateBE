@@ -16,7 +16,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<List<ResponseAttendanceModel>> GetMyAttendance(DateTime? fromDate, DateTime? toDate);
         Task CheckIn(CheckInModel model);
         Task CheckOut(CheckOutModel model);
-        Task BulkCheckOutByTrip(Guid tripId, string checkOutLocation, string? notes = null);
+        Task BulkCheckOutByTrip(Guid tripId, Guid checkOutLocation, string? notes = null);
         Task<BasePaginatedList<ResponseAttendanceModel>> GetAll(GetAttendanceQuery query);
         Task<BasePaginatedList<ResponseStudentInRouteAndShiftModel>> ListAbsentStudent (GetAbsentQuery req);
         Task<ResponseAttendanceModel> GetById(Guid attendanceId);
