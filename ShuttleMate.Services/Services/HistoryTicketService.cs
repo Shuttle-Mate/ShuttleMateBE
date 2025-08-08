@@ -486,7 +486,7 @@ namespace ShuttleMate.Services.Services
                 buyerAddress = user.Address!,
                 cancelUrl = "https://www.google.com/?hl=vi",
                 returnUrl = "https://www.google.com/?hl=vi",
-                expiredAt = DateTimeOffset.Now.ToUnixTimeSeconds() + 600,
+                expiredAt = DateTimeOffset.Now.ToUnixTimeSeconds() + 900,
 
                 // ... các trường khác 
             };
@@ -769,6 +769,9 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<string> ResponseHistoryTicketStatus(Guid historyTicketId)
         {
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             if (historyTicketId == Guid.Empty)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Id History Ticket không hợp lệ!");
@@ -789,7 +792,7 @@ namespace ShuttleMate.Services.Services
                     .FirstOrDefaultAsync(t => t.HistoryTicketId == historyTicketId && !t.DeletedTime.HasValue);
 
                 // Nếu quá 10 phút thời gian đã cài đặt
-                if (transaction != null && DateTime.UtcNow > transaction.CreatedTime.AddMinutes(10))
+                if (transaction != null && vietnamNow > transaction.CreatedTime.AddMinutes(10))
                 {
                     historyTicket.Status = HistoryTicketStatus.CANCELLED;
                     transaction.Status = PaymentStatus.CANCELLED;
