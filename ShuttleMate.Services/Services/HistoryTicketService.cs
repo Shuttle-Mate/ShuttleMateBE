@@ -765,6 +765,7 @@ namespace ShuttleMate.Services.Services
                 qrCode = checkoutUrl.qrCode,
                 status = historyTicket.Status.ToString().ToUpper(),
             };
+
             return response;
         }
         public async Task<string> ResponseHistoryTicketStatus(Guid historyTicketId)
@@ -805,6 +806,8 @@ namespace ShuttleMate.Services.Services
 
             return historyTicket.Status.ToString().ToUpper();
         }
+
+
         public async Task CancelTicket(Guid historyTicketId)
         {
             var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities
