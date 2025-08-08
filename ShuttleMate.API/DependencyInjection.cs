@@ -1,14 +1,15 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Hangfire;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using ShuttleMate.Contract.Repositories.Base;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Repositories.Context;
-using ShuttleMate.Services.Services;
 using ShuttleMate.Services;
+using ShuttleMate.Services.Services;
 using System.Reflection;
-using ShuttleMate.Contract.Repositories.Base;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Wanvi.Repositories.SeedData;
 using static ShuttleMate.Services.Services.HistoryTicketService;
@@ -22,6 +23,7 @@ namespace ShuttleMate.API
             services.ConfigRoute();
             services.AddMemoryCache();
             services.AddInfrastructure(configuration);
+            services.AddHangfireConfig(configuration);
             services.AddEmailConfig(configuration);
             services.AddAutoMapper();
             services.ConfigSwagger();
@@ -105,6 +107,21 @@ namespace ShuttleMate.API
                 options.LowercaseUrls = true;
             });
         }
+
+        public static void AddHangfireConfig(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddHangfire(config =>
+            {
+                config
+                    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+                    .UseSimpleAssemblyNameTypeSerializer()
+                    .UseRecommendedSerializerSettings()
+                    .UseSqlServerStorage(configuration.GetConnectionString("DefaultConnection"));
+            });
+
+            services.AddHangfireServer();
+        }
+
         public static void AddAuthenJwt(this IServiceCollection services, IConfiguration configuration)
         {
             var jwtSettings1 = configuration.GetSection("JwtSettings");
