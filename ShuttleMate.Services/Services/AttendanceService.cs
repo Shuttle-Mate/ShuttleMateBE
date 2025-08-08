@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Ocsp;
@@ -29,26 +30,30 @@ namespace ShuttleMate.Services.Services
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IUserService _userService;
+        private readonly INotificationService _notificationService;
 
-        public AttendanceService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IUserService userService)
+        public AttendanceService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IUserService userService, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
             _userService = userService;
+            _notificationService = notificationService;
         }
 
         public async Task CheckIn(CheckInModel model)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            Attendance attendance = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Status == AttendanceStatusEnum.CHECKED_IN
-                                                                                                                && x.HistoryTicketId == model.HistoryTicketId);
+            Attendance attendance = await _unitOfWork.GetRepository<Attendance>()
+                .Entities
+                .FirstOrDefaultAsync(x => x.Status == AttendanceStatusEnum.CHECKED_IN && x.HistoryTicketId == model.HistoryTicketId);
+
             if (attendance != null)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vé này đã CheckIn nhưng chưa được CheckOut!!");
             }
-            
+
             var checkin = _mapper.Map<Attendance>(model);
             checkin.CheckInTime = DateTime.UtcNow;
             checkin.Status = AttendanceStatusEnum.CHECKED_IN;
@@ -57,6 +62,48 @@ namespace ShuttleMate.Services.Services
             //checkin.CheckOutTime = null;
             await _unitOfWork.GetRepository<Attendance>().InsertAsync(checkin);
             await _unitOfWork.SaveAsync();
+
+            var checkinWithNav = await _unitOfWork.GetRepository<Attendance>().Entities
+                .Include(a => a.HistoryTicket)
+                    .ThenInclude(ht => ht.User)
+                .Include(a => a.Trip)
+                    .ThenInclude(t => t.Schedule)
+                        .ThenInclude(s => s.Shuttle)
+                .Include(a => a.StopCheckInLocation)
+                .FirstOrDefaultAsync(a => a.Id == checkin.Id);
+
+            if (checkinWithNav == null)
+                throw new Exception("Không tìm thấy attendance sau khi insert.");
+
+            DateTime dateTime = DateTime.Now;
+
+            var metadata = new Dictionary<string, string>
+                {
+                    { "StudentName", checkinWithNav.HistoryTicket.User.FullName },
+                    { "ShuttleName", checkinWithNav.Trip.Schedule.Shuttle.Name },
+                    { "CheckInLocation", checkinWithNav.StopCheckInLocation.Name },
+                    { "CheckInTime", TimeOnly.FromDateTime(dateTime).ToString()}
+                };
+
+            // Gửi cho học sinh
+            await _notificationService.SendNotificationFromTemplateAsync(
+                templateType: "CheckIn",
+                recipientIds: new List<Guid> { checkin.HistoryTicket.UserId },
+                metadata: metadata,
+                createdBy: "system"
+            );
+
+            // Nếu có phụ huynh thì gửi cho phụ huynh
+            if (checkin.HistoryTicket.User.ParentId != null && checkin.HistoryTicket.User.ParentId != Guid.Empty)
+            {
+                await _notificationService.SendNotificationFromTemplateAsync(
+                    templateType: "CheckIn",
+                    recipientIds: new List<Guid> { checkin.HistoryTicket.User.ParentId.Value },
+                    metadata: metadata,
+                    createdBy: "system"
+                );
+            }
+
         }
 
         public async Task CheckOut(CheckOutModel model)
@@ -195,7 +242,7 @@ namespace ShuttleMate.Services.Services
 
             // lấy tất cả attendance của trip chưa checkout và chưa bị xóa
             var attendances = await _unitOfWork.GetRepository<Attendance>().Entities
-                .Where(x => x.TripId == tripId 
+                .Where(x => x.TripId == tripId
                     && x.Status == AttendanceStatusEnum.CHECKED_IN
                     && !x.DeletedTime.HasValue)
                 .ToListAsync();
