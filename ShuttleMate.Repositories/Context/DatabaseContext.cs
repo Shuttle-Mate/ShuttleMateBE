@@ -64,6 +64,14 @@ namespace ShuttleMate.Repositories.Context
                     .WithMany(r => r.Attendances)
                     .HasForeignKey(t => t.TripId)
                     .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(t => t.StopCheckInLocation)
+                    .WithMany(r => r.AttendanceCheckInLocations)
+                    .HasForeignKey(t => t.CheckInLocation)
+                    .OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne(t => t.StopCheckOutLocation)
+                    .WithMany(r => r.AttendanceCheckOutLocations)
+                    .HasForeignKey(t => t.CheckOutLocation)
+                    .OnDelete(DeleteBehavior.NoAction);
             });
 
             modelBuilder.Entity<ChatBotLog>(entity =>
