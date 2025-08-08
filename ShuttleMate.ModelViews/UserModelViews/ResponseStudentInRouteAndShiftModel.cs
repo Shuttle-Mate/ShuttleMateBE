@@ -17,6 +17,8 @@ namespace ShuttleMate.ModelViews.UserModelViews
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
         public string? SchoolName { get; set; }
+        public bool? IsCheckIn { get; set; }
+        public bool? IsCheckOut { get; set; }
         public string? ParentName { get; set; }
         public Guid? HistoryTicketId { get; set; }
     }

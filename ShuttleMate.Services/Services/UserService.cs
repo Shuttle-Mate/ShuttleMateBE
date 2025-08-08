@@ -269,11 +269,21 @@ namespace ShuttleMate.Services.Services
             Guid.TryParse(userId, out Guid cb);
             var userRepo = _unitOfWork.GetRepository<User>();
 
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
+
             var query = userRepo.Entities
-            .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role)
             .Include(u => u.UserSchoolShifts)
-            .ThenInclude(u => u.SchoolShift)
+                .ThenInclude(uss => uss.SchoolShift)
+            .Include(u => u.HistoryTickets)
+                .ThenInclude(ht => ht.Attendances)
+            .Include(u => u.HistoryTickets)
+                .ThenInclude(ht => ht.Ticket)
+                    .ThenInclude(t => t.Route)
+            .Include(u => u.Parent)
+            .Include(u => u.School)
+            .Where(u => !u.DeletedTime.HasValue)
             .AsQueryable();
 
 
@@ -295,7 +305,7 @@ namespace ShuttleMate.Services.Services
             //điều kiện học sinh có vé tuyến đường này và vé còn thời gian hiệu lực
             query = query.Where(x => x.HistoryTickets.Any(y => y.Ticket.RouteId == routeId
             && y.Ticket.Route.IsActive == true
-            && y.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
+            && y.ValidUntil >= todayVN
             && y.Status == HistoryTicketStatus.PAID
             && !y.DeletedTime.HasValue));
 
@@ -315,11 +325,13 @@ namespace ShuttleMate.Services.Services
                     PhoneNumber = u.PhoneNumber,
                     SchoolName = u.School.Name,
                     HistoryTicketId = u.HistoryTickets.
-                    FirstOrDefault(x => x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
+                    FirstOrDefault(x => x.ValidUntil >= todayVN
                     && x.Ticket.RouteId == routeId
                     && x.Ticket.Route.IsActive == true
                     && x.Status == HistoryTicketStatus.PAID
                     && !x.DeletedTime.HasValue)!.Id,
+                    IsCheckIn = u.HistoryTickets.Any(h => h.Attendances.Any(a => DateOnly.FromDateTime(a.CheckInTime) == todayVN)),
+                    IsCheckOut = u.HistoryTickets.Any(h => h.Attendances.Any(a => DateOnly.FromDateTime(a.CheckOutTime) == todayVN)),
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)
