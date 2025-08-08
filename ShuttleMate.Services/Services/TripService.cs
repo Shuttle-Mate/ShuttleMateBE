@@ -239,37 +239,59 @@ namespace ShuttleMate.Services.Services
                 .Select(u => new { u.Id, u.FullName, u.ParentId })
                 .ToListAsync();
 
-            // 3. Chuẩn bị danh sách người nhận
-            //var recipientIds = new List<Guid>();
-            //foreach (var user in users)
-            //{
-            //    if (user.ParentId != null && user.ParentId != Guid.Empty)
-            //        recipientIds.Add(user.ParentId.Value);
-            //    else
-            //        recipientIds.Add(user.Id);
-            //}
-
             // 4. Gửi thông báo
             var createdBy = "system";
+
+            
 
             // Tùy chỉnh metadata nếu dùng template
             foreach (var user in users)
             {
-                var recipientId = (user.ParentId != null && user.ParentId != Guid.Empty) ? user.ParentId.Value : user.Id;
+                //var recipientId = (user.ParentId != null && user.ParentId != Guid.Empty) ? user.ParentId.Value : user.Id;
+
+                //DateTime dateTime = DateTime.Now;
+
+                //var metadata = new Dictionary<string, string>
+                //{
+                //    { "Date", DateOnly.FromDateTime(dateTime).ToString() },
+                //    { "StudentName", user.FullName },
+                //    { "RouteName", query.Schedule.Route.RouteName}
+                //};
+
+                //await _notificationService.SendNotificationFromTemplateAsync(
+                //    templateType: "AbsentNotification", // tên template bạn định nghĩa
+                //    recipientIds: new List<Guid> { recipientId },
+                //    metadata: metadata,
+                //    createdBy: createdBy
+                //);
+                DateTime dateTime = DateTime.Now;
 
                 var metadata = new Dictionary<string, string>
                 {
+                    { "Date", DateOnly.FromDateTime(dateTime).ToString() },
                     { "StudentName", user.FullName },
-                    { "RouteName", query.Schedule.Route.RouteName}
-                    // Thêm các biến khác nếu cần
+                    { "RouteName", query.Schedule.Route.RouteName }
                 };
 
+                // Gửi cho học sinh
                 await _notificationService.SendNotificationFromTemplateAsync(
-                    templateType: "AbsentNotification", // tên template bạn định nghĩa
-                    recipientIds: new List<Guid> { recipientId },
+                    templateType: "AbsentNotificationForStudent",
+                    recipientIds: new List<Guid> { user.Id },
                     metadata: metadata,
                     createdBy: createdBy
                 );
+
+                // Nếu có phụ huynh thì gửi cho phụ huynh
+                if (user.ParentId != null && user.ParentId != Guid.Empty)
+                {
+                    await _notificationService.SendNotificationFromTemplateAsync(
+                        templateType: "AbsentNotificationForParent",
+                        recipientIds: new List<Guid> { user.ParentId.Value },
+                        metadata: metadata,
+                        createdBy: createdBy
+                    );
+                }
+
             }
         }
     }

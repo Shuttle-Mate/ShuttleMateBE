@@ -135,21 +135,32 @@ namespace ShuttleMate.Services.Services
 
                 try
                 {
-                    //var token = await _deviceTokenService.GetTokenByUserIdAsync(recipientId); // bạn cần triển khai service này
-                    var token = "duyf6BD7RhOE66NtvuyQyL:APA91bGdMhNmmXaVI45wv-kSi6HubP0PyLgE52j-R_PT763N7v-xqUGnvZ0CX13fZREX41hg5rI722zKyNC1YmYy7FHjPKpWXEPlCj2oYJklvIyjeZppDto";
+                    var userDevices = await _unitOfWork.GetRepository<UserDevice>()
+                        .Entities
+                        .Include(x => x.User)
+                        .Where(u => !u.DeletedTime.HasValue && u.IsValid == true && u.UserId.Equals(recipientId))
+                        .ToListAsync();
 
-                    if (!string.IsNullOrEmpty(token))
+                    var deviceTokens = userDevices.Select(d => d.PushToken).Where(t => !string.IsNullOrEmpty(t)).ToList();
+
+                    //var token = await _deviceTokenService.GetTokenByUserIdAsync(recipientId); // bạn cần triển khai service này
+                    //var token = "duyf6BD7RhOE66NtvuyQyL:APA91bGdMhNmmXaVI45wv-kSi6HubP0PyLgE52j-R_PT763N7v-xqUGnvZ0CX13fZREX41hg5rI722zKyNC1YmYy7FHjPKpWXEPlCj2oYJklvIyjeZppDto";
+
+                    foreach (var token in deviceTokens)
                     {
-                        await _firebaseService.SendNotificationAsync(
-                            notification.Title,
-                            notification.Content,
-                            token: token
-                        );
-                        recipient.Status = NotificationStatusEnum.DELIVERED; // hoặc FAILED nếu có exception
-                    }
-                    else
-                    {
-                        recipient.Status = NotificationStatusEnum.FAILED;
+                        if (!string.IsNullOrEmpty(token))
+                        {
+                            await _firebaseService.SendNotificationAsync(
+                                notification.Title,
+                                notification.Content,
+                                token: token
+                            );
+                            recipient.Status = NotificationStatusEnum.DELIVERED; // hoặc FAILED nếu có exception
+                        }
+                        else
+                        {
+                            recipient.Status = NotificationStatusEnum.FAILED;
+                        }
                     }
                 }
                 catch (Exception ex)
