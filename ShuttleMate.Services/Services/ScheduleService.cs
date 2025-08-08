@@ -1,8 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using ShuttleMate.Contract.Repositories.Base;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.Enum;
 using ShuttleMate.Contract.Repositories.IUOW;
@@ -10,7 +8,6 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
-using ShuttleMate.ModelViews.FeedbackModelViews;
 using ShuttleMate.ModelViews.ScheduleModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
@@ -128,9 +125,17 @@ namespace ShuttleMate.Services.Services
                 var routeStops = s.Route?.RouteStops?.Where(x => !x.DeletedTime.HasValue).ToList() ?? new();
                 var routeInfo = BuildRouteInfo(routeStops, s.Direction);
 
-                var expectedStudentIds = await _unitOfWork.GetRepository<UserSchoolShift>().Entities
-                    .Where(us => us.SchoolShiftId == s.SchoolShiftId)
-                    .Select(us => us.StudentId)
+                var expectedStudentIds = await _unitOfWork.GetRepository<User>().Entities
+                    .Where(st => st.UserSchoolShifts.Any(uss => 
+                        uss.SchoolShiftId == s.SchoolShiftId && 
+                        !uss.DeletedTime.HasValue))
+                    .Where(st => st.HistoryTickets.Any(ht =>
+                        ht.Ticket.RouteId == s.RouteId &&
+                        ht.Ticket.Route.IsActive == true &&
+                        ht.ValidUntil >= DateOnly.FromDateTime(DateTime.Now) &&
+                        ht.Status == HistoryTicketStatus.PAID &&
+                        !ht.DeletedTime.HasValue))
+                    .Select(st => st.Id)
                     .ToListAsync();
 
                 var attendedCount = await _unitOfWork.GetRepository<Attendance>().Entities
@@ -256,8 +261,13 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đã bị xóa.");
 
             if (model.Schedules == null || !model.Schedules.Any())
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                    "Danh sách lịch trình không được để trống.");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Danh sách lịch trình không được để trống.");
+            
+            if (model.From > model.To)
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Ngày bắt đầu không được lớn hơn ngày kết thúc.");
+
+            if ((model.To.DayNumber - model.From.DayNumber) != 6)
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Ngày bắt đầu và ngày kết thú phải cách nhau đúng 7 ngày (1 tuần).");
 
             var newSchedules = new List<Schedule>();
 
@@ -291,13 +301,14 @@ namespace ShuttleMate.Services.Services
                     throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ca học {GetSchoolShiftDescription(schoolShift)} không thuộc về trường của tuyến này.");
 
                 if (scheduleDetail.DayOfWeeks == null || !scheduleDetail.DayOfWeeks.Any())
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                        "Danh sách ngày trong tuần không được để trống.");
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Danh sách ngày trong tuần không được để trống.");
 
                 var existingSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(x =>
                     (x.ShuttleId == scheduleDetail.ShuttleId ||
                     x.DriverId == scheduleDetail.DriverId) &&
-                    !x.DeletedTime.HasValue
+                    !x.DeletedTime.HasValue &&
+                    model.From <= x.To &&
+                    model.To >= x.From
                 );
 
                 var timeStr = scheduleDetail.DepartureTime;
@@ -307,8 +318,8 @@ namespace ShuttleMate.Services.Services
 
                 var routeStops = route.RouteStops?.Where(rs => !rs.DeletedTime.HasValue).ToList();
                 var stopCount = routeStops?.Count ?? 0;
-
                 int totalDuration = 0;
+                
                 if (stopCount > 1)
                 {
                     var durationSum = routeStops.Sum(rs => rs.Duration);
@@ -451,6 +462,8 @@ namespace ShuttleMate.Services.Services
                     RouteId = model.RouteId,
                     ShuttleId = scheduleDetail.ShuttleId,
                     DriverId = scheduleDetail.DriverId,
+                    From = model.From,
+                    To = model.To,
                     DepartureTime = time,
                     DayOfWeek = binaryDayOfWeek,
                     SchoolShiftId = schoolShift.Id,
@@ -619,36 +632,6 @@ namespace ShuttleMate.Services.Services
             schedule.LastUpdatedTime = DateTime.UtcNow;
 
             await _stopEstimateService.UpdateAsync(new List<Schedule> { schedule }, schedule.RouteId);
-
-            //var allSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(s => s.RouteId == schedule.RouteId && !s.DeletedTime.HasValue);
-
-            //if (allSchedules != null && allSchedules.Any())
-            //{
-            //    var minTime = allSchedules.Min(s => s.DepartureTime);
-            //    var maxTime = allSchedules.Max(s => s.DepartureTime);
-
-            //    route.OperatingTime = $"{minTime:HH\\:mm} - {maxTime:HH\\:mm}";
-
-            //    var earliestSchedule = allSchedules.OrderBy(s => s.DepartureTime).FirstOrDefault();
-            //    if (earliestSchedule != null)
-            //    {
-            //        var stopEstimates = await _unitOfWork.GetRepository<StopEstimate>().FindAllAsync(se =>
-            //            se.ScheduleId == earliestSchedule.Id);
-
-            //        if (stopEstimates != null && stopEstimates.Any())
-            //        {
-            //            var earliest = stopEstimates.Min(se => se.ExpectedTime);
-            //            var latest = stopEstimates.Max(se => se.ExpectedTime);
-            //            route.RunningTime = (latest - earliest).TotalSeconds.ToString();
-            //        }
-            //    }
-
-            //    route.LastUpdatedBy = userId;
-            //    route.LastUpdatedTime = DateTime.UtcNow;
-
-            //    await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
-            //}
-
             await _unitOfWork.SaveAsync();
         }
 

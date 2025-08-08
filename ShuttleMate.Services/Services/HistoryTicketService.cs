@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Azure;
+using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -44,8 +45,8 @@ namespace ShuttleMate.Services.Services
         private readonly ILogger<HistoryTicketService> _logger;
         private readonly HttpClient _httpClient;
         private readonly ZaloPaySettings _zaloPaySettings;
-
-        public HistoryTicketService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService, ILogger<HistoryTicketService> logger, HttpClient httpClient, IOptions<ZaloPaySettings> zaloPaySettings, IHttpClientFactory httpClientFactory)
+        private readonly IBackgroundJobClient _backgroundJobClient;
+        public HistoryTicketService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService, ILogger<HistoryTicketService> logger, HttpClient httpClient, IOptions<ZaloPaySettings> zaloPaySettings, IHttpClientFactory httpClientFactory, IBackgroundJobClient backgroundJobClient)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -58,6 +59,7 @@ namespace ShuttleMate.Services.Services
             _checksumKey = configuration["PayOS:ChecksumKey"]!;
             _clientKey = configuration["PayOS:ClientKey"]!;
             _zaloPaySettings = zaloPaySettings.Value;
+            _backgroundJobClient = backgroundJobClient;
         }
 
         #region payment PAYOS
@@ -486,7 +488,7 @@ namespace ShuttleMate.Services.Services
                 buyerAddress = user.Address!,
                 cancelUrl = "https://www.google.com/?hl=vi",
                 returnUrl = "https://www.google.com/?hl=vi",
-                expiredAt = DateTimeOffset.Now.ToUnixTimeSeconds() + 600,
+                expiredAt = DateTimeOffset.Now.ToUnixTimeSeconds() + 900,
 
                 // ... các trường khác 
             };
@@ -528,6 +530,10 @@ namespace ShuttleMate.Services.Services
                 qrCode = checkoutUrl.qrCode,
                 status = historyTicket.Status.ToString().ToUpper(),
             };
+            _backgroundJobClient.Schedule<HistoryTicketService>(
+            service => service.ResponseHistoryTicketStatus(historyTicket.Id),
+            TimeSpan.FromMinutes(10) // Delay 10 phút
+        );
             return response;
         }
         public async Task<CreateHistoryTicketResponse> CreateHistoryTicketForParent(CreateHistoryTicketForParentModel model)
@@ -765,10 +771,14 @@ namespace ShuttleMate.Services.Services
                 qrCode = checkoutUrl.qrCode,
                 status = historyTicket.Status.ToString().ToUpper(),
             };
+
             return response;
         }
         public async Task<string> ResponseHistoryTicketStatus(Guid historyTicketId)
         {
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             if (historyTicketId == Guid.Empty)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Id History Ticket không hợp lệ!");
@@ -789,7 +799,7 @@ namespace ShuttleMate.Services.Services
                     .FirstOrDefaultAsync(t => t.HistoryTicketId == historyTicketId && !t.DeletedTime.HasValue);
 
                 // Nếu quá 10 phút thời gian đã cài đặt
-                if (transaction != null && DateTime.UtcNow > transaction.CreatedTime.AddMinutes(10))
+                if (transaction != null && vietnamNow > transaction.CreatedTime.AddMinutes(9).AddSeconds(50))
                 {
                     historyTicket.Status = HistoryTicketStatus.CANCELLED;
                     transaction.Status = PaymentStatus.CANCELLED;
@@ -802,6 +812,8 @@ namespace ShuttleMate.Services.Services
 
             return historyTicket.Status.ToString().ToUpper();
         }
+
+
         public async Task CancelTicket(Guid historyTicketId)
         {
             var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities
