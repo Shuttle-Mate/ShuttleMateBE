@@ -21,8 +21,7 @@ namespace ShuttleMate.Services.MapperProfile
             return type switch
             {
                 TypePromotionEnum.PERCENTAGE_DISCOUNT => "PERCENTAGE_DISCOUNT",
-                TypePromotionEnum.DIRECT_DISCOUNT => "DIRECT_DISCOUNT",
-                TypePromotionEnum.FIXED_AMOUNT_DISCOUNT => "FIXED_AMOUNT_DISCOUNT",
+                TypePromotionEnum.PRICE_DISCOUNT => "DIRECT_DISCOUNT",
                 _ => "UNKNOWN"
             };
         }

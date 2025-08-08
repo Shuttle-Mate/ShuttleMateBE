@@ -147,13 +147,18 @@ namespace ShuttleMate.Services.Services
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             model.TrimAllStrings();
 
-            var ticket = await _unitOfWork.GetRepository<Ticket>().GetByIdAsync(model.TicketId)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vé không tồn tại.");
+            if (!Enum.TryParse<TicketTypeEnum>(model.TicketType, true, out var ticketTypeEnum)
+        || !Enum.IsDefined(typeof(TicketTypeEnum), ticketTypeEnum))
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại vé không hợp lệ.");
 
-            if (ticket.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vé đã bị xóa.");
+            var tickets = await _unitOfWork.GetRepository<Ticket>()
+                .FindAllAsync(x => x.Type == ticketTypeEnum && !x.DeletedTime.HasValue);
 
-            if (!Enum.TryParse<TypePromotionEnum>(model.Type, true, out var typeEnum) || !Enum.IsDefined(typeof(TypePromotionEnum), typeEnum))
+            if (tickets == null || !tickets.Any())
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy vé nào thuộc loại này.");
+
+            if (!Enum.TryParse<TypePromotionEnum>(model.PromotionType, true, out var typeEnum)
+                || !Enum.IsDefined(typeof(TypePromotionEnum), typeEnum))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phân loại khuyến mãi không hợp lệ.");
 
             if (string.IsNullOrWhiteSpace(model.Name))
@@ -174,28 +179,34 @@ namespace ShuttleMate.Services.Services
             if (model.UsingLimit < 0)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giới hạn sử dụng không hợp lệ.");
 
-            var newPromotion = _mapper.Map<Promotion>(model);
-            newPromotion.Type = typeEnum;
-            newPromotion.TicketId = model.TicketId;
-            newPromotion.CreatedBy = userId;
-            newPromotion.LastUpdatedBy = userId;
-
-            switch (typeEnum)
+            foreach (var ticket in tickets)
             {
-                case TypePromotionEnum.DIRECT_DISCOUNT:
-                    newPromotion.DiscountPrice = model.DiscountValue;
-                    break;
-                case TypePromotionEnum.PERCENTAGE_DISCOUNT:
-                    newPromotion.DiscountPercent = model.DiscountValue;
-                    break;
-                case TypePromotionEnum.FIXED_AMOUNT_DISCOUNT:
-                    newPromotion.DiscountAmount = model.DiscountValue;
-                    break;
-                default:
-                    break;
+                var newPromotion = new Promotion
+                {
+                    Type = typeEnum,
+                    TicketId = ticket.Id,
+                    Name = model.Name,
+                    Description = model.Description,
+                    LimitSalePrice = model.LimitSalePrice,
+                    EndDate = model.EndDate,
+                    UsingLimit = model.UsingLimit,
+                    CreatedBy = userId,
+                    LastUpdatedBy = userId
+                };
+
+                switch (typeEnum)
+                {
+                    case TypePromotionEnum.PRICE_DISCOUNT:
+                        newPromotion.DiscountPrice = model.DiscountValue;
+                        break;
+                    case TypePromotionEnum.PERCENTAGE_DISCOUNT:
+                        newPromotion.DiscountPercent = model.DiscountValue;
+                        break;
+                }
+
+                await _unitOfWork.GetRepository<Promotion>().InsertAsync(newPromotion);
             }
 
-            await _unitOfWork.GetRepository<Promotion>().InsertAsync(newPromotion);
             await _unitOfWork.SaveAsync();
         }
 
@@ -245,18 +256,14 @@ namespace ShuttleMate.Services.Services
             promotion.LastUpdatedTime = CoreHelper.SystemTimeNow;
             promotion.DiscountPrice = null;
             promotion.DiscountPercent = null;
-            promotion.DiscountAmount = null;
 
             switch (typeEnum)
             {
-                case TypePromotionEnum.DIRECT_DISCOUNT:
+                case TypePromotionEnum.PRICE_DISCOUNT:
                     promotion.DiscountPrice = model.DiscountValue;
                     break;
                 case TypePromotionEnum.PERCENTAGE_DISCOUNT:
                     promotion.DiscountPercent = model.DiscountValue;
-                    break;
-                case TypePromotionEnum.FIXED_AMOUNT_DISCOUNT:
-                    promotion.DiscountAmount = model.DiscountValue;
                     break;
             }
 

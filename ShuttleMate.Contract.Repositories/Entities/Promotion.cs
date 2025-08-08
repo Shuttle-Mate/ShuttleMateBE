@@ -11,7 +11,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public TypePromotionEnum Type { get; set; }
         public decimal? DiscountPrice { get; set; } //DIRECT_DISCOUNT
         public decimal? DiscountPercent { get; set; } //PERCENTAGE_DISCOUNT
-        public decimal? DiscountAmount { get; set; } //FIXED_AMOUNT_DISCOUNT
         public decimal? LimitSalePrice { get; set; }
         public int UsingLimit { get; set; } = 0;
         public int UsedCount { get; set; } = 0;
