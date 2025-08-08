@@ -2,8 +2,8 @@
 {
     public class CreatePromotionModel
     {
-        public Guid TicketId { get; set; }
-        public string Type { get; set; }
+        public string TicketType { get; set; }
+        public string PromotionType { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public decimal DiscountValue { get; set; }

@@ -50,8 +50,7 @@
         public enum TypePromotionEnum
         {
             PERCENTAGE_DISCOUNT,         // Giảm giá theo phần trăm (%)
-            DIRECT_DISCOUNT,             // Giảm giá trực tiếp
-            FIXED_AMOUNT_DISCOUNT        // Giảm giá theo số tiền
+            PRICE_DISCOUNT,             // Giảm giá theo số tiền
         }
 
         public enum SupportRequestStatusEnum
