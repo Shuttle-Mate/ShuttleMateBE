@@ -278,7 +278,7 @@ namespace ShuttleMate.Services.Services
                     templateType: "AbsentNotificationForStudent",
                     recipientIds: new List<Guid> { user.Id },
                     metadata: metadata,
-                    createdBy: createdBy
+                    createdBy: "system"
                 );
 
                 // Nếu có phụ huynh thì gửi cho phụ huynh
@@ -288,7 +288,7 @@ namespace ShuttleMate.Services.Services
                         templateType: "AbsentNotificationForParent",
                         recipientIds: new List<Guid> { user.ParentId.Value },
                         metadata: metadata,
-                        createdBy: createdBy
+                        createdBy: "system"
                     );
                 }
 
