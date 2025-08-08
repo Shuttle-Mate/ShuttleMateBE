@@ -52,7 +52,8 @@ namespace ShuttleMate.Services.Services
         private readonly int _cacheDurationMinutes;
         private readonly int _maxDatabaseSearchAttempts = 3;
         private readonly TimeZoneInfo _vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-
+        private const int SummaryInterval = 10; // Cứ 10 tin nhắn thì tóm tắt 1 lần
+        private readonly ConcurrentDictionary<Guid, int> _userMessageCounts = new();
 
         public ChatService(
             IUnitOfWork unitOfWork,
@@ -162,6 +163,12 @@ namespace ShuttleMate.Services.Services
                     string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
                     Guid.TryParse(userId, out Guid cb);
 
+                    // Tăng biến đếm tin nhắn cho user này
+                    int messageCount = _userMessageCounts.AddOrUpdate(cb, 1, (id, count) => count + 1);
+
+                    // Kiểm tra xem có cần tạo bản tóm tắt không
+                    bool shouldGenerateSummary = messageCount % SummaryInterval == 0;
+
                     // Check cache first
                     var cacheKey = $"{userId}_{Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(request.Message)))}"; 
                     if (_cache.TryGetValue(cacheKey, out ChatResponse cachedResponse))
@@ -197,11 +204,22 @@ namespace ShuttleMate.Services.Services
                     // Prepare conversation
                     var systemInfo = await GetSystemInformation(cb);
                     var conversationHistory = await GetConversationHistory(cb);
+                    // Lấy bản tóm tắt gần nhất nếu có
+                    var latestSummary = await GetLatestSummary(cb);
 
                     var messages = new List<object>
                     {
                         new { role = "system", content = systemInfo }
                     };
+                    // Thêm bản tóm tắt nếu có
+                    if (!string.IsNullOrEmpty(latestSummary))
+                    {
+                        messages.Add(new
+                        {
+                            role = "system",
+                            content = $"Tóm tắt cuộc trò chuyện trước: {latestSummary}"
+                        });
+                    }
 
                     foreach (var message in conversationHistory)
                     {
@@ -257,6 +275,11 @@ namespace ShuttleMate.Services.Services
                     _cache.Set(cacheKey, new ChatResponse { Response = aiResponse },
                         TimeSpan.FromMinutes(_cacheDurationMinutes));
 
+                    if (shouldGenerateSummary)
+                    {
+                        await GenerateAndStoreSummary(cb, conversationHistory);
+                    }
+
                     // Save conversation history
                     await SaveConversationHistory(new List<ChatMessage>
                     {
@@ -282,6 +305,67 @@ namespace ShuttleMate.Services.Services
                 {
                     Response = "Xin lỗi, tôi đang gặp sự cố kỹ thuật. Vui lòng thử lại sau."
                 };
+            }
+        }
+        private async Task<string> GetLatestSummary(Guid userId)
+        {
+            return await _unitOfWork.GetRepository<ConversationSummary>()
+                .Entities
+                .Where(s => s.UserId == userId)
+                .OrderByDescending(s => s.CreatedTime)
+                .Select(s => s.SummaryContent)
+                .FirstOrDefaultAsync();
+        }
+
+        private async Task GenerateAndStoreSummary(Guid userId, List<ChatMessage> conversationHistory)
+        {
+            try
+            {
+                // Lấy 10 tin nhắn gần nhất (hoặc tất cả nếu ít hơn 10)
+                var recentMessages = conversationHistory.TakeLast(10).ToList();
+
+                // Chuẩn bị prompt để tóm tắt
+                var summaryPrompt = new List<object>
+        {
+            new { role = "system", content = "Bạn là một trợ lý AI giỏi tóm tắt. Hãy tóm tắt cuộc trò chuyện sau thành 2-3 câu ngắn gọn bằng tiếng Việt, giữ lại những ý chính quan trọng." },
+            new { role = "user", content = string.Join("\n", recentMessages.Select(m => $"{m.Role}: {m.Parts?.FirstOrDefault()?.Text ?? string.Empty}")) }
+        };
+
+                var requestData = new
+                {
+                    model = "gpt-3.5-turbo",
+                    messages = summaryPrompt,
+                    temperature = 0.2, // Giảm nhiệt độ để tóm tắt chính xác hơn
+                    max_tokens = 150 // Giới hạn độ dài bản tóm tắt
+                };
+
+                var response = await _httpClient.PostAsJsonAsync("chat/completions", requestData);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadFromJsonAsync<ModelViews.ChatModelView.OpenAIResponse>();
+                    var summary = content?.Choices?.FirstOrDefault()?.Message?.Content;
+
+                    if (!string.IsNullOrEmpty(summary))
+                    {
+                        var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                        var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
+                        var summaryRecord = new ConversationSummary
+                        {
+                            UserId = userId,
+                            SummaryContent = summary,
+                            CreatedTime = vietnamNow
+                        };
+
+                        await _unitOfWork.GetRepository<ConversationSummary>().InsertAsync(summaryRecord);
+                        await _unitOfWork.SaveAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo bản tóm tắt");
             }
         }
         private async Task<ChatResponse> HandleFallbackResponse()
