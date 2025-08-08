@@ -1,8 +1,9 @@
-using ShuttleMate.API.Middleware;
+using Hangfire;
 using ShuttleMate.API;
 using ShuttleMate.API.Middleware;
-using System.Text.Json.Serialization;
+using ShuttleMate.API.Middleware;
 using System.Reflection;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +43,7 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 
+app.UseHangfireDashboard("/hangfire");
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors("AllowAllOrigins");
