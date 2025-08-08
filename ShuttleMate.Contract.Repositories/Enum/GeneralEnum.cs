@@ -100,7 +100,7 @@
             UNPAID = 0,
             PAID = 1,
             REFUNDED = 2,
-            CANCELED = 3,
+            CANCELLED = 3,
         }
 
         public enum HistoryTicketStatus
@@ -108,7 +108,6 @@
             UNPAID = 0,
             PAID = 1,
             CANCELLED = 2,
-            USED = 3,
         }
         public enum RoleEnum
         {

@@ -5,6 +5,8 @@ namespace ShuttleMate.Contract.Repositories.Entities
 {
     public class Schedule : BaseEntity
     {
+        public DateOnly From { get; set; }
+        public DateOnly To { get; set; }
         public RouteDirectionEnum Direction { get; set; }
         public TimeOnly DepartureTime { get; set; }
         public string DayOfWeek { get; set; }
