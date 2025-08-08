@@ -799,7 +799,7 @@ namespace ShuttleMate.Services.Services
                     .FirstOrDefaultAsync(t => t.HistoryTicketId == historyTicketId && !t.DeletedTime.HasValue);
 
                 // Nếu quá 10 phút thời gian đã cài đặt
-                if (transaction != null && vietnamNow > transaction.CreatedTime.AddMinutes(9).AddSeconds(50))
+                if (transaction != null && vietnamNow > transaction.CreatedTime.AddMinutes(9).AddSeconds(55))
                 {
                     historyTicket.Status = HistoryTicketStatus.CANCELLED;
                     transaction.Status = PaymentStatus.CANCELLED;
