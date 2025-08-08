@@ -10,6 +10,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public DateOnly ValidFrom { get; set; }
         public DateOnly ValidUntil { get; set; }
         public Guid TicketId { get; set; }
+        public decimal Price { get; set; }
         public virtual Ticket Ticket { get; set; }
         public Guid UserId { get; set; }
         public virtual User User { get; set; }
