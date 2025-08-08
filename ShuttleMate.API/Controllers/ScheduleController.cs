@@ -4,7 +4,6 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.ScheduleModelViews;
-using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
 {
@@ -20,7 +19,7 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách lịch trình ngày hiện tại của tài xế.
+        /// Lấy danh sách lịch trình hôm nay của tài xế.
         /// </summary>
         //[Authorize(Roles = "Driver")]
         [HttpGet("today")]
@@ -73,7 +72,6 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Xóa một lịch trình.
         /// </summary>
-        ///
         [HttpDelete("{scheduleId}")]
         public async Task<IActionResult> DeleteSchedule(Guid scheduleId)
         {
