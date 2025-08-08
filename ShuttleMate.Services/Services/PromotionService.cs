@@ -147,16 +147,6 @@ namespace ShuttleMate.Services.Services
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             model.TrimAllStrings();
 
-            if (!Enum.TryParse<TicketTypeEnum>(model.TicketType, true, out var ticketTypeEnum)
-        || !Enum.IsDefined(typeof(TicketTypeEnum), ticketTypeEnum))
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại vé không hợp lệ.");
-
-            var tickets = await _unitOfWork.GetRepository<Ticket>()
-                .FindAllAsync(x => x.Type == ticketTypeEnum && !x.DeletedTime.HasValue);
-
-            if (tickets == null || !tickets.Any())
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy vé nào thuộc loại này.");
-
             if (!Enum.TryParse<TypePromotionEnum>(model.PromotionType, true, out var typeEnum)
                 || !Enum.IsDefined(typeof(TypePromotionEnum), typeEnum))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phân loại khuyến mãi không hợp lệ.");
@@ -179,34 +169,61 @@ namespace ShuttleMate.Services.Services
             if (model.UsingLimit < 0)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giới hạn sử dụng không hợp lệ.");
 
-            foreach (var ticket in tickets)
+            bool isGlobal = false;
+            TicketTypeEnum? applicableType = null;
+            Guid? applicableTicketId = null;
+
+            if (!string.IsNullOrWhiteSpace(model.TicketType))
             {
-                var newPromotion = new Promotion
-                {
-                    Type = typeEnum,
-                    TicketId = ticket.Id,
-                    Name = model.Name,
-                    Description = model.Description,
-                    LimitSalePrice = model.LimitSalePrice,
-                    EndDate = model.EndDate,
-                    UsingLimit = model.UsingLimit,
-                    CreatedBy = userId,
-                    LastUpdatedBy = userId
-                };
+                if (!Enum.TryParse<TicketTypeEnum>(model.TicketType, true, out var parsedType)
+                    || !Enum.IsDefined(typeof(TicketTypeEnum), parsedType))
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại vé không hợp lệ.");
 
-                switch (typeEnum)
-                {
-                    case TypePromotionEnum.PRICE_DISCOUNT:
-                        newPromotion.DiscountPrice = model.DiscountValue;
-                        break;
-                    case TypePromotionEnum.PERCENTAGE_DISCOUNT:
-                        newPromotion.DiscountPercent = model.DiscountValue;
-                        break;
-                }
+                applicableType = parsedType;
+                isGlobal = false;
+            }
+            else if (model.TicketId.HasValue)
+            {
+                var ticket = await _unitOfWork.GetRepository<Ticket>().GetByIdAsync(model.TicketId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vé không tồn tại.");
 
-                await _unitOfWork.GetRepository<Promotion>().InsertAsync(newPromotion);
+                if (ticket.DeletedTime.HasValue)
+                    throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vé đã bị xóa.");
+
+                applicableTicketId = ticket.Id;
+                isGlobal = false;
+            }
+            else
+            {
+                isGlobal = true;
             }
 
+            var newPromotion = new Promotion
+            {
+                Type = typeEnum,
+                Name = model.Name,
+                Description = model.Description,
+                LimitSalePrice = model.LimitSalePrice,
+                EndDate = model.EndDate,
+                UsingLimit = model.UsingLimit,
+                CreatedBy = userId,
+                LastUpdatedBy = userId,
+                ApplicableTicketType = applicableType,
+                TicketId = applicableTicketId,
+                IsGlobal = isGlobal
+            };
+
+            switch (typeEnum)
+            {
+                case TypePromotionEnum.PRICE_DISCOUNT:
+                    newPromotion.DiscountPrice = model.DiscountValue;
+                    break;
+                case TypePromotionEnum.PERCENTAGE_DISCOUNT:
+                    newPromotion.DiscountPercent = model.DiscountValue;
+                    break;
+            }
+
+            await _unitOfWork.GetRepository<Promotion>().InsertAsync(newPromotion);
             await _unitOfWork.SaveAsync();
         }
 
@@ -221,13 +238,8 @@ namespace ShuttleMate.Services.Services
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             model.TrimAllStrings();
 
-            var ticket = await _unitOfWork.GetRepository<Ticket>().GetByIdAsync(model.TicketId)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vé không tồn tại.");
-
-            if (ticket.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vé đã bị xóa.");
-
-            if (!Enum.TryParse<TypePromotionEnum>(model.Type, true, out var typeEnum) || !Enum.IsDefined(typeof(TypePromotionEnum), typeEnum))
+            if (!Enum.TryParse<TypePromotionEnum>(model.PromotionType, true, out var typeEnum) ||
+                !Enum.IsDefined(typeof(TypePromotionEnum), typeEnum))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phân loại khuyến mãi không hợp lệ.");
 
             if (string.IsNullOrWhiteSpace(model.Name))
@@ -248,15 +260,45 @@ namespace ShuttleMate.Services.Services
             if (model.UsingLimit < 0)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giới hạn sử dụng không hợp lệ.");
 
-            _mapper.Map(model, promotion);
+            promotion.TicketId = null;
+            promotion.ApplicableTicketType = null;
+            promotion.IsGlobal = false;
+
+            if (model.TicketId.HasValue)
+            {
+                var ticket = await _unitOfWork.GetRepository<Ticket>().GetByIdAsync(model.TicketId.Value)
+                    ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vé không tồn tại.");
+
+                if (ticket.DeletedTime.HasValue)
+                    throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vé đã bị xóa.");
+
+                promotion.TicketId = ticket.Id;
+            }
+            else if (!string.IsNullOrWhiteSpace(model.TicketType))
+            {
+                if (!Enum.TryParse<TicketTypeEnum>(model.TicketType, true, out var ticketTypeEnum) ||
+                    !Enum.IsDefined(typeof(TicketTypeEnum), ticketTypeEnum))
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại vé không hợp lệ.");
+
+                promotion.ApplicableTicketType = ticketTypeEnum;
+            }
+            else
+            {
+                promotion.IsGlobal = true;
+            }
+
             promotion.Type = typeEnum;
-            promotion.TicketId = model.TicketId;
+            promotion.Name = model.Name;
+            promotion.Description = model.Description;
+            promotion.UsingLimit = model.UsingLimit;
+            promotion.EndDate = model.EndDate;
+            promotion.LimitSalePrice = model.LimitSalePrice;
             promotion.IsExpiredOrReachLimit = promotion.UsedCount >= model.UsingLimit;
             promotion.LastUpdatedBy = userId;
             promotion.LastUpdatedTime = CoreHelper.SystemTimeNow;
+
             promotion.DiscountPrice = null;
             promotion.DiscountPercent = null;
-
             switch (typeEnum)
             {
                 case TypePromotionEnum.PRICE_DISCOUNT:
