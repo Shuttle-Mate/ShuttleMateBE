@@ -125,9 +125,17 @@ namespace ShuttleMate.Services.Services
                 var routeStops = s.Route?.RouteStops?.Where(x => !x.DeletedTime.HasValue).ToList() ?? new();
                 var routeInfo = BuildRouteInfo(routeStops, s.Direction);
 
-                var expectedStudentIds = await _unitOfWork.GetRepository<UserSchoolShift>().Entities
-                    .Where(us => us.SchoolShiftId == s.SchoolShiftId)
-                    .Select(us => us.StudentId)
+                var expectedStudentIds = await _unitOfWork.GetRepository<User>().Entities
+                    .Where(st => st.UserSchoolShifts.Any(uss => 
+                        uss.SchoolShiftId == s.SchoolShiftId && 
+                        !uss.DeletedTime.HasValue))
+                    .Where(st => st.HistoryTickets.Any(ht =>
+                        ht.Ticket.RouteId == s.RouteId &&
+                        ht.Ticket.Route.IsActive == true &&
+                        ht.ValidUntil >= DateOnly.FromDateTime(DateTime.Now) &&
+                        ht.Status == HistoryTicketStatus.PAID &&
+                        !ht.DeletedTime.HasValue))
+                    .Select(st => st.Id)
                     .ToListAsync();
 
                 var attendedCount = await _unitOfWork.GetRepository<Attendance>().Entities
