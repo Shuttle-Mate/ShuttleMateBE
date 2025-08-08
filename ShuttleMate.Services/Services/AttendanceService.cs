@@ -63,7 +63,7 @@ namespace ShuttleMate.Services.Services
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            if (string.IsNullOrWhiteSpace(model.CheckOutLocation))
+            if (model.CheckOutLocation == null || model.CheckOutLocation == Guid.Empty)
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Địa điểm checkout không được để trống!");
             }
@@ -189,7 +189,7 @@ namespace ShuttleMate.Services.Services
             return _mapper.Map<List<ResponseAttendanceModel>>(attendances);
         }
 
-        public async Task BulkCheckOutByTrip(Guid tripId, string checkOutLocation, string? notes = null)
+        public async Task BulkCheckOutByTrip(Guid tripId, Guid checkOutLocation, string? notes = null)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 

@@ -12,9 +12,9 @@ namespace ShuttleMate.ModelViews.AttendanceModelViews
     {
         public Guid TicketId { get; set; }
         public DateTime CheckInTime { get; set; }
-        public string? CheckInLocation { get; set; }
+        public Guid? CheckInLocation { get; set; }
         public DateTime CheckOutTime { get; set; }
-        public string? CheckOutLocation { get; set; }
+        public Guid? CheckOutLocation { get; set; }
         public string? Notes { get; set; }
         //public virtual HistoryTicket HistoryTicket { get; set; }
     }
@@ -23,7 +23,7 @@ namespace ShuttleMate.ModelViews.AttendanceModelViews
     {
         public Guid HistoryTicketId { get; set; }
         public Guid TripId { get; set; }
-        public string? CheckInLocation { get; set; }
+        public Guid? CheckInLocation { get; set; }
         public string? Notes { get; set; }
     }
     public class CheckOutModel
@@ -31,7 +31,7 @@ namespace ShuttleMate.ModelViews.AttendanceModelViews
         public Guid Id { get; set; }
         public Guid HistoryTicketId { get; set; }
         public Guid TripId { get; set; }
-        public string? CheckOutLocation { get; set; }
+        public Guid? CheckOutLocation { get; set; }
         public string? Notes { get; set; }
     }
 }
