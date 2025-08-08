@@ -163,11 +163,23 @@ namespace ShuttleMate.Services.Services
             if (withdrawalRequest.Status == WithdrawalRequestStatusEnum.REJECTED)
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Yêu cầu hoàn tiền đã bị từ chối.");
 
+            var transaction = await _unitOfWork.GetRepository<Transaction>().GetByIdAsync(withdrawalRequest.TransactionId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Giao dịch không tồn tại.");
+
+            if (transaction.DeletedTime.HasValue)
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Giao dịch đã bị xóa.");
+
+            if (transaction.Status == PaymentStatus.REFUNDED)
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Giao dịch đã được hoàn tiền.");
+
             withdrawalRequest.Status = WithdrawalRequestStatusEnum.COMPLETED;
             withdrawalRequest.LastUpdatedTime = CoreHelper.SystemTimeNow;
             withdrawalRequest.LastUpdatedBy = userId;
 
+            transaction.Status = PaymentStatus.REFUNDED;
+
             await _unitOfWork.GetRepository<WithdrawalRequest>().UpdateAsync(withdrawalRequest);
+            await _unitOfWork.GetRepository<Transaction>().UpdateAsync(transaction);
             await _unitOfWork.SaveAsync();
         }
 

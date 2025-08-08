@@ -3,6 +3,8 @@
     public class CreateScheduleModel
     {
         public Guid RouteId { get; set; }
+        public DateOnly From { get; set; }
+        public DateOnly To { get; set; }
         public List<CreateScheduleDetailModel> Schedules { get; set; } = new();
     }
 
