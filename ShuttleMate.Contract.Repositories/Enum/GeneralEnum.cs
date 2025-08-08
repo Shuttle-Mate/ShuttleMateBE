@@ -100,7 +100,7 @@
             UNPAID = 0,
             PAID = 1,
             REFUNDED = 2,
-            CANCELED = 3,
+            CANCELLED = 3,
         }
 
         public enum HistoryTicketStatus

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Azure;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -769,13 +770,71 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<string> ResponseHistoryTicketStatus(Guid historyTicketId)
         {
-            if (string.IsNullOrWhiteSpace(historyTicketId.ToString()))
+            if (historyTicketId == Guid.Empty)
             {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không được để trống Id của History Ticket!");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Id History Ticket không hợp lệ!");
             }
-            var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities.FirstOrDefaultAsync(x => x.Id == historyTicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy History Ticket!"); ;
+
+            var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities
+                .FirstOrDefaultAsync(x => x.Id == historyTicketId && !x.DeletedTime.HasValue);
+
+            if (historyTicket == null)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy History Ticket!");
+            }
+
+            // Kiểm tra timeout nếu ticket đang PENDING
+            if (historyTicket.Status == HistoryTicketStatus.UNPAID)
+            {
+                var transaction = await _unitOfWork.GetRepository<Transaction>().Entities
+                    .FirstOrDefaultAsync(t => t.HistoryTicketId == historyTicketId && !t.DeletedTime.HasValue);
+
+                // Nếu quá 15 phút (thời gian timeout mặc định của PayOS)
+                if (transaction != null && DateTime.UtcNow > transaction.CreatedTime.AddMinutes(15))
+                {
+                    historyTicket.Status = HistoryTicketStatus.CANCELLED;
+                    transaction.Status = PaymentStatus.CANCELLED;
+
+                    await _unitOfWork.GetRepository<HistoryTicket>().UpdateAsync(historyTicket);
+                    await _unitOfWork.GetRepository<Transaction>().UpdateAsync(transaction);
+                    await _unitOfWork.SaveAsync();
+                }
+            }
 
             return historyTicket.Status.ToString().ToUpper();
+        }
+        public async Task CancelTicket(Guid historyTicketId)
+        {
+            var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities
+                .FirstOrDefaultAsync(x => x.Id == historyTicketId && !x.DeletedTime.HasValue);
+
+            if (historyTicket == null)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy vé!");
+            }
+
+            // Kiểm tra nếu đã thanh toán thì không được hủy
+            if (historyTicket.Status == HistoryTicketStatus.PAID)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể hủy ticket đã thanh toán!");
+            }
+
+            // Cập nhật trạng thái
+            historyTicket.Status = HistoryTicketStatus.CANCELLED;
+
+            // Cập nhật Transaction liên quan (nếu có)
+            var transaction = await _unitOfWork.GetRepository<Transaction>().Entities
+                .FirstOrDefaultAsync(t => t.HistoryTicketId == historyTicketId && !t.DeletedTime.HasValue);
+
+            if (transaction != null)
+            {
+                transaction.Status = PaymentStatus.CANCELLED;
+                await _unitOfWork.GetRepository<Transaction>().UpdateAsync(transaction);
+            }
+
+            await _unitOfWork.GetRepository<HistoryTicket>().UpdateAsync(historyTicket);
+            await _unitOfWork.SaveAsync();
+
         }
         private string CalculateSignature(PayOSPaymentRequest request)
         {
@@ -920,7 +979,7 @@ namespace ShuttleMate.Services.Services
                     break;
 
                 case "02": // Hủy giao dịch
-                    transaction.Status = PaymentStatus.CANCELED;
+                    transaction.Status = PaymentStatus.CANCELLED;
                     historyTicket.Status = HistoryTicketStatus.CANCELLED;
                     await _unitOfWork.GetRepository<Transaction>().UpdateAsync(transaction);
                     await _unitOfWork.GetRepository<HistoryTicket>().UpdateAsync(historyTicket);

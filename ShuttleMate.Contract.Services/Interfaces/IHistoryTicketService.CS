@@ -19,5 +19,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task PayOSCallback(PayOSWebhookRequest request);
         Task<string> CreateZaloPayOrder(CreateZaloPayOrderModel model);
         Task<string> ResponseHistoryTicketStatus(Guid historyTicketId);
+        Task CancelTicket(Guid historyTicketId);
     }
 }

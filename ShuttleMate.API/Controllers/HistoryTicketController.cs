@@ -76,6 +76,20 @@ namespace ShuttleMate.API.Controllers
                 data: response
             ));
         }
+        /// <summary>
+        /// Hủy đơn hàng
+        /// </summary>
+        [HttpPatch("payment/{historyTicketId}/cancel")]
+        public async Task<IActionResult> CancelTicket(Guid historyTicketId)
+        {
+             await _historyTicketService.CancelTicket(historyTicketId);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "Hủy đơn hàng thành công!"
+            ));
+        }
 
         /// <summary>
         /// Hàm xử lí sau khi thanh toán(PAYOS)
