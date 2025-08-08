@@ -283,7 +283,6 @@ namespace ShuttleMate.Services.Services
                 HistoryTicketStatus.UNPAID => "Đặt vé",
                 HistoryTicketStatus.PAID => "Đã thanh toán",
                 HistoryTicketStatus.CANCELLED => "Hủy",
-                HistoryTicketStatus.USED => "Đã sử dụng",
                 _ => "Không xác định"
             };
         }
@@ -783,14 +782,14 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy History Ticket!");
             }
 
-            // Kiểm tra timeout nếu ticket đang PENDING
+            // Kiểm tra timeout nếu ticket đang UNPAID
             if (historyTicket.Status == HistoryTicketStatus.UNPAID)
             {
                 var transaction = await _unitOfWork.GetRepository<Transaction>().Entities
                     .FirstOrDefaultAsync(t => t.HistoryTicketId == historyTicketId && !t.DeletedTime.HasValue);
 
-                // Nếu quá 15 phút (thời gian timeout mặc định của PayOS)
-                if (transaction != null && DateTime.UtcNow > transaction.CreatedTime.AddMinutes(15))
+                // Nếu quá 10 phút thời gian đã cài đặt
+                if (transaction != null && DateTime.UtcNow > transaction.CreatedTime.AddMinutes(10))
                 {
                     historyTicket.Status = HistoryTicketStatus.CANCELLED;
                     transaction.Status = PaymentStatus.CANCELLED;

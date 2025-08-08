@@ -261,7 +261,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
         }
-        public async Task<BasePaginatedList<ResponseStudentInRouteAndShiftModel>> GetStudentInRouteAndShift(int page = 0, int pageSize = 10, Guid? routeId = null, Guid? schoolShiftId = null)
+        public async Task<BasePaginatedList<ResponseStudentInRouteAndShiftModel>> GetStudentInRouteAndShift(int page = 0, int pageSize = 10, Guid? routeId = null, Guid? schoolShiftId = null, string? search = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -284,6 +284,10 @@ namespace ShuttleMate.Services.Services
             if (schoolShiftId == null)
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy ca học!");
+            }
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(u => u.FullName.Contains(search));
             }
             //điều kiện hs trong cùng 1 ca học
             query = query.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId

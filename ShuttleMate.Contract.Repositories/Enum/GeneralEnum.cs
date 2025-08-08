@@ -108,7 +108,6 @@
             UNPAID = 0,
             PAID = 1,
             CANCELLED = 2,
-            USED = 3,
         }
         public enum RoleEnum
         {
