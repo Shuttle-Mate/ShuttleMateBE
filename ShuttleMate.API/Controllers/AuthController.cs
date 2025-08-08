@@ -32,7 +32,7 @@ namespace ShuttleMate.API.Controllers
         }
         
 
-        [HttpPatch("confirm-otp-email")]
+        [HttpPatch("confirmation/email")]
         public async Task<IActionResult> ConfirmOTPEmailVerification(ConfirmEmailModel model)
         {
             Guid res = await _authService.ConfirmEmail(model);
