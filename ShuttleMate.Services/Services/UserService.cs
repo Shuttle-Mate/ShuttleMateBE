@@ -512,6 +512,22 @@ namespace ShuttleMate.Services.Services
             }
             await _unitOfWork.SaveAsync();
         }
+        public async Task AssignSchoolForManager(AssignSchoolForManagerModel model)
+        {
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.UserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
+            if (user.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() != "SCHOOL")
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không đúng role school!");
+            }
+
+            user.SchoolId = school.Id;
+
+            await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+            await _unitOfWork.SaveAsync();
+
+        }
+
         public async Task<UserInforModel> GetInfor()
         {
             // Lấy userId từ HttpContext

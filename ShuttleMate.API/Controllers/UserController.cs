@@ -3,8 +3,10 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.AuthModelViews;
+using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.UserDeviceModelView;
 using ShuttleMate.ModelViews.UserModelViews;
+using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
 {
@@ -127,10 +129,23 @@ namespace ShuttleMate.API.Controllers
                  message: "Cập nhật ca học thành công!"
              ));
         }
-        [HttpPost("assign-role")]
-        public async Task<IActionResult> AssignRole([FromBody] AssignUserRoleModel model)
+        /// <summary>
+        /// Gán quản lí cho trường.(ADMIN)
+        /// </summary>
+        [HttpPatch("assign-school")]
+        public async Task<IActionResult> AssignSchoolForManager(AssignSchoolForManagerModel model)
         {
-            await _userService.AssignUserToRoleAsync(model.UserId, model.RoleId);
+            await _userService.AssignSchoolForManager(model);
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "Gán trường với quản lí trường thành công!"
+            ));
+        }
+        [HttpPatch("{userId}/assign-school")]
+        public async Task<IActionResult> AssignRole(Guid userId, AssignUserRoleModel model)
+        {
+            await _userService.AssignUserToRoleAsync(userId, model.RoleId);
 
             return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
