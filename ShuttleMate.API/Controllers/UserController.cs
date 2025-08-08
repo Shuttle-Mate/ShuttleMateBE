@@ -94,7 +94,7 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Admin khóa tài khoản của người dùng
         /// </summary>
-        [HttpDelete("{userId}/block")]
+        [HttpPatch("{userId}/block")]
         public async Task<IActionResult> BlockUserForAdmin(Guid userId)
         {
             var res = await _userService.BlockUserForAdmin(userId);
