@@ -19,17 +19,17 @@ namespace ShuttleMate.API.Controllers
             _userPromotionService = userPromotionService;
         }
 
-        /// <summary>
-        /// Lưu một khuyến mãi.
-        /// </summary>
-        [HttpPost]
-        public async Task<IActionResult> SavePromotion(CreateUserPromotionModel model)
-        {
-            await _userPromotionService.CreateAsync(model);
-            return Ok(new BaseResponseModel<string?>(
-              statusCode: StatusCodes.Status200OK,
-              code: ResponseCodeConstants.SUCCESS,
-              message: "Lưu khuyến mãi thành công."));
-        }
+        ///// <summary>
+        ///// Lưu một khuyến mãi.
+        ///// </summary>
+        //[HttpPost]
+        //public async Task<IActionResult> SavePromotion(CreateUserPromotionModel model)
+        //{
+        //    await _userPromotionService.CreateAsync(model);
+        //    return Ok(new BaseResponseModel<string?>(
+        //      statusCode: StatusCodes.Status200OK,
+        //      code: ResponseCodeConstants.SUCCESS,
+        //      message: "Lưu khuyến mãi thành công."));
+        //}
     }
 }

@@ -43,10 +43,10 @@ namespace ShuttleMate.API.Controllers
                 data: tickets
             ));
         }
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetTicketById(Guid id)
+        [HttpGet("{ticketId}")]
+        public async Task<IActionResult> GetTicketById(Guid ticketId)
         {
-            var ticket = await _ticketService.GetById(id);
+            var ticket = await _ticketService.GetById(ticketId);
 
             return Ok(new BaseResponseModel<TicketResponseModel>(
                 statusCode: StatusCodes.Status200OK,
