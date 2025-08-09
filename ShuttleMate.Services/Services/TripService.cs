@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Org.BouncyCastle.Ocsp;
 using Org.BouncyCastle.Pkix;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
@@ -12,6 +13,7 @@ using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.AttendanceModelViews;
 using ShuttleMate.ModelViews.RouteModelViews;
 using ShuttleMate.ModelViews.TripModelViews;
+using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using System;
 using System.Collections.Generic;
@@ -218,21 +220,63 @@ namespace ShuttleMate.Services.Services
                 .Where(x => !x.DeletedTime.HasValue)
                 .FirstOrDefaultAsync(x => x.Id == tripId);
 
-            // 1. Lấy danh sách absent
-            var absentQuery = new GetAbsentQuery
-            {
-                tripId = tripId,
-                routeId = routeId,
-                schoolShiftId = schoolShiftId,
-                page = 0,
-                pageSize = int.MaxValue // lấy tất cả
-            };
-            var absentList = await _attendanceService.ListAbsentStudent(absentQuery);
 
-            // 2. Lấy danh sách userId và parentId
-            var userIds = absentList.Items.Select(s => s.Id).ToList();
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var userQuery = userRepo.Entities
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .Include(u => u.UserSchoolShifts)
+            .ThenInclude(u => u.SchoolShift)
+            .AsQueryable();
 
-            // Lấy thông tin user để lấy parentId
+            userQuery = userQuery.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId && !x.DeletedTime.HasValue));
+            userQuery = userQuery.Where(x => x.HistoryTickets.Any(x => x.Ticket.Route.Id == routeId
+            && x.Ticket.Route.IsActive == true
+            && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
+            && x.Status == HistoryTicketStatus.PAID
+            && !x.DeletedTime.HasValue));
+
+            var listStudent = await userQuery
+                .Select(u => new ResponseStudentInRouteAndShiftModel
+                {
+                    Id = u.Id,
+                    FullName = u.FullName,
+                    Gender = u.Gender,
+                    DateOfBirth = u.DateOfBirth,
+                    ProfileImageUrl = u.ProfileImageUrl,
+                    Address = u.Address,
+                    Email = u.Email,
+                    ParentName = u.Parent.FullName,
+                    PhoneNumber = u.PhoneNumber,
+                    SchoolName = u.School.Name,
+                    HistoryTicketId = u.HistoryTickets.
+                    FirstOrDefault(x => x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
+                    && x.Status == HistoryTicketStatus.PAID
+                    && !x.DeletedTime.HasValue)!.Id,
+                })
+                .ToListAsync();
+
+            var listCheckin = await _unitOfWork.GetRepository<Attendance>().Entities
+                .Include(x => x.HistoryTicket)
+                .Where(x => !x.DeletedTime.HasValue
+                        && x.TripId == tripId)
+                .ToListAsync();
+
+            var checkedInHistoryTicketIds = listCheckin
+                .Select(x => x.HistoryTicket.UserId)
+                .ToHashSet(); // Tối ưu tìm kiếm O(1)
+
+            var listAbsent = listStudent
+                .Where(student => !checkedInHistoryTicketIds.Contains(student.Id));
+
+            var totalCount = listAbsent.Count();
+
+            var absents = listAbsent.ToList();
+
+            var absentList = _mapper.Map<List<ResponseStudentInRouteAndShiftModel>>(absents);
+
+            var userIds = absentList.Select(s => s.Id).ToList();
+
             var users = await _unitOfWork.GetRepository<User>()
                 .Entities
                 .Where(u => userIds.Contains(u.Id))
