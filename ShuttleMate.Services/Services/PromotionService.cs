@@ -79,6 +79,37 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ResponsePromotionModel>(result, totalCount, page, pageSize);
         }
 
+        public async Task<IEnumerable<ResponsePromotionModel>> GetAllApplicableAsync(Guid ticketId)
+        {
+            var userId = Guid.Parse(Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor));
+
+            var ticket = await _unitOfWork.GetRepository<Ticket>()
+                .GetByIdAsync(ticketId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound,
+                    ResponseCodeConstants.NOT_FOUND, "Vé không tồn tại.");
+
+            if (ticket.DeletedTime.HasValue)
+                throw new ErrorException(StatusCodes.Status404NotFound,
+                    ResponseCodeConstants.NOT_FOUND, "Vé đã bị xóa.");
+
+            var applicablePromotions = await _unitOfWork.GetRepository<Promotion>().Entities
+                .Where(p =>
+                    !p.DeletedTime.HasValue &&
+                    p.EndDate >= DateTime.UtcNow &&
+                    !p.IsExpiredOrReachLimit &&
+                    (p.UsingLimit == 0 || p.UsedCount < p.UsingLimit) &&
+                    (
+                        p.IsGlobal ||
+                        (p.ApplicableTicketType != null && p.ApplicableTicketType == ticket.Type) ||
+                        (p.TicketId != null && p.TicketId == ticket.Id)
+                    )
+                )
+                .OrderBy(p => p.EndDate)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<ResponsePromotionModel>>(applicablePromotions);
+        }
+
         public async Task<IEnumerable<ResponsePromotionModel>> GetAllUnsavedAsync()
         {
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);

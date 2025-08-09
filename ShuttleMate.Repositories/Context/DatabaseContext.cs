@@ -40,6 +40,7 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<Ward> Wards => Set<Ward>();
         public virtual DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
         public virtual DbSet<UserDevice> UserDevices => Set<UserDevice>();
+        public virtual DbSet<ConversationSummary> ConversationSummaries => Set<ConversationSummary>();
         #endregion
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -380,6 +381,14 @@ namespace ShuttleMate.Repositories.Context
                 entity.HasOne(x => x.User)
                     .WithMany(x => x.WithdrawalRequests)
                     .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<ConversationSummary>(entity =>
+            {
+                entity.ToTable("ConversationSummaries");
+                entity.HasOne(t => t.User)
+                    .WithMany(u => u.ConversationSummaries)
+                    .HasForeignKey(t => t.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
         }
