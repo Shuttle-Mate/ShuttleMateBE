@@ -16,6 +16,7 @@ jobs:
         run: |
           mkdir -p ./Keys
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > ./Keys/serviceAccountKey.json
+          sed -i 's/\\\\n/\n/g' ./Keys/serviceAccountKey.json
           chmod 644 ./Keys/serviceAccountKey.json
 
       - name: Dump first 20 lines of key
