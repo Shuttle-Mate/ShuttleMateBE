@@ -49,7 +49,7 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Lấy toàn bộ khuyến mãi đã lưu của người dùng có thể áp dụng khi mua vé.
+        /// Lấy toàn bộ khuyến mãi có thể áp dụng khi mua vé.
         /// </summary>
         //[Authorize(Roles = "Student", "Parent")]
         [HttpGet("applicable")]
