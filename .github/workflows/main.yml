@@ -18,6 +18,11 @@ jobs:
           printf '%s' "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > ./Keys/serviceAccountKey.json
           chmod 644 ./Keys/serviceAccountKey.json
 
+      - name: Dump first 20 lines of key
+        run: |
+          echo "---- preview ----"
+          head -n 20 ./Keys/serviceAccountKey.json | nl
+
       - name: Dọn dẹp tài nguyên Docker để giải phóng RAM
         run: |
           echo "Dọn dẹp container không dùng..."
