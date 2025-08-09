@@ -12,11 +12,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Tạo file serviceAccountKey.json từ GitHub Secret
+      - name: Write Firebase key
         run: |
           mkdir -p ./Keys
-          printf '%s' "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > ./Keys/serviceAccountKey.json
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}" | base64 -d > ./Keys/serviceAccountKey.json
           chmod 644 ./Keys/serviceAccountKey.json
+
       - name: Validate Firebase key format
         run: |
           # Ensure jq is installed (for parsing JSON)
