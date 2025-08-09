@@ -15,7 +15,8 @@ jobs:
       - name: Tạo file serviceAccountKey.json từ GitHub Secret
         run: |
           mkdir -p ./Keys
-          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > ./Keys/serviceAccountKey.json
+          printf '%s' "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > ./Keys/serviceAccountKey.json
+          chmod 600 ./Keys/serviceAccountKey.json
       - name: Dọn dẹp tài nguyên Docker để giải phóng RAM
         run: |
           echo "Dọn dẹp container không dùng..."
