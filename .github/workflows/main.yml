@@ -15,7 +15,7 @@ jobs:
       - name: Write Firebase key
         run: |
           mkdir -p ./Keys
-          printf '%s' "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > ./Keys/serviceAccountKey.json
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > ./Keys/serviceAccountKey.json
           chmod 644 ./Keys/serviceAccountKey.json
 
       - name: Dump first 20 lines of key
