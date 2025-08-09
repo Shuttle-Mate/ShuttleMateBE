@@ -49,30 +49,44 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Lấy toàn bộ khuyến mãi chưa lưu.
+        /// Lấy toàn bộ khuyến mãi đã lưu của người dùng có thể áp dụng khi mua vé.
         /// </summary>
         //[Authorize(Roles = "Student", "Parent")]
-        [HttpGet("unsaved")]
-        public async Task<IActionResult> GetAllUnsavedPromotions()
+        [HttpGet("applicable")]
+        public async Task<IActionResult> GetAllApplicablePromotions(
+        [FromQuery] Guid ticketId)
         {
             return Ok(new BaseResponseModel<IEnumerable<ResponsePromotionModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _promotionService.GetAllUnsavedAsync()));
+                data: await _promotionService.GetAllApplicableAsync(ticketId)));
         }
 
-        /// <summary>
-        /// Lấy toàn bộ người dùng lưu một khuyến mãi.
-        /// </summary>
-        //[Authorize(Roles = "Admin")]
-        [HttpGet("{promotionId}/users")]
-        public async Task<IActionResult> GetAllUsersSavedPromotion(Guid promotionId)
-        {
-            return Ok(new BaseResponseModel<IEnumerable<ResponseUserPromotionModel>>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                data: await _promotionService.GetAllUsersSavedAsync(promotionId)));
-        }
+        ///// <summary>
+        ///// Lấy toàn bộ khuyến mãi chưa lưu.
+        ///// </summary>
+        ////[Authorize(Roles = "Student", "Parent")]
+        //[HttpGet("unsaved")]
+        //public async Task<IActionResult> GetAllUnsavedPromotions()
+        //{
+        //    return Ok(new BaseResponseModel<IEnumerable<ResponsePromotionModel>>(
+        //        statusCode: StatusCodes.Status200OK,
+        //        code: ResponseCodeConstants.SUCCESS,
+        //        data: await _promotionService.GetAllUnsavedAsync()));
+        //}
+
+        ///// <summary>
+        ///// Lấy toàn bộ người dùng lưu một khuyến mãi.
+        ///// </summary>
+        ////[Authorize(Roles = "Admin")]
+        //[HttpGet("{promotionId}/users")]
+        //public async Task<IActionResult> GetAllUsersSavedPromotion(Guid promotionId)
+        //{
+        //    return Ok(new BaseResponseModel<IEnumerable<ResponseUserPromotionModel>>(
+        //        statusCode: StatusCodes.Status200OK,
+        //        code: ResponseCodeConstants.SUCCESS,
+        //        data: await _promotionService.GetAllUsersSavedAsync(promotionId)));
+        //}
 
         /// <summary>
         /// Lấy chi tiết khuyến mãi.

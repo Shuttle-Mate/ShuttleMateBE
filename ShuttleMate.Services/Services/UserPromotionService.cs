@@ -6,21 +6,27 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.UserPromotionModelViews;
+using ShuttleMate.Services.Services.Infrastructure;
 
 namespace ShuttleMate.Services.Services
 {
     public class UserPromotionService : IUserPromotionService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IHttpContextAccessor _contextAccessor;
 
-        public UserPromotionService(IUnitOfWork unitOfWork)
+        public UserPromotionService(IUnitOfWork unitOfWork, IHttpContextAccessor contextAccessor)
         {
             _unitOfWork = unitOfWork;
+            _contextAccessor = contextAccessor;
         }
-        
+
         public async Task CreateAsync(CreateUserPromotionModel model)
         {
-            var user = await _unitOfWork.GetRepository<User>().GetByIdAsync(model.UserId)
+            var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+            Guid.TryParse(userId, out Guid userIdGuid);
+
+            var user = await _unitOfWork.GetRepository<User>().GetByIdAsync(userIdGuid)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại.");
 
             if (user.DeletedTime.HasValue)
@@ -35,7 +41,7 @@ namespace ShuttleMate.Services.Services
             if (promotion.DeletedTime.HasValue)
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã bị xóa.");
 
-            var isSaved = await _unitOfWork.GetRepository<UserPromotion>().Entities.AnyAsync(up => up.UserId == model.UserId && up.PromotionId == model.PromotionId);
+            var isSaved = await _unitOfWork.GetRepository<UserPromotion>().Entities.AnyAsync(up => up.UserId == userIdGuid && up.PromotionId == model.PromotionId);
 
             if (isSaved)
             {
@@ -44,7 +50,7 @@ namespace ShuttleMate.Services.Services
 
             var userPromotion = new UserPromotion
             {
-                UserId = model.UserId,
+                UserId = userIdGuid,
                 PromotionId = model.PromotionId
             };
 
