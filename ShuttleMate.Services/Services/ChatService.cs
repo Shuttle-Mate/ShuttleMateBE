@@ -52,8 +52,6 @@ namespace ShuttleMate.Services.Services
         private readonly int _cacheDurationMinutes;
         private readonly int _maxDatabaseSearchAttempts = 3;
         private readonly TimeZoneInfo _vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-        private const int SummaryInterval = 10; // Cứ 10 tin nhắn thì tóm tắt 1 lần
-        private readonly ConcurrentDictionary<Guid, int> _userMessageCounts = new();
 
         public ChatService(
             IUnitOfWork unitOfWork,
@@ -75,7 +73,7 @@ namespace ShuttleMate.Services.Services
             _cache = cache;
 
             // Load configurations
-            _requestsPerMinute = _configuration.GetValue("OpenAI:RateLimiting:RequestsPerMinute", 5);
+            _requestsPerMinute = _configuration.GetValue("OpenAI:RateLimiting:RequestsPerMinute", 6);
             _cacheDurationMinutes = _configuration.GetValue("Caching:DurationMinutes", 30);
 
             // Configure HTTP client
@@ -163,14 +161,8 @@ namespace ShuttleMate.Services.Services
                     string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
                     Guid.TryParse(userId, out Guid cb);
 
-                    // Tăng biến đếm tin nhắn cho user này
-                    int messageCount = _userMessageCounts.AddOrUpdate(cb, 1, (id, count) => count + 1);
-
-                    // Kiểm tra xem có cần tạo bản tóm tắt không
-                    bool shouldGenerateSummary = messageCount % SummaryInterval == 0;
-
                     // Check cache first
-                    var cacheKey = $"{userId}_{Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(request.Message)))}"; 
+                    var cacheKey = $"{userId}_{Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(request.Message)))}";
                     if (_cache.TryGetValue(cacheKey, out ChatResponse cachedResponse))
                     {
                         _logger.LogInformation("Returning cached response");
@@ -237,7 +229,7 @@ namespace ShuttleMate.Services.Services
                         model = _configuration["OpenAI:Model"] ?? "gpt-3.5-turbo",
                         messages,
                         temperature = 0.3,
-                        max_tokens = _configuration.GetValue("OpenAI:MaxTokens", 100),
+                        max_tokens = _configuration.GetValue("OpenAI:MaxTokens", 150),
                         top_p = 1.0,
                         frequency_penalty = 0.5,
                         presence_penalty = 0.5
@@ -274,8 +266,11 @@ namespace ShuttleMate.Services.Services
                     // Cache the response
                     _cache.Set(cacheKey, new ChatResponse { Response = aiResponse },
                         TimeSpan.FromMinutes(_cacheDurationMinutes));
+                    var count = await _unitOfWork.GetRepository<ChatBotLog>()
+                             .Entities
+                             .CountAsync(x => x.UserId == cb);
 
-                    if (shouldGenerateSummary)
+                    if (count % 10 == 0)
                     {
                         await GenerateAndStoreSummary(cb, conversationHistory);
                     }
@@ -321,22 +316,43 @@ namespace ShuttleMate.Services.Services
         {
             try
             {
-                // Lấy 10 tin nhắn gần nhất (hoặc tất cả nếu ít hơn 10)
-                var recentMessages = conversationHistory.TakeLast(10).ToList();
+                // Lọc bỏ các tin nhắn hệ thống
+                var filteredMessages = conversationHistory
+                    .TakeLast(10)
+                    .ToList();
 
-                // Chuẩn bị prompt để tóm tắt
+                if (!filteredMessages.Any()) return;
+
+                // Cải tiến prompt tóm tắt
                 var summaryPrompt = new List<object>
         {
-            new { role = "system", content = "Bạn là một trợ lý AI giỏi tóm tắt. Hãy tóm tắt cuộc trò chuyện sau thành 2-3 câu ngắn gọn bằng tiếng Việt, giữ lại những ý chính quan trọng." },
-            new { role = "user", content = string.Join("\n", recentMessages.Select(m => $"{m.Role}: {m.Parts?.FirstOrDefault()?.Text ?? string.Empty}")) }
+            new {
+                role = "system",
+                content = @"Bạn là trợ lý tóm tắt chuyên nghiệp. Hãy tóm tắt cuộc trò chuyện sau thành 5-6 câu bằng tiếng Việt, tập trung vào:
+                    - Vấn đề chính được thảo luận
+                    - Các giải pháp đã đề xuất
+                    - Thông tin quan trọng cần ghi nhớ
+                    - Kết luận hoặc hướng giải quyết
+                    
+                    Định dạng tóm tắt:
+                    1. Vấn đề: [tóm tắt vấn đề]
+                    2. Giải pháp: [các giải pháp]
+                    3. Thông tin: [thông tin quan trọng]
+                    4. Kết luận: [kết quả cuối cùng]"
+            },
+            new {
+                role = "user",
+                content = string.Join("\n\n", filteredMessages.Select((m, i) =>
+                    $"{i+1}. {m.Role.ToUpper()}: {m.Parts?.FirstOrDefault()?.Text ?? string.Empty}"))
+            }
         };
 
                 var requestData = new
                 {
                     model = "gpt-3.5-turbo",
                     messages = summaryPrompt,
-                    temperature = 0.2, // Giảm nhiệt độ để tóm tắt chính xác hơn
-                    max_tokens = 150 // Giới hạn độ dài bản tóm tắt
+                    temperature = 0.3, // Tăng nhiệt độ một chút để linh hoạt hơn
+                    max_tokens = 300 // Tăng độ dài tóm tắt
                 };
 
                 var response = await _httpClient.PostAsJsonAsync("chat/completions", requestData);
@@ -348,6 +364,7 @@ namespace ShuttleMate.Services.Services
 
                     if (!string.IsNullOrEmpty(summary))
                     {
+                        _logger.LogInformation($"Generated summary for user {userId}: {summary}");
                         var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
                         var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
 
@@ -379,9 +396,18 @@ namespace ShuttleMate.Services.Services
         // Implement these methods based on your storage solution (database, cache, etc.)
         private async Task<List<ChatMessage>> GetConversationHistory(Guid userId)
         {
-            // Retrieve conversation history from your storage
-            // Return empty list if no history exists
-            return new List<ChatMessage>();
+            var messages = await _unitOfWork.GetRepository<ChatBotLog>().Entities
+                .Where(x => x.UserId == userId && !x.DeletedTime.HasValue)
+                .OrderByDescending(m => m.CreatedTime)
+                .Take(20) // Lấy tối đa 20 tin nhắn gần nhất
+                .ToListAsync();
+
+            // Ánh xạ kết quả trả về
+            return messages.Select(m => new ChatMessage
+            {
+                Role = m.Role.ToString().ToLower(), 
+                Parts = new List<ChatPart> { new ChatPart { Text = m.Content } } // Tạo list parts với nội dung tin nhắn
+            }).ToList();
         }
 
         private async Task SaveConversationHistory(List<ChatMessage> conversation)
@@ -400,7 +426,7 @@ namespace ShuttleMate.Services.Services
                 if (message == null) continue;
 
                 // Xác định role từ tin nhắn
-                var role = message.Role == "user" ? ChatBotRoleEnum.USER : ChatBotRoleEnum.MODEL;
+                var role = message.Role == "user" ? ChatBotRoleEnum.USER : ChatBotRoleEnum.SYSTEM;
 
                 // Tạo mới ChatBotLog cho mỗi tin nhắn
                 var chatLog = new ChatBotLog

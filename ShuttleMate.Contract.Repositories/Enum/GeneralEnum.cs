@@ -26,7 +26,7 @@
         public enum ChatBotRoleEnum
         {
             USER,
-            MODEL
+            SYSTEM
         }
 
         public enum FeedbackCategoryEnum
