@@ -17,6 +17,17 @@ jobs:
           mkdir -p ./Keys
           printf '%s' "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" > ./Keys/serviceAccountKey.json
           chmod 644 ./Keys/serviceAccountKey.json
+      - name: Validate Firebase key format
+        run: |
+          # Ensure jq is installed (for parsing JSON)
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update -y && sudo apt-get install -y jq
+          fi
+          # Validate overall JSON structure
+          jq empty ./Keys/serviceAccountKey.json
+          # Validate that private_key base64 is decodable
+          jq -r '.private_key' ./Keys/serviceAccountKey.json | \
+            sed '1d;$d' | tr -d '\\n' | base64 -d >/dev/null
       - name: Dọn dẹp tài nguyên Docker để giải phóng RAM
         run: |
           echo "Dọn dẹp container không dùng..."
