@@ -318,7 +318,7 @@ namespace ShuttleMate.Services.Services
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
-                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.ProfileImageUrl),
+                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.ProfileImageUrl!),
                     Address = u.Address,
                     Email = u.Email,
                     ParentName = u.Parent.FullName,
@@ -396,7 +396,7 @@ namespace ShuttleMate.Services.Services
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
-                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.ProfileImageUrl),
+                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.ProfileImageUrl!),
                     Address = u.Address,
                     EmailVerified = u.EmailVerified,
                     Violate = u.Violate,
@@ -604,7 +604,7 @@ namespace ShuttleMate.Services.Services
                         FullName = parent.FullName,
                         Gender = parent.Gender,
                         PhoneNumber = parent.PhoneNumber,
-                        ProfileImageUrl = parent.ProfileImageUrl!
+                        ProfileImageUrl = _supabaseService.GetPublicUrl(parent.ProfileImageUrl!)
                     };
                 }
             }
@@ -652,7 +652,7 @@ namespace ShuttleMate.Services.Services
                         FullName = child.FullName,
                         Gender = child.Gender,
                         PhoneNumber = child.PhoneNumber,
-                        ProfileImageUrl = child.ProfileImageUrl!,
+                        ProfileImageUrl = _supabaseService.GetPublicUrl(child.ProfileImageUrl!),
                         School = childSchoolResponse
                     });
                 }
@@ -668,7 +668,7 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
-                ProfileImageUrl = user.ProfileImageUrl!,
+                ProfileImageUrl = _supabaseService.GetPublicUrl(user.ProfileImageUrl!),
                 Parent = parentResponse,
                 Childs = children,
                 School = schoolResponse!,
@@ -726,7 +726,7 @@ namespace ShuttleMate.Services.Services
                         FullName = parent.FullName,
                         Gender = parent.Gender,
                         PhoneNumber = parent.PhoneNumber,
-                        ProfileImageUrl = parent.ProfileImageUrl!
+                        ProfileImageUrl = _supabaseService.GetPublicUrl(parent.ProfileImageUrl!)
                     };
                 }
             }
@@ -774,7 +774,7 @@ namespace ShuttleMate.Services.Services
                         FullName = child.FullName,
                         Gender = child.Gender,
                         PhoneNumber = child.PhoneNumber,
-                        ProfileImageUrl = child.ProfileImageUrl!,
+                        ProfileImageUrl = _supabaseService.GetPublicUrl(child.ProfileImageUrl!),
                         School = childSchoolResponse
                     });
                 }
@@ -790,7 +790,7 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
-                ProfileImageUrl = user.ProfileImageUrl!,
+                ProfileImageUrl = _supabaseService.GetPublicUrl(user.ProfileImageUrl!),
                 Parent = parentResponse,
                 Childs = children,
                 School = schoolResponse!,
@@ -885,7 +885,12 @@ namespace ShuttleMate.Services.Services
                 user.Gender = model.Gender;
                 user.Address = model.Address;
                 user.DateOfBirth = model.DateOfBirth;
-                user.ProfileImageUrl = model.ProfileImageUrl;
+                if(model.ProfileImageUrl != null)
+                {
+                    using var stream = model.ProfileImageUrl.OpenReadStream();
+                    var filePath = await _supabaseService.UploadAsync(stream, model.ProfileImageUrl.FileName, model.ProfileImageUrl.ContentType);
+                    user.ProfileImageUrl = filePath;
+                }
                 await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             }
             else
@@ -897,7 +902,12 @@ namespace ShuttleMate.Services.Services
                 user.Gender = model.Gender;
                 user.Address = model.Address;
                 user.DateOfBirth = model.DateOfBirth;
-                user.ProfileImageUrl = model.ProfileImageUrl;
+                if (model.ProfileImageUrl != null)
+                {
+                    using var stream = model.ProfileImageUrl.OpenReadStream();
+                    var filePath = await _supabaseService.UploadAsync(stream, model.ProfileImageUrl.FileName, model.ProfileImageUrl.ContentType);
+                    user.ProfileImageUrl = filePath;
+                }
                 await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             }
             await _unitOfWork.SaveAsync();

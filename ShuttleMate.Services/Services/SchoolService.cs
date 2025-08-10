@@ -7,10 +7,12 @@ using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.HistoryTicketModelView;
 using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.SchoolShiftModelViews;
 using ShuttleMate.ModelViews.StopModelViews;
+using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using System;
 using System.Collections.Generic;
@@ -18,6 +20,7 @@ using System.Linq;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
+using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
 {
@@ -28,14 +31,16 @@ namespace ShuttleMate.Services.Services
         private readonly IConfiguration _configuration;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IEmailService _emailService;
+        private readonly ISupabaseService _supabaseService;
 
-        public SchoolService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService)
+        public SchoolService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService, ISupabaseService supabaseService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _configuration = configuration;
             _contextAccessor = contextAccessor;
             _emailService = emailService;
+            _supabaseService = supabaseService;
         }
 
         public async Task<BasePaginatedList<SchoolResponseModel>> GetAllAsync(int page = 0, int pageSize = 10, string? search = null, bool? isActive = null, bool sortAsc = false)
@@ -68,13 +73,24 @@ namespace ShuttleMate.Services.Services
             var totalCount = await query.CountAsync();
 
             var pagedItems = await query
+                .Select(u => new SchoolResponseModel
+                {
+                    Id = u.Id,
+                    Address = u.Address,
+                    Email = u.Email,
+                    EndSemOne = u.EndSemOne,
+                    EndSemTwo = u.EndSemTwo,
+                    IsActive = u.IsActive,
+                    Name = u.Name,
+                    PhoneNumber = u.PhoneNumber,
+                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.Students.FirstOrDefault(x=>x.SchoolId == u.Id && x.UserRoles.Any(x=>x.Role.Name.ToUpper() == "SCHOOL")).ProfileImageUrl),
+                    StartSemOne = u.StartSemOne,
+                    StartSemTwo = u.StartSemTwo,                       
+                })
                 .Skip(page * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
-
-            var result = _mapper.Map<List<SchoolResponseModel>>(pagedItems);
-
-            return new BasePaginatedList<SchoolResponseModel>(result, totalCount, page, pageSize);
+            return new BasePaginatedList<SchoolResponseModel>(pagedItems, totalCount, page, pageSize);
         }
         public async Task<BasePaginatedList<ListStudentInSchoolResponse>> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null,  bool sortAsc = false, Guid? schoolShiftId = null)
         {
@@ -133,13 +149,22 @@ namespace ShuttleMate.Services.Services
             var totalCount = await query.CountAsync();
 
             var pagedItems = await query
+                .Select(u => new ListStudentInSchoolResponse
+                {
+                    Id = u.Id,
+                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.ProfileImageUrl!),
+                    Address = u.Address,
+                    PhoneNumber = u.PhoneNumber,
+                    DateOfBirth = u.DateOfBirth,
+                    Email = u.Email,
+                    FullName = u.FullName,
+                    Gender = u.Gender,
+                    ParentName = u.Parent.FullName   
+                })
                 .Skip(page * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
-
-            var result = _mapper.Map<List<ListStudentInSchoolResponse>>(pagedItems);
-
-            return new BasePaginatedList<ListStudentInSchoolResponse>(result, totalCount, page, pageSize);
+            return new BasePaginatedList<ListStudentInSchoolResponse>(pagedItems, totalCount, page, pageSize);
         }
         public async Task<BasePaginatedList<ListStudentInSchoolResponse>> GetAllStudentInSchoolForAdmin(int page = 0, int pageSize = 10, string? search = null, bool sortAsc = false, Guid? schoolShiftId = null, Guid? schoolId = null)
         {
@@ -192,13 +217,22 @@ namespace ShuttleMate.Services.Services
             var totalCount = await query.CountAsync();
 
             var pagedItems = await query
+                .Select(u => new ListStudentInSchoolResponse
+                {
+                    Id = u.Id,
+                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.ProfileImageUrl!),
+                    Address = u.Address,
+                    PhoneNumber = u.PhoneNumber,
+                    DateOfBirth = u.DateOfBirth,
+                    Email = u.Email,
+                    FullName = u.FullName,
+                    Gender = u.Gender,
+                    ParentName = u.Parent.FullName
+                })
                 .Skip(page * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
-
-            var result = _mapper.Map<List<ListStudentInSchoolResponse>>(pagedItems);
-
-            return new BasePaginatedList<ListStudentInSchoolResponse>(result, totalCount, page, pageSize);
+            return new BasePaginatedList<ListStudentInSchoolResponse>(pagedItems, totalCount, page, pageSize);
         }
 
         public async Task<BasePaginatedList<RouteToSchoolResponseModel>> GetAllRouteToSchool(int page = 0, int pageSize = 10, string? search = null,  bool sortAsc = false, Guid ? schoolId = null)
@@ -269,7 +303,21 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường đã bị khóa!");
             }
-            return _mapper.Map<SchoolResponseModel>(school);
+            SchoolResponseModel reponse = new SchoolResponseModel
+            {
+                Id = school.Id,
+                Address = school.Address,
+                Email = school.Email,
+                EndSemOne = school.EndSemOne,
+                EndSemTwo = school.EndSemTwo,
+                IsActive = school.IsActive,
+                Name = school.Name,
+                PhoneNumber = school.PhoneNumber,
+                ProfileImageUrl = _supabaseService.GetPublicUrl(school.Students.FirstOrDefault(x => x.SchoolId == school.Id && x.UserRoles.Any(x => x.Role.Name.ToUpper() == "SCHOOL"))!.ProfileImageUrl!),
+                StartSemOne = school.StartSemOne,
+                StartSemTwo = school.StartSemTwo,
+            };
+            return reponse;
         }
 
         public async Task CreateSchool(CreateSchoolModel model)
@@ -323,6 +371,19 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường đã bị khóa!");
             }
+            var user = await _unitOfWork.GetRepository<User>().Entities
+                .FirstOrDefaultAsync(x=>x.SchoolId == school.Id 
+                                 && !x.DeletedTime.HasValue 
+                                 && x.UserRoles.Any(x=>x.Role.Name.ToUpper() == "SCHOOL"));
+
+            if(model.ProfileImageUrl != null && user != null)
+            {
+                using var stream = model.ProfileImageUrl.OpenReadStream();
+                var filePath = await _supabaseService.UploadAsync(stream, model.ProfileImageUrl.FileName, model.ProfileImageUrl.ContentType);
+                user.ProfileImageUrl = filePath;
+                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+            }
+
 
             school.Name = model.Name;
             school.Address = model.Address;

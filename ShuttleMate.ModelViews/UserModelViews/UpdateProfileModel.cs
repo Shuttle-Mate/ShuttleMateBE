@@ -1,4 +1,5 @@
-﻿using ShuttleMate.Contract.Repositories.Entities;
+﻿using Microsoft.AspNetCore.Http;
+using ShuttleMate.Contract.Repositories.Entities;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -13,7 +14,7 @@ namespace ShuttleMate.ModelViews.UserModelViews
         public string FullName { get; set; } = string.Empty;
         public bool Gender { get; set; } = true;
         public DateTime? DateOfBirth { get; set; }
-        public string? ProfileImageUrl { get; set; }
+        public IFormFile? ProfileImageUrl { get; set; }
         public string? Address { get; set; }
         public string? PhoneNumber { get; set; }
     }

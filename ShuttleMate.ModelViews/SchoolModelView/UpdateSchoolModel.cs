@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,5 +18,7 @@ namespace ShuttleMate.ModelViews.SchoolModelView
         public DateOnly? StartSemTwo { get; set; }
         public DateOnly? EndSemTwo { get; set; } // Ngày bắt đầu và kết thúc học kỳ 2
         public DateTime? SchoolTime { get; set; } // Thời gian vào học của trường
+        public IFormFile? ProfileImageUrl { get; set; }
+
     }
 }

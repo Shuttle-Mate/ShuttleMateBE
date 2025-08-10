@@ -8,6 +8,7 @@ namespace ShuttleMate.ModelViews.SchoolModelView
 {
     public class ListStudentInSchoolResponse
     {
+        public Guid Id { get; set; }
         public string? FullName { get; set; }
         public bool Gender { get; set; } = true;
         public DateTime? DateOfBirth { get; set; }
