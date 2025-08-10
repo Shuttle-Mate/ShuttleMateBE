@@ -344,7 +344,7 @@ namespace ShuttleMate.Services.Services
                 if (promotion.DiscountPercent != null)
                 {
                     //giá sẽ được giảm
-                    var check = historyTicket.Price * promotion.DiscountPercent.Value;
+                    var check = historyTicket.Price * promotion.DiscountPercent.Value / 100;
                     //kiem tra xem giam có qua so yeu cau ko
                     if (promotion.LimitSalePrice != 0 && check > promotion.LimitSalePrice)
                     {
@@ -987,11 +987,11 @@ namespace ShuttleMate.Services.Services
                                 <tr>
                                     <td>{historyTicket.Ticket.Route.RouteName}</td>
                                     <td>{ConvertStatusTicketTypeToString(historyTicket.Ticket.Type)}</td>
-                                    <td>{historyTicket.Ticket.Price:N0} đ</td>
+                                    <td>{historyTicket.Price:N0} đ</td>
                                 </tr>
                             </tbody>
                         </table>
-                        <p class='total-amount'>Tổng tiền: {historyTicket.Ticket.Price:N0} đ</p>
+                        <p class='total-amount'>Tổng tiền: {historyTicket.Price:N0} đ</p>
                     </div>
                 </div>
                 
@@ -1195,11 +1195,11 @@ namespace ShuttleMate.Services.Services
                                 <tr>
                                     <td>{historyTicket.Ticket.Route.RouteName}</td>
                                     <td>{ConvertStatusTicketTypeToString(historyTicket.Ticket.Type)}</td>
-                                    <td>{historyTicket.Ticket.Price:N0} đ</td>
+                                    <td>{historyTicket.Price:N0} đ</td>
                                 </tr>
                             </tbody>
                         </table>
-                        <p class='total-amount'>Tổng tiền: {historyTicket.Ticket.Price:N0} đ</p>
+                        <p class='total-amount'>Tổng tiền: {historyTicket.Price:N0} đ</p>
                     </div>
                 </div>
                 

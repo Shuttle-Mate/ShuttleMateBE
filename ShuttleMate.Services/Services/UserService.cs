@@ -318,8 +318,7 @@ namespace ShuttleMate.Services.Services
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
-                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.ProfileImageUrl!),
-                    Address = u.Address,
+                    ProfileImageUrl = u.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(u.ProfileImageUrl) : null,
                     Email = u.Email,
                     ParentName = u.Parent.FullName,
                     PhoneNumber = u.PhoneNumber,
@@ -396,7 +395,7 @@ namespace ShuttleMate.Services.Services
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
-                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.ProfileImageUrl!),
+                    ProfileImageUrl = u.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(u.ProfileImageUrl) : null,
                     Address = u.Address,
                     EmailVerified = u.EmailVerified,
                     Violate = u.Violate,
@@ -604,7 +603,7 @@ namespace ShuttleMate.Services.Services
                         FullName = parent.FullName,
                         Gender = parent.Gender,
                         PhoneNumber = parent.PhoneNumber,
-                        ProfileImageUrl = _supabaseService.GetPublicUrl(parent.ProfileImageUrl!)
+                        ProfileImageUrl = parent.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(parent.ProfileImageUrl) : null,
                     };
                 }
             }
@@ -652,7 +651,7 @@ namespace ShuttleMate.Services.Services
                         FullName = child.FullName,
                         Gender = child.Gender,
                         PhoneNumber = child.PhoneNumber,
-                        ProfileImageUrl = _supabaseService.GetPublicUrl(child.ProfileImageUrl!),
+                        ProfileImageUrl = child.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(child.ProfileImageUrl) : null,
                         School = childSchoolResponse
                     });
                 }
@@ -668,7 +667,7 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
-                ProfileImageUrl = _supabaseService.GetPublicUrl(user.ProfileImageUrl!),
+                ProfileImageUrl = user.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(user.ProfileImageUrl) : null,
                 Parent = parentResponse,
                 Childs = children,
                 School = schoolResponse!,
@@ -726,7 +725,7 @@ namespace ShuttleMate.Services.Services
                         FullName = parent.FullName,
                         Gender = parent.Gender,
                         PhoneNumber = parent.PhoneNumber,
-                        ProfileImageUrl = _supabaseService.GetPublicUrl(parent.ProfileImageUrl!)
+                        ProfileImageUrl = parent.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(parent.ProfileImageUrl) : null,
                     };
                 }
             }
@@ -774,7 +773,7 @@ namespace ShuttleMate.Services.Services
                         FullName = child.FullName,
                         Gender = child.Gender,
                         PhoneNumber = child.PhoneNumber,
-                        ProfileImageUrl = _supabaseService.GetPublicUrl(child.ProfileImageUrl!),
+                        ProfileImageUrl = child.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(child.ProfileImageUrl) : null,
                         School = childSchoolResponse
                     });
                 }
@@ -790,7 +789,7 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
-                ProfileImageUrl = _supabaseService.GetPublicUrl(user.ProfileImageUrl!),
+                ProfileImageUrl = user.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(user.ProfileImageUrl) : null,
                 Parent = parentResponse,
                 Childs = children,
                 School = schoolResponse!,
