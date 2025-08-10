@@ -122,7 +122,7 @@ namespace ShuttleMate.Services.Services
                     TicketId = u.TicketId,
                     UserId = u.UserId,
                     Status = u.Status.ToString().ToUpper(),
-                    Price = u.Ticket.Price,
+                    Price = u.Price == 0 ? u.Ticket.Price : u.Price,  
                     RouteName = u.Ticket.Route.RouteName,
                     Ticket = u.Ticket.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
@@ -196,7 +196,7 @@ namespace ShuttleMate.Services.Services
                      TicketId = u.TicketId,
                      UserId = u.UserId,
                      Status = u.Status.ToString().ToUpper(),
-                     Price = u.Ticket.Price,
+                     Price = u.Price == 0 ? u.Ticket.Price : u.Price,
                      RouteName = u.Ticket.Route.RouteName,
                      Ticket = u.Ticket.Type.ToString().ToUpper(),
                      OrderCode = u.Transaction.OrderCode,
@@ -266,7 +266,7 @@ namespace ShuttleMate.Services.Services
                     TicketId = u.TicketId,
                     UserId = u.UserId,
                     Status = u.Status.ToString().ToUpper(),
-                    Price = u.Ticket.Price,
+                    Price = u.Price == 0 ? u.Ticket.Price : u.Price,
                     RouteName = u.Ticket.Route.RouteName,
                     Ticket = u.Ticket.Type.ToString().ToUpper(),
                     FullNameOfUser = u.User.FullName,
@@ -316,11 +316,6 @@ namespace ShuttleMate.Services.Services
             var todayVN = DateOnly.FromDateTime(vietnamNow);
             var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == targetUserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
-            if (model.PromotionId != null)
-            {
-                var promotion = await _unitOfWork.GetRepository<Promotion>().Entities.FirstOrDefaultAsync(x => x.Id == model.PromotionId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
-            }
-
             if (model.ListSchoolShiftId.Count == 0)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng chọn ca học của bạn!");
@@ -336,8 +331,15 @@ namespace ShuttleMate.Services.Services
                 PurchaseAt = vietnamNow,
                 UserId = user.Id,
                 LastUpdatedTime = vietnamNow,
-                CreatedBy = userId
+                CreatedBy = userId,
+                Price = ticket.Price,             
             };
+            if (model.PromotionId != null)
+            {
+                var promotion = await _unitOfWork.GetRepository<Promotion>().Entities.FirstOrDefaultAsync(x => x.Id == model.PromotionId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
+
+            }
+
 
             switch (ticket.Type)
             {
@@ -485,7 +487,7 @@ namespace ShuttleMate.Services.Services
             var payOSRequest = new PayOSPaymentRequest
             {
                 orderCode = await GenerateUniqueOrderCodeAsync(),
-                amount = (long)ticket.Price, // Chuyển đổi TotalPrice sang long
+                amount = (long)historyTicket.Price, // Chuyển đổi TotalPrice sang long
                 description = $"Thanh toán!!!",
                 buyerName = user.FullName,
                 buyerEmail = user.Email,
@@ -507,7 +509,7 @@ namespace ShuttleMate.Services.Services
                 Id = Guid.NewGuid(),
                 PaymentMethod = PaymentMethodEnum.PAYOS,
                 Status = PaymentStatus.UNPAID,
-                Amount = ticket.Price,
+                Amount = historyTicket.Price,
                 OrderCode = payOSRequest.orderCode,
                 BuyerAddress = payOSRequest.buyerAddress,
                 Description = payOSRequest.description,
@@ -539,244 +541,6 @@ namespace ShuttleMate.Services.Services
             service => service.ResponseHistoryTicketStatus(historyTicket.Id),
             TimeSpan.FromMinutes(10) // Delay 10 phút
         );
-            return response;
-        }
-        public async Task<CreateHistoryTicketResponse> CreateHistoryTicketForParent(CreateHistoryTicketForParentModel model)
-        {
-            // Lấy userId từ HttpContext
-            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-            //id cua phu huynh
-            Guid.TryParse(userId, out Guid cb);
-            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
-            var todayVN = DateOnly.FromDateTime(vietnamNow);
-            //kiểm tra id của phụ huynh
-            var parent = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
-            var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
-            //học sinh
-            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.StudentId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy học sinh!");
-            if (model.ListSchoolShiftId.Count == 0)
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng chọn ca học của bạn!");
-            }
-            var historyTicket = new HistoryTicket
-            {
-                Id = Guid.NewGuid(),
-                ValidFrom = model.ValidFrom,
-                ValidUntil = model.ValidFrom,
-                CreatedTime = vietnamNow,
-                TicketId = model.TicketId,
-                Status = HistoryTicketStatus.UNPAID,
-                PurchaseAt = vietnamNow,
-                UserId = user.Id,
-                LastUpdatedTime = vietnamNow,
-                CreatedBy = user.Id.ToString(),
-            };
-
-            switch (ticket.Type)
-            {
-                //case TicketTypeEnum.SINGLE_RIDE:
-                //    if (model.ValidFrom <= DateOnly.FromDateTime(DateTime.Now))
-                //    {
-                //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
-                //    }
-                //    historyTicket.ValidUntil = model.ValidFrom;
-                //    break;
-                //case TicketTypeEnum.DAY_PASS:
-                //    if (model.ValidFrom <= todayVN)
-                //    {
-                //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
-                //    }
-                //    historyTicket.ValidUntil = model.ValidFrom;
-                //    break;
-                case TicketTypeEnum.WEEKLY:
-                    if (model.ValidFrom <= todayVN)
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
-                    }
-                    historyTicket.ValidUntil = model.ValidFrom.AddDays(7);
-                    break;
-                case TicketTypeEnum.MONTHLY:
-                    if (model.ValidFrom <= todayVN)
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể đặt thời gian trong quá khứ!");
-                    }
-                    historyTicket.ValidUntil = model.ValidFrom.AddMonths(1);
-                    break;
-                case TicketTypeEnum.SEMESTER_ONE:
-                    if (ticket.Route.School.StartSemOne == null)
-                    {
-                        await _emailService.SendEmailAsync(
-                            ticket.Route.School.Email!,
-                            "Thông báo: Cập nhật thời gian kỳ học",
-                            "Kính gửi Quý Trường,<br><br>" +
-                            "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
-                            "Trân trọng."
-                        );
-
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
-                    }
-                    if (ticket.Route.School.EndSemOne == null)
-                    {
-                        await _emailService.SendEmailAsync(
-                            ticket.Route.School.Email!,
-                            "Thông báo: Cập nhật thời gian kỳ học",
-                            "Kính gửi Quý Trường,<br><br>" +
-                            "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
-                            "Trân trọng."
-                        );
-
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
-                    }
-                    if (ticket.Route.School.EndSemTwo < todayVN)
-                    {
-                        await _emailService.SendEmailAsync(
-                            ticket.Route.School.Email!,
-                            "Thông báo: Cập nhật thời gian kỳ học",
-                            "Kính gửi Quý Trường,<br><br>" +
-                            "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
-                            "Trân trọng."
-                        );
-
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
-                    }
-                    if (ticket.Route.School.StartSemOne <= todayVN)
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Vé chỉ được mua trước ngày {ticket.Route.School.StartSemOne}!");
-                    }
-
-                    historyTicket.ValidFrom = ticket.Route.School.StartSemOne ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
-                    historyTicket.ValidUntil = ticket.Route.School.EndSemOne ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
-                    break;
-                case TicketTypeEnum.SEMESTER_TWO:
-                    if (ticket.Route.School.StartSemTwo == null)
-                    {
-                        await _emailService.SendEmailAsync(
-                            ticket.Route.School.Email!,
-                            "Thông báo: Cập nhật thời gian kỳ học",
-                            "Kính gửi Quý Trường,<br><br>" +
-                            "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
-                            "Trân trọng."
-                        );
-
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày giờ cho vé này!");
-                    }
-                    if (ticket.Route.School.EndSemTwo == null)
-                    {
-                        await _emailService.SendEmailAsync(
-                            ticket.Route.School.Email!,
-                            "Thông báo: Cập nhật thời gian kỳ học",
-                            "Kính gửi Quý Trường,<br><br>" +
-                            "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
-                            "Trân trọng."
-                        );
-
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp ngày cho vé này!");
-                    }
-                    if (ticket.Route.School.EndSemTwo <= todayVN)
-                    {
-                        await _emailService.SendEmailAsync(
-                            ticket.Route.School.Email!,
-                            "Thông báo: Cập nhật thời gian kỳ học",
-                            "Kính gửi Quý Trường,<br><br>" +
-                            "Vui lòng cập nhật thời gian <b>bắt đầu</b> và <b>kết thúc</b> kỳ học để hệ thống có thể kích hoạt vé kỳ    và     đảm     bảo     hoạt    động   bình thường.<br><br>" +
-                            "Trân trọng."
-                        );
-
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
-                    }
-                    if (ticket.Route.School.StartSemTwo <= todayVN)
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Vé chỉ được mua trước ngày {ticket.Route.School.StartSemTwo}!");
-                    }
-                    historyTicket.ValidFrom = ticket.Route.School.StartSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!");
-                    historyTicket.ValidUntil = ticket.Route.School.EndSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!"); break;
-            }
-            //xóa userShift
-            var userShift = await _unitOfWork.GetRepository<UserSchoolShift>().Entities.Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
-            if (userShift != null)
-            {
-                foreach (var del in userShift)
-                {
-                    await _unitOfWork.GetRepository<UserSchoolShift>().DeleteAsync(del);
-                }
-                await _unitOfWork.SaveAsync();
-            }
-
-            foreach (var schoolShiftId in model.ListSchoolShiftId)
-            {
-                var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
-
-                var userShiftNew = new UserSchoolShift
-                {
-                    Id = Guid.NewGuid(),
-                    SchoolShiftId = schoolShiftId,
-                    StudentId = user.Id,
-                    CreatedTime = vietnamNow,
-                    LastUpdatedTime = vietnamNow
-                };
-                await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
-            }
-
-            await _unitOfWork.GetRepository<HistoryTicket>().InsertAsync(historyTicket);
-            await _unitOfWork.SaveAsync();
-
-            // 2. Tạo PayOSPaymentRequest từ thông tin booking
-            var payOSRequest = new PayOSPaymentRequest
-            {
-                orderCode = await GenerateUniqueOrderCodeAsync(),
-                amount = (long)ticket.Price, // Chuyển đổi TotalPrice sang long
-                description = $"Thanh toán!!!",
-                buyerName = user.FullName,
-                buyerEmail = user.Email,
-                buyerPhone = user.PhoneNumber,
-                buyerAddress = user.Address!,
-                cancelUrl = "https://www.google.com/?hl=vi",
-                returnUrl = "https://www.google.com/?hl=vi",
-                expiredAt = DateTimeOffset.Now.ToUnixTimeSeconds() + 600,
-
-                // ... các trường khác 
-            };
-
-            // 3. Tạo chữ ký
-            payOSRequest.signature = CalculateSignature(payOSRequest);
-
-            // 7. Tạo bản ghi Payment mới
-            //Lưu id của parent trong createBy để gửi mail trong api call back cho phụ huynh về hóa đơn vé
-            var transaction = new Transaction
-            {
-                Id = Guid.NewGuid(),
-                PaymentMethod = PaymentMethodEnum.PAYOS,
-                Status = PaymentStatus.UNPAID,
-                Amount = ticket.Price,
-                OrderCode = payOSRequest.orderCode,
-                BuyerAddress = payOSRequest.buyerAddress,
-                Description = payOSRequest.description,
-                Signature = payOSRequest.signature,
-                BuyerEmail = payOSRequest.buyerEmail,
-                BuyerPhone = payOSRequest.buyerPhone,
-                BuyerName = payOSRequest.buyerName,
-                CreatedBy = userId,
-                LastUpdatedBy = user.Id.ToString(),
-                CreatedTime = vietnamNow,
-                LastUpdatedTime = vietnamNow,
-                HistoryTicketId = historyTicket.Id,
-                //... các thông tin khác (nếu cần)...
-            };
-
-            await _unitOfWork.GetRepository<Transaction>().InsertAsync(transaction);
-
-            await _unitOfWork.SaveAsync();
-            // 4. Gọi API PayOS
-            PayOSResponseData checkoutUrl = await CallPayOSApi(payOSRequest);
-            CreateHistoryTicketResponse response = new CreateHistoryTicketResponse
-            {
-                HistoryTicketId = historyTicket.Id,
-                checkoutUrl = checkoutUrl.checkoutUrl,
-                qrCode = checkoutUrl.qrCode,
-                status = historyTicket.Status.ToString().ToUpper(),
-            };
-
             return response;
         }
         public async Task<string> ResponseHistoryTicketStatus(Guid historyTicketId)
@@ -817,8 +581,6 @@ namespace ShuttleMate.Services.Services
 
             return historyTicket.Status.ToString().ToUpper();
         }
-
-
         public async Task CancelTicket(Guid historyTicketId)
         {
             var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities

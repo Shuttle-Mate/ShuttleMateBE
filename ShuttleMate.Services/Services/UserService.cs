@@ -885,12 +885,7 @@ namespace ShuttleMate.Services.Services
                 user.Gender = model.Gender;
                 user.Address = model.Address;
                 user.DateOfBirth = model.DateOfBirth;
-                if(model.ProfileImageUrl != null)
-                {
-                    using var stream = model.ProfileImageUrl.OpenReadStream();
-                    var filePath = await _supabaseService.UploadAsync(stream, model.ProfileImageUrl.FileName, model.ProfileImageUrl.ContentType);
-                    user.ProfileImageUrl = filePath;
-                }
+                user.ProfileImageUrl = model.ProfileImageUrl;
                 await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             }
             else
@@ -902,12 +897,7 @@ namespace ShuttleMate.Services.Services
                 user.Gender = model.Gender;
                 user.Address = model.Address;
                 user.DateOfBirth = model.DateOfBirth;
-                if (model.ProfileImageUrl != null)
-                {
-                    using var stream = model.ProfileImageUrl.OpenReadStream();
-                    var filePath = await _supabaseService.UploadAsync(stream, model.ProfileImageUrl.FileName, model.ProfileImageUrl.ContentType);
-                    user.ProfileImageUrl = filePath;
-                }
+                user.ProfileImageUrl = model.ProfileImageUrl;
                 await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             }
             await _unitOfWork.SaveAsync();
