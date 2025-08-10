@@ -40,8 +40,8 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// lấy tất cả ca học của trường.(ADMIN)
         /// </summary>
-        /// <param name="sessionType">lọc theo START, END.</param>
-        /// <param name="shiftType">Lọc theo MORNING, AFTERNOON.</param>
+        /// <param name="shiftType">lọc theo START, END.</param>
+        /// <param name="sessionType">Lọc theo MORNING, AFTERNOON.</param>
         /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>

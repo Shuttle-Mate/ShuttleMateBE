@@ -52,8 +52,6 @@ namespace ShuttleMate.Services.Services
         private readonly int _cacheDurationMinutes;
         private readonly int _maxDatabaseSearchAttempts = 3;
         private readonly TimeZoneInfo _vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-        private const int SummaryInterval = 10; // Cứ 10 tin nhắn thì tóm tắt 1 lần
-        private readonly ConcurrentDictionary<Guid, int> _userMessageCounts = new();
 
         public ChatService(
             IUnitOfWork unitOfWork,
@@ -75,7 +73,7 @@ namespace ShuttleMate.Services.Services
             _cache = cache;
 
             // Load configurations
-            _requestsPerMinute = _configuration.GetValue("OpenAI:RateLimiting:RequestsPerMinute", 5);
+            _requestsPerMinute = _configuration.GetValue("OpenAI:RateLimiting:RequestsPerMinute", 6);
             _cacheDurationMinutes = _configuration.GetValue("Caching:DurationMinutes", 30);
 
             // Configure HTTP client
@@ -163,14 +161,8 @@ namespace ShuttleMate.Services.Services
                     string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
                     Guid.TryParse(userId, out Guid cb);
 
-                    // Tăng biến đếm tin nhắn cho user này
-                    int messageCount = _userMessageCounts.AddOrUpdate(cb, 1, (id, count) => count + 1);
-
-                    // Kiểm tra xem có cần tạo bản tóm tắt không
-                    bool shouldGenerateSummary = messageCount % SummaryInterval == 0;
-
                     // Check cache first
-                    var cacheKey = $"{userId}_{Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(request.Message)))}"; 
+                    var cacheKey = $"{userId}_{Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(request.Message)))}";
                     if (_cache.TryGetValue(cacheKey, out ChatResponse cachedResponse))
                     {
                         _logger.LogInformation("Returning cached response");
@@ -237,7 +229,7 @@ namespace ShuttleMate.Services.Services
                         model = _configuration["OpenAI:Model"] ?? "gpt-3.5-turbo",
                         messages,
                         temperature = 0.3,
-                        max_tokens = _configuration.GetValue("OpenAI:MaxTokens", 100),
+                        max_tokens = _configuration.GetValue("OpenAI:MaxTokens", 150),
                         top_p = 1.0,
                         frequency_penalty = 0.5,
                         presence_penalty = 0.5
@@ -274,8 +266,11 @@ namespace ShuttleMate.Services.Services
                     // Cache the response
                     _cache.Set(cacheKey, new ChatResponse { Response = aiResponse },
                         TimeSpan.FromMinutes(_cacheDurationMinutes));
+                    var count = await _unitOfWork.GetRepository<ChatBotLog>()
+                             .Entities
+                             .CountAsync(x => x.UserId == cb);
 
-                    if (shouldGenerateSummary)
+                    if (count % 10 == 0)
                     {
                         await GenerateAndStoreSummary(cb, conversationHistory);
                     }
@@ -321,22 +316,43 @@ namespace ShuttleMate.Services.Services
         {
             try
             {
-                // Lấy 10 tin nhắn gần nhất (hoặc tất cả nếu ít hơn 10)
-                var recentMessages = conversationHistory.TakeLast(10).ToList();
+                // Lọc bỏ các tin nhắn hệ thống
+                var filteredMessages = conversationHistory
+                    .TakeLast(10)
+                    .ToList();
 
-                // Chuẩn bị prompt để tóm tắt
+                if (!filteredMessages.Any()) return;
+
+                // Cải tiến prompt tóm tắt
                 var summaryPrompt = new List<object>
         {
-            new { role = "system", content = "Bạn là một trợ lý AI giỏi tóm tắt. Hãy tóm tắt cuộc trò chuyện sau thành 2-3 câu ngắn gọn bằng tiếng Việt, giữ lại những ý chính quan trọng." },
-            new { role = "user", content = string.Join("\n", recentMessages.Select(m => $"{m.Role}: {m.Parts?.FirstOrDefault()?.Text ?? string.Empty}")) }
+            new {
+                role = "system",
+                content = @"Bạn là trợ lý tóm tắt chuyên nghiệp. Hãy tóm tắt cuộc trò chuyện sau thành 5-6 câu bằng tiếng Việt, tập trung vào:
+                    - Vấn đề chính được thảo luận
+                    - Các giải pháp đã đề xuất
+                    - Thông tin quan trọng cần ghi nhớ
+                    - Kết luận hoặc hướng giải quyết
+                    
+                    Định dạng tóm tắt:
+                    1. Vấn đề: [tóm tắt vấn đề]
+                    2. Giải pháp: [các giải pháp]
+                    3. Thông tin: [thông tin quan trọng]
+                    4. Kết luận: [kết quả cuối cùng]"
+            },
+            new {
+                role = "user",
+                content = string.Join("\n\n", filteredMessages.Select((m, i) =>
+                    $"{i+1}. {m.Role.ToUpper()}: {m.Parts?.FirstOrDefault()?.Text ?? string.Empty}"))
+            }
         };
 
                 var requestData = new
                 {
                     model = "gpt-3.5-turbo",
                     messages = summaryPrompt,
-                    temperature = 0.2, // Giảm nhiệt độ để tóm tắt chính xác hơn
-                    max_tokens = 150 // Giới hạn độ dài bản tóm tắt
+                    temperature = 0.3, // Tăng nhiệt độ một chút để linh hoạt hơn
+                    max_tokens = 300 // Tăng độ dài tóm tắt
                 };
 
                 var response = await _httpClient.PostAsJsonAsync("chat/completions", requestData);
@@ -348,6 +364,7 @@ namespace ShuttleMate.Services.Services
 
                     if (!string.IsNullOrEmpty(summary))
                     {
+                        _logger.LogInformation($"Generated summary for user {userId}: {summary}");
                         var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
                         var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
 
@@ -379,9 +396,18 @@ namespace ShuttleMate.Services.Services
         // Implement these methods based on your storage solution (database, cache, etc.)
         private async Task<List<ChatMessage>> GetConversationHistory(Guid userId)
         {
-            // Retrieve conversation history from your storage
-            // Return empty list if no history exists
-            return new List<ChatMessage>();
+            var messages = await _unitOfWork.GetRepository<ChatBotLog>().Entities
+                .Where(x => x.UserId == userId && !x.DeletedTime.HasValue)
+                .OrderByDescending(m => m.CreatedTime)
+                .Take(20) // Lấy tối đa 20 tin nhắn gần nhất
+                .ToListAsync();
+
+            // Ánh xạ kết quả trả về
+            return messages.Select(m => new ChatMessage
+            {
+                Role = m.Role.ToString().ToLower(),
+                Parts = new List<ChatPart> { new ChatPart { Text = m.Content } } // Tạo list parts với nội dung tin nhắn
+            }).ToList();
         }
 
         private async Task SaveConversationHistory(List<ChatMessage> conversation)
@@ -400,7 +426,7 @@ namespace ShuttleMate.Services.Services
                 if (message == null) continue;
 
                 // Xác định role từ tin nhắn
-                var role = message.Role == "user" ? ChatBotRoleEnum.USER : ChatBotRoleEnum.MODEL;
+                var role = message.Role == "user" ? ChatBotRoleEnum.USER : ChatBotRoleEnum.SYSTEM;
 
                 // Tạo mới ChatBotLog cho mỗi tin nhắn
                 var chatLog = new ChatBotLog
@@ -433,91 +459,188 @@ namespace ShuttleMate.Services.Services
             {
                 return "Không tìm thấy thông tin người dùng hoặc người dùng bị hạn chế";
             }
-
-            var sb = new StringBuilder();
-            sb.AppendLine("### THÔNG TIN HỆ THỐNG SHUTTLEMATE");
-            sb.AppendLine($"Người dùng: {user.FullName} ({user.Email})");
-
-            // Xử lý khi user có trường học
-            if (user.SchoolId != null && user.School != null)
+            if (user.UserRoles.Any(x=>x.Role.Name.ToUpper() == "PARENT"))
             {
-                var school = user.School;
-                var currentSemester = await GetCurrentSemester(new List<School> { school });
+                var sb = new StringBuilder();
+                sb.AppendLine("### THÔNG TIN HỆ THỐNG SHUTTLEMATE");
+                sb.AppendLine($"Người dùng: {user.FullName} ({user.Email})");
 
-                sb.AppendLine($"\n**THÔNG TIN TRƯỜNG HỌC CỦA BẠN**");
-                sb.AppendLine($"- Tên trường: {school.Name}");
-                sb.AppendLine($"- Địa chỉ: {school.Address}");
-                sb.AppendLine($"- Học kỳ hiện tại: {currentSemester}");
-
-                sb.AppendLine($"\n**LỊCH HỌC**");
-                foreach (var shift in school.SchoolShifts?.OrderBy(s => s.Time) ?? Enumerable.Empty<SchoolShift>())
+                var childs = await _unitOfWork.GetRepository<User>().Entities.
+                    Where(x=> x.ParentId == userId && !x.DeletedTime.HasValue && x.Violate == false).ToListAsync(); ;
+                if(childs != null)
                 {
-                    sb.AppendLine($"- Ca {shift.ShiftType}: {shift.Time} ({shift.SessionType})");
-                }
-
-                sb.AppendLine($"\n**TUYẾN XE CỦA TRƯỜNG BẠN**");
-                foreach (var route in school.Routes.Where(r => r.IsActive))
-                {
-                    sb.AppendLine($"- Tuyến {route.RouteName} ({route.RouteCode})");
-                    sb.AppendLine($"  Thời gian hoạt động: {route.OperatingTime}");
-
-                    var tickets = route.Tickets.GroupBy(t => t.Type);
-                    foreach (var ticketGroup in tickets)
+                    foreach(var child in childs)
                     {
-                        var firstTicket = ticketGroup.First();
-                        sb.AppendLine($"  + Vé {GetTicketTypeName(ticketGroup.Key)}: {firstTicket.Price.ToString("N0")} VND");
+                        sb.AppendLine("### THÔNG TIN HỆ THỐNG SHUTTLEMATE CỦA CON BẠN");
+                        sb.AppendLine($"Con: {child.FullName} ({child.Email})");
+                        // Xử lý khi user có trường học
+                        if (child.SchoolId != null && child.School != null)
+                        {
+                            var school = child.School;
+                            var currentSemester = await GetCurrentSemester(new List<School> { school });
+
+                            sb.AppendLine($"\n**THÔNG TIN TRƯỜNG HỌC CỦA CON**");
+                            sb.AppendLine($"- Tên trường: {school.Name}");
+                            sb.AppendLine($"- Địa chỉ: {school.Address}");
+                            sb.AppendLine($"- Học kỳ hiện tại: {currentSemester}");
+
+                            sb.AppendLine($"\n**LỊCH HỌC**");
+                            foreach (var shift in school.SchoolShifts?.OrderBy(s => s.Time) ?? Enumerable.Empty<SchoolShift>())
+                            {
+                                sb.AppendLine($"- Ca {shift.ShiftType}: {shift.Time} ({shift.SessionType})");
+                            }
+
+                            sb.AppendLine($"\n**TUYẾN XE CỦA TRƯỜNG CON**");
+                            foreach (var route in school.Routes.Where(r => r.IsActive))
+                            {
+                                sb.AppendLine($"- Tuyến {route.RouteName} ({route.RouteCode})");
+                                sb.AppendLine($"  Thời gian hoạt động: {route.OperatingTime}");
+
+                                var tickets = route.Tickets.GroupBy(t => t.Type);
+                                foreach (var ticketGroup in tickets)
+                                {
+                                    var firstTicket = ticketGroup.First();
+                                    sb.AppendLine($"  + Vé {GetTicketTypeName(ticketGroup.Key)}: {firstTicket.Price.ToString("N0")} VND");
+                                }
+                            }
+                        }
+                        //else
+                        //{
+                        //    // Xử lý khi user chưa có trường học
+                        //    var allSchools = await _unitOfWork.GetRepository<School>()
+                        //        .Entities
+                        //        .Include(s => s.Routes)
+                        //        .ThenInclude(r => r.Tickets)
+                        //        .Where(x => !x.DeletedTime.HasValue)
+                        //        .OrderBy(x => x.Name) // Có thể thay bằng sắp xếp theo khoảng cách nếu có thông tin vị trí
+                        //        .Take(3) // Lấy 3 trường tiêu biểu
+                        //        .ToListAsync();
+
+                        //    sb.AppendLine("\n**BẠN CHƯA CÓ TRƯỜNG HỌC ĐƯỢC GÁN**");
+                        //    sb.AppendLine("Dưới đây là một số trường học tiêu biểu trong hệ thống:");
+
+                        //    foreach (var school in allSchools)
+                        //    {
+                        //        sb.AppendLine($"\n- Trường: {school.Name} ({school.Address})");
+
+                        //        var popularRoutes = school.Routes
+                        //            .Where(r => r.IsActive)
+                        //            .OrderByDescending(r => r.Tickets.Count)
+                        //            .Take(2); // Lấy 2 tuyến phổ biến nhất
+
+                        //        if (popularRoutes.Any())
+                        //        {
+                        //            sb.AppendLine("  Các tuyến xe phổ biến:");
+                        //            foreach (var route in popularRoutes)
+                        //            {
+                        //                sb.AppendLine($"  + Tuyến {route.RouteName} ({route.RouteCode})");
+                        //                var cheapestTicket = route.Tickets.OrderBy(t => t.Price).FirstOrDefault();
+                        //                if (cheapestTicket != null)
+                        //                {
+                        //                    sb.AppendLine($"    Giá vé từ: {cheapestTicket.Price.ToString("N0")} VND");
+                        //                }
+                        //            }
+                        //        }
+                        //    }
+                        //    sb.AppendLine("\nVui lòng liên hệ quản trị viên để được gán vào trường học phù hợp.");
+                        //}
                     }
-                }
+                }             
+
+                sb.AppendLine("\n**HƯỚNG DẪN SỬ DỤNG**");
+                sb.AppendLine("- Hỏi về lịch trình: 'Lịch học của tôi ngày mai thế nào?'");
+                sb.AppendLine("- Hỏi về tuyến xe: 'Tuyến xe nào đi qua quận 1?'");
+                sb.AppendLine("- Hỏi về vé: 'Có các loại vé nào'");
+                sb.AppendLine("- Hỗ trợ: 'Tôi muốn đăng ký vé tháng'");
+                return sb.ToString();
             }
             else
             {
-                // Xử lý khi user chưa có trường học
-                var allSchools = await _unitOfWork.GetRepository<School>()
-                    .Entities
-                    .Include(s => s.Routes)
-                    .ThenInclude(r => r.Tickets)
-                    .Where(x => !x.DeletedTime.HasValue)
-                    .OrderBy(x => x.Name) // Có thể thay bằng sắp xếp theo khoảng cách nếu có thông tin vị trí
-                    .Take(3) // Lấy 3 trường tiêu biểu
-                    .ToListAsync();
+                var sb = new StringBuilder();
+                sb.AppendLine("### THÔNG TIN HỆ THỐNG SHUTTLEMATE");
+                sb.AppendLine($"Người dùng: {user.FullName} ({user.Email})");
 
-                sb.AppendLine("\n**BẠN CHƯA CÓ TRƯỜNG HỌC ĐƯỢC GÁN**");
-                sb.AppendLine("Dưới đây là một số trường học tiêu biểu trong hệ thống:");
-
-                foreach (var school in allSchools)
+                // Xử lý khi user có trường học
+                if (user.SchoolId != null && user.School != null)
                 {
-                    sb.AppendLine($"\n- Trường: {school.Name} ({school.Address})");
+                    var school = user.School;
+                    var currentSemester = await GetCurrentSemester(new List<School> { school });
 
-                    var popularRoutes = school.Routes
-                        .Where(r => r.IsActive)
-                        .OrderByDescending(r => r.Tickets.Count)
-                        .Take(2); // Lấy 2 tuyến phổ biến nhất
+                    sb.AppendLine($"\n**THÔNG TIN TRƯỜNG HỌC CỦA BẠN**");
+                    sb.AppendLine($"- Tên trường: {school.Name}");
+                    sb.AppendLine($"- Địa chỉ: {school.Address}");
+                    sb.AppendLine($"- Học kỳ hiện tại: {currentSemester}");
 
-                    if (popularRoutes.Any())
+                    sb.AppendLine($"\n**LỊCH HỌC**");
+                    foreach (var shift in school.SchoolShifts?.OrderBy(s => s.Time) ?? Enumerable.Empty<SchoolShift>())
                     {
-                        sb.AppendLine("  Các tuyến xe phổ biến:");
-                        foreach (var route in popularRoutes)
+                        sb.AppendLine($"- Ca {shift.ShiftType}: {shift.Time} ({shift.SessionType})");
+                    }
+
+                    sb.AppendLine($"\n**TUYẾN XE CỦA TRƯỜNG BẠN**");
+                    foreach (var route in school.Routes.Where(r => r.IsActive))
+                    {
+                        sb.AppendLine($"- Tuyến {route.RouteName} ({route.RouteCode})");
+                        sb.AppendLine($"  Thời gian hoạt động: {route.OperatingTime}");
+
+                        var tickets = route.Tickets.GroupBy(t => t.Type);
+                        foreach (var ticketGroup in tickets)
                         {
-                            sb.AppendLine($"  + Tuyến {route.RouteName} ({route.RouteCode})");
-                            var cheapestTicket = route.Tickets.OrderBy(t => t.Price).FirstOrDefault();
-                            if (cheapestTicket != null)
-                            {
-                                sb.AppendLine($"    Giá vé từ: {cheapestTicket.Price.ToString("N0")} VND");
-                            }
+                            var firstTicket = ticketGroup.First();
+                            sb.AppendLine($"  + Vé {GetTicketTypeName(ticketGroup.Key)}: {firstTicket.Price.ToString("N0")} VND");
                         }
                     }
                 }
+                //else
+                //{
+                //    // Xử lý khi user chưa có trường học
+                //    var allSchools = await _unitOfWork.GetRepository<School>()
+                //        .Entities
+                //        .Include(s => s.Routes)
+                //        .ThenInclude(r => r.Tickets)
+                //        .Where(x => !x.DeletedTime.HasValue)
+                //        .OrderBy(x => x.Name) // Có thể thay bằng sắp xếp theo khoảng cách nếu có thông tin vị trí
+                //        .Take(3) // Lấy 3 trường tiêu biểu
+                //        .ToListAsync();
 
-                sb.AppendLine("\nVui lòng liên hệ quản trị viên để được gán vào trường học phù hợp.");
+                //    sb.AppendLine("\n**BẠN CHƯA CÓ TRƯỜNG HỌC ĐƯỢC GÁN**");
+                //    sb.AppendLine("Dưới đây là một số trường học tiêu biểu trong hệ thống:");
+
+                //    foreach (var school in allSchools)
+                //    {
+                //        sb.AppendLine($"\n- Trường: {school.Name} ({school.Address})");
+
+                //        var popularRoutes = school.Routes
+                //            .Where(r => r.IsActive)
+                //            .OrderByDescending(r => r.Tickets.Count)
+                //            .Take(2); // Lấy 2 tuyến phổ biến nhất
+
+                //        if (popularRoutes.Any())
+                //        {
+                //            sb.AppendLine("  Các tuyến xe phổ biến:");
+                //            foreach (var route in popularRoutes)
+                //            {
+                //                sb.AppendLine($"  + Tuyến {route.RouteName} ({route.RouteCode})");
+                //                var cheapestTicket = route.Tickets.OrderBy(t => t.Price).FirstOrDefault();
+                //                if (cheapestTicket != null)
+                //                {
+                //                    sb.AppendLine($"    Giá vé từ: {cheapestTicket.Price.ToString("N0")} VND");
+                //                }
+                //            }
+                //        }
+                //    }
+
+                //    sb.AppendLine("\nVui lòng liên hệ quản trị viên để được gán vào trường học phù hợp.");
+                //}
+
+                sb.AppendLine("\n**HƯỚNG DẪN SỬ DỤNG**");
+                sb.AppendLine("- Hỏi về lịch trình: 'Lịch học của tôi ngày mai thế nào?'");
+                sb.AppendLine("- Hỏi về tuyến xe: 'Tuyến xe nào đi qua quận 1?'");
+                sb.AppendLine("- Hỏi về vé: 'Có các loại vé nào'");
+                sb.AppendLine("- Hỗ trợ: 'Tôi muốn đăng ký vé tháng'");
+                return sb.ToString();
+
             }
-
-            sb.AppendLine("\n**HƯỚNG DẪN SỬ DỤNG**");
-            sb.AppendLine("- Hỏi về lịch trình: 'Lịch học của tôi ngày mai thế nào?'");
-            sb.AppendLine("- Hỏi về tuyến xe: 'Tuyến xe nào đi qua quận 1?'");
-            sb.AppendLine("- Hỏi về vé: 'Có các loại vé nào'");
-            sb.AppendLine("- Hỗ trợ: 'Tôi muốn đăng ký vé tháng'");
-
-            return sb.ToString();
         }
 
         private async Task<string> GetCurrentSemester(List<School> schools)
