@@ -378,10 +378,7 @@ namespace ShuttleMate.Services.Services
 
             if(model.ProfileImageUrl != null && user != null)
             {
-                using var stream = model.ProfileImageUrl.OpenReadStream();
-                var filePath = await _supabaseService.UploadAsync(stream, model.ProfileImageUrl.FileName, model.ProfileImageUrl.ContentType);
-                user.ProfileImageUrl = filePath;
-                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+                user.ProfileImageUrl = model.ProfileImageUrl;
             }
 
 
