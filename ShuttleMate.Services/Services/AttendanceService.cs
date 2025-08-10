@@ -128,6 +128,47 @@ namespace ShuttleMate.Services.Services
             checkout.LastUpdatedTime = DateTime.UtcNow;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(checkout);
             await _unitOfWork.SaveAsync();
+
+            var checkoutWithNav = await _unitOfWork.GetRepository<Attendance>().Entities
+                .Include(a => a.HistoryTicket)
+                    .ThenInclude(ht => ht.User)
+                .Include(a => a.Trip)
+                    .ThenInclude(t => t.Schedule)
+                        .ThenInclude(s => s.Shuttle)
+                .Include(a => a.StopCheckOutLocation)
+                .FirstOrDefaultAsync(a => a.Id == checkout.Id);
+
+            if (checkoutWithNav == null)
+                throw new Exception("Không tìm thấy attendance sau khi insert.");
+
+            DateTime dateTime = DateTime.Now;
+
+            var metadata = new Dictionary<string, string>
+                {
+                    { "StudentName", checkoutWithNav.HistoryTicket.User.FullName },
+                    { "ShuttleName", checkoutWithNav.Trip.Schedule.Shuttle.Name },
+                    { "CheckOutLocation", checkoutWithNav.StopCheckOutLocation.Name },
+                    { "CheckOutTime", TimeOnly.FromDateTime(dateTime).ToString()}
+                };
+
+            // Gửi cho học sinh
+            await _notificationService.SendNotificationFromTemplateAsync(
+                templateType: "CheckOut",
+                recipientIds: new List<Guid> { checkout.HistoryTicket.UserId },
+                metadata: metadata,
+                createdBy: "system"
+            );
+
+            // Nếu có phụ huynh thì gửi cho phụ huynh
+            if (checkout.HistoryTicket.User.ParentId != null && checkout.HistoryTicket.User.ParentId != Guid.Empty)
+            {
+                await _notificationService.SendNotificationFromTemplateAsync(
+                    templateType: "CheckOut",
+                    recipientIds: new List<Guid> { checkout.HistoryTicket.User.ParentId.Value },
+                    metadata: metadata,
+                    createdBy: "system"
+                );
+            }
         }
 
         public async Task DeleteAttendance(Guid attendanceId)
@@ -242,6 +283,11 @@ namespace ShuttleMate.Services.Services
 
             // lấy tất cả attendance của trip chưa checkout và chưa bị xóa
             var attendances = await _unitOfWork.GetRepository<Attendance>().Entities
+                .Include(a => a.Trip)
+                    .ThenInclude(a => a.Schedule)
+                        .ThenInclude(a => a.Shuttle)
+                .Include(a => a.HistoryTicket)
+                    .ThenInclude(a => a.User)
                 .Where(x => x.TripId == tripId
                     && x.Status == AttendanceStatusEnum.CHECKED_IN
                     && !x.DeletedTime.HasValue)
@@ -264,6 +310,55 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.GetRepository<Attendance>().UpdateRangeAsync(attendances);
             await _unitOfWork.SaveAsync();
+
+            var userIds = attendances.Select(x => x.HistoryTicket.User.Id).ToList();
+
+            var trip = await _unitOfWork.GetRepository<Trip>()
+                .Entities
+                .Include(a => a.Schedule)
+                    .ThenInclude(a => a.Shuttle)
+                .FirstOrDefaultAsync(a => a.Id == tripId);
+
+            var users = await _unitOfWork.GetRepository<User>()
+                .Entities
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.FullName, u.ParentId })
+                .ToListAsync();
+
+            var createdBy = "system";
+
+            foreach (var user in users)
+            {
+                DateTime dateTime = DateTime.Now;
+
+                var metadata = new Dictionary<string, string>
+                {
+                    { "StudentName", user.FullName },
+                    { "ShuttleName", trip.Schedule.Shuttle.Name },
+                    { "CheckOutLocation", attendances.FirstOrDefault().StopCheckOutLocation.Name },
+                    { "CheckOutTime", TimeOnly.FromDateTime(dateTime).ToString()}
+                };
+
+                // Gửi cho học sinh
+                await _notificationService.SendNotificationFromTemplateAsync(
+                    templateType: "CheckOut",
+                    recipientIds: new List<Guid> { user.Id },
+                    metadata: metadata,
+                    createdBy: "system"
+                );
+
+                // Nếu có phụ huynh thì gửi cho phụ huynh
+                if (user.ParentId != null && user.ParentId != Guid.Empty)
+                {
+                    await _notificationService.SendNotificationFromTemplateAsync(
+                        templateType: "CheckOut",
+                        recipientIds: new List<Guid> { user.ParentId.Value },
+                        metadata: metadata,
+                        createdBy: "system"
+                    );
+                }
+
+            }
         }
 
         public async Task<BasePaginatedList<ResponseStudentInRouteAndShiftModel>> ListAbsentStudent(GetAbsentQuery req)
