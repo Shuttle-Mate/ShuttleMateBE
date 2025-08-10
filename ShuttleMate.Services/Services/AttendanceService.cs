@@ -128,6 +128,47 @@ namespace ShuttleMate.Services.Services
             checkout.LastUpdatedTime = DateTime.UtcNow;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(checkout);
             await _unitOfWork.SaveAsync();
+
+            var checkoutWithNav = await _unitOfWork.GetRepository<Attendance>().Entities
+                .Include(a => a.HistoryTicket)
+                    .ThenInclude(ht => ht.User)
+                .Include(a => a.Trip)
+                    .ThenInclude(t => t.Schedule)
+                        .ThenInclude(s => s.Shuttle)
+                .Include(a => a.StopCheckOutLocation)
+                .FirstOrDefaultAsync(a => a.Id == checkout.Id);
+
+            if (checkoutWithNav == null)
+                throw new Exception("Không tìm thấy attendance sau khi insert.");
+
+            DateTime dateTime = DateTime.Now;
+
+            var metadata = new Dictionary<string, string>
+                {
+                    { "StudentName", checkoutWithNav.HistoryTicket.User.FullName },
+                    { "ShuttleName", checkoutWithNav.Trip.Schedule.Shuttle.Name },
+                    { "CheckOutLocation", checkoutWithNav.StopCheckOutLocation.Name },
+                    { "CheckOutTime", TimeOnly.FromDateTime(dateTime).ToString()}
+                };
+
+            // Gửi cho học sinh
+            await _notificationService.SendNotificationFromTemplateAsync(
+                templateType: "CheckOut",
+                recipientIds: new List<Guid> { checkout.HistoryTicket.UserId },
+                metadata: metadata,
+                createdBy: "system"
+            );
+
+            // Nếu có phụ huynh thì gửi cho phụ huynh
+            if (checkout.HistoryTicket.User.ParentId != null && checkout.HistoryTicket.User.ParentId != Guid.Empty)
+            {
+                await _notificationService.SendNotificationFromTemplateAsync(
+                    templateType: "CheckOut",
+                    recipientIds: new List<Guid> { checkout.HistoryTicket.User.ParentId.Value },
+                    metadata: metadata,
+                    createdBy: "system"
+                );
+            }
         }
 
         public async Task DeleteAttendance(Guid attendanceId)
