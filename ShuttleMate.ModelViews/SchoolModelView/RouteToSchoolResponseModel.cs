@@ -8,6 +8,7 @@ namespace ShuttleMate.ModelViews.SchoolModelView
 {
     public class RouteToSchoolResponseModel
     {
+        public Guid Id { get; set; }
         public string? RouteCode { get; set; }
         public string? RouteName { get; set; }
         public string? OperatingTime { get; set; }

@@ -265,6 +265,7 @@ namespace ShuttleMate.Services.Services
             var pagedItems = await query
                 .Select(u => new RouteToSchoolResponseModel
                 {
+                    Id = u.Id,
                     OutBound = u.OutBound,
                     RouteName = u.RouteName,
                     RouteCode = u.RouteCode,
