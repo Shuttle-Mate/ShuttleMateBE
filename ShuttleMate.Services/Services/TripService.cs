@@ -207,6 +207,19 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status403Forbidden, ResponseCodeConstants.FORBIDDEN, "Bạn không có quyền kết thúc chuyến đi này. Chỉ tài xế đã bắt đầu chuyến mới được phép kết thúc.");
             }
 
+            // Get all attendance records for this trip
+            var listAttendance = await _unitOfWork.GetRepository<Attendance>().Entities
+                .Include(x => x.HistoryTicket)
+                    .ThenInclude(x => x.User)
+                .Where(x => !x.DeletedTime.HasValue && x.TripId == tripId && (x.Status == AttendanceStatusEnum.CHECKED_IN || x.CheckOutLocation == null))
+                .ToListAsync();
+
+            if (listAttendance.Any())
+            {
+                var names = string.Join(", ", listAttendance.Select(a => a.HistoryTicket.User.FullName));
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Không thể kết thúc chuyến đi. Các học sinh sau chưa checkout: {names}");
+            }
+
             tripToEnd.EndTime = TimeOnly.FromDateTime(DateTime.Now);
             tripToEnd.Status = TripStatusEnum.COMPLETED;
             tripToEnd.LastUpdatedBy = currentUserIdString;
