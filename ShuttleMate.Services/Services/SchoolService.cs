@@ -83,7 +83,9 @@ namespace ShuttleMate.Services.Services
                     IsActive = u.IsActive,
                     Name = u.Name,
                     PhoneNumber = u.PhoneNumber,
-                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.Students.FirstOrDefault(x=>x.SchoolId == u.Id && x.UserRoles.Any(x=>x.Role.Name.ToUpper() == "SCHOOL")).ProfileImageUrl),
+                    ProfileImageUrl = u.Students.FirstOrDefault(x => x.SchoolId == u.Id && x.UserRoles.Any(x => x.Role.Name.ToUpper() == "SCHOOL")).ProfileImageUrl != null 
+                    ? _supabaseService.GetPublicUrl(u.Students.FirstOrDefault(x=>x.SchoolId == u.Id && x.UserRoles.Any(x=>x.Role.Name.ToUpper() == "SCHOOL")).ProfileImageUrl) 
+                    : null,
                     StartSemOne = u.StartSemOne,
                     StartSemTwo = u.StartSemTwo,                       
                 })
@@ -152,7 +154,7 @@ namespace ShuttleMate.Services.Services
                 .Select(u => new ListStudentInSchoolResponse
                 {
                     Id = u.Id,
-                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.ProfileImageUrl!),
+                    ProfileImageUrl = u.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(u.ProfileImageUrl) : null,
                     Address = u.Address,
                     PhoneNumber = u.PhoneNumber,
                     DateOfBirth = u.DateOfBirth,
@@ -220,7 +222,7 @@ namespace ShuttleMate.Services.Services
                 .Select(u => new ListStudentInSchoolResponse
                 {
                     Id = u.Id,
-                    ProfileImageUrl = _supabaseService.GetPublicUrl(u.ProfileImageUrl!),
+                    ProfileImageUrl = u.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(u.ProfileImageUrl) : null,
                     Address = u.Address,
                     PhoneNumber = u.PhoneNumber,
                     DateOfBirth = u.DateOfBirth,
@@ -313,7 +315,9 @@ namespace ShuttleMate.Services.Services
                 IsActive = school.IsActive,
                 Name = school.Name,
                 PhoneNumber = school.PhoneNumber,
-                ProfileImageUrl = _supabaseService.GetPublicUrl(school.Students.FirstOrDefault(x => x.SchoolId == school.Id && x.UserRoles.Any(x => x.Role.Name.ToUpper() == "SCHOOL"))!.ProfileImageUrl!),
+                ProfileImageUrl = school.Students.FirstOrDefault(x => x.SchoolId == school.Id && x.UserRoles.Any(x => x.Role.Name.ToUpper() == "SCHOOL"))!.ProfileImageUrl != null
+                    ? _supabaseService.GetPublicUrl(school.Students.FirstOrDefault(x => x.SchoolId == school.Id && x.UserRoles.Any(x => x.Role.Name.ToUpper() == "SCHOOL"))!.ProfileImageUrl!)
+                    : null,
                 StartSemOne = school.StartSemOne,
                 StartSemTwo = school.StartSemTwo,
             };
