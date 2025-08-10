@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Azure;
 using Hangfire;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -122,7 +123,7 @@ namespace ShuttleMate.Services.Services
                     TicketId = u.TicketId,
                     UserId = u.UserId,
                     Status = u.Status.ToString().ToUpper(),
-                    Price = u.Price == 0 ? u.Ticket.Price : u.Price,  
+                    Price = u.Price == 0 ? u.Ticket.Price : u.Price,
                     RouteName = u.Ticket.Route.RouteName,
                     Ticket = u.Ticket.Type.ToString().ToUpper(),
                     OrderCode = u.Transaction.OrderCode,
@@ -303,7 +304,6 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<CreateHistoryTicketResponse> CreateHistoryTicket(CreateHistoryTicketModel model)
         {
-
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
@@ -332,15 +332,45 @@ namespace ShuttleMate.Services.Services
                 UserId = user.Id,
                 LastUpdatedTime = vietnamNow,
                 CreatedBy = userId,
-                Price = ticket.Price,             
+                Price = ticket.Price,
             };
             if (model.PromotionId != null)
             {
                 var promotion = await _unitOfWork.GetRepository<Promotion>().Entities.FirstOrDefaultAsync(x => x.Id == model.PromotionId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
-
+                if (promotion.UsingLimit != 0 && promotion.UsedCount >= promotion.UsingLimit)
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Mã giảm giá đã hết lượt dùng!");
+                }
+                if (promotion.DiscountPercent != null)
+                {
+                    //giá sẽ được giảm
+                    var check = historyTicket.Price * promotion.DiscountPercent.Value;
+                    //kiem tra xem giam có qua so yeu cau ko
+                    if (promotion.LimitSalePrice != 0 && check > promotion.LimitSalePrice)
+                    {
+                        //nếu giam quá thì trừ đi số lượng mặc định yêu cầu
+                        historyTicket.Price -= promotion.LimitSalePrice.Value;
+                    }
+                    else
+                    {
+                        //ko giảm quá thì cho giảm 
+                        historyTicket.Price -= check;
+                    }
+                    promotion.UsedCount++;
+                    await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
+                }
+                else
+                if (promotion.DiscountPrice != null)
+                {
+                    historyTicket.Price -= promotion.DiscountPrice.Value;
+                    if (historyTicket.Price <= 0)
+                    {
+                        historyTicket.Price = 0;
+                    }
+                    promotion.UsedCount++;
+                    await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
+                }
             }
-
-
             switch (ticket.Type)
             {
                 case TicketTypeEnum.WEEKLY:
