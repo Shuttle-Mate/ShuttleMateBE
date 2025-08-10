@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Org.BouncyCastle.Asn1.Ocsp;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
@@ -633,7 +634,7 @@ namespace ShuttleMate.Services.Services
                             Address = childSchool.Address,
                             PhoneNumber = childSchool.PhoneNumber,
                             Email = childSchool.Email,
-                            schoolShiftResponses = childSchool.SchoolShifts?.Select(x => new SchoolShiftResponse
+                            schoolShiftResponses = childSchool.SchoolShifts?.Where(x=>x.UserSchoolShifts.Any(x=>x.StudentId == child.Id)).Select(x => new SchoolShiftResponse
                             {
                                 Id = x.Id,
                                 Time = x.Time,
@@ -698,7 +699,7 @@ namespace ShuttleMate.Services.Services
                     Address = school.Address,
                     PhoneNumber = school.PhoneNumber,
                     Email = school.Email,
-                    schoolShiftResponses = school.SchoolShifts?.Select(x => new SchoolShiftResponse
+                    schoolShiftResponses = school.SchoolShifts?.Where(x => x.UserSchoolShifts.Any(x => x.StudentId == user.Id)).Select(x => new SchoolShiftResponse
                     {
                         Id = x.Id,
                         Time = x.Time,
@@ -755,7 +756,7 @@ namespace ShuttleMate.Services.Services
                             Address = childSchool.Address,
                             PhoneNumber = childSchool.PhoneNumber,
                             Email = childSchool.Email,
-                            schoolShiftResponses = childSchool.SchoolShifts?.Select(x => new SchoolShiftResponse
+                            schoolShiftResponses = childSchool.SchoolShifts?.Where(x => x.UserSchoolShifts.Any(x => x.StudentId == child.Id)).Select(x => new SchoolShiftResponse
                             {
                                 Id = x.Id,
                                 Time = x.Time,
