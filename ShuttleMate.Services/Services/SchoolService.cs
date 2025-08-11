@@ -236,7 +236,6 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
             return new BasePaginatedList<ListStudentInSchoolResponse>(pagedItems, totalCount, page, pageSize);
         }
-
         public async Task<BasePaginatedList<RouteToSchoolResponseModel>> GetAllRouteToSchool(int page = 0, int pageSize = 10, string? search = null,  bool sortAsc = false, Guid ? schoolId = null)
         {
             var query = _unitOfWork.GetRepository<Route>()
@@ -284,6 +283,10 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
 
             return new BasePaginatedList<RouteToSchoolResponseModel>(pagedItems, totalCount, page, pageSize);
+        }
+        public async Task<BasePaginatedList<AttendanceOfSchoolResponseModel>> GetAttendanceOfSchool(int page = 0, int pageSize = 10, DateOnly? date = null, Guid? schoolShift = null, Guid? schoolId = null, string? directionOfTravel = null)
+        {
+
         }
         public async Task AssignSchoolForManager(AssignSchoolForManagerModel model)
         {
