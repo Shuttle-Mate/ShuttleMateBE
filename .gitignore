@@ -365,3 +365,4 @@ FodyWeavers.xsd
 #private
 serviceAccountKey.json
 private_key.json
+FirebaseService.cs
