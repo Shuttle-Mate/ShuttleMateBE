@@ -21,4 +21,10 @@ namespace ShuttleMate.ModelViews.NotificationModelViews
         public string CreatedBy { get; set; } = "System";
     }
 
+    public class NotificationTemplateSendAllRequest
+    {
+        public string TemplateType { get; set; } = default!;
+        public Dictionary<string, string> Metadata { get; set; } = new();
+    }
+
 }
