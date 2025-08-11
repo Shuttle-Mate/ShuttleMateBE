@@ -367,3 +367,4 @@ serviceAccountKey.json
 private_key.json
 FirebaseService.cs
 ShuttleMate.Services/Services/FirebaseService.cs
+/ShuttleMate.Services/Services/FirebaseService.cs

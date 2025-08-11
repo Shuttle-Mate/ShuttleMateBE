@@ -21,6 +21,18 @@ namespace ShuttleMate.API.Controllers
             _firebaseService = firebaseService;
         }
 
+        [HttpPost("send-to-all")]
+        public async Task<IActionResult> SendToAll([FromBody] NotiModel model)
+        {
+            var notificationId = await _notificationService.CreateNotificationForAllUsers(model);
+            return Ok(new BaseResponseModel<Guid>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "Gửi thông báo đến tất cả người dùng thành công",
+                data: notificationId
+            ));
+        }
+
         [HttpPost("push/send")]
         public async Task<IActionResult> Send([FromBody] NotificationRequest req)
         {

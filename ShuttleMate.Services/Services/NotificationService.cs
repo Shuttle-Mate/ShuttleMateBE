@@ -51,6 +51,91 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
+        public async Task<Guid> CreateNotificationForAllUsers(NotiModel model)
+        {
+            var createdBy = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            // 1. Create the notification record
+            var notification = _mapper.Map<Notification>(model);
+            notification.Id = Guid.NewGuid();
+            notification.CreatedBy = createdBy;
+            notification.LastUpdatedBy = createdBy;
+            notification.Status = NotificationStatusEnum.SENT;
+            notification.CreatedTime = DateTimeOffset.UtcNow;
+
+            await _unitOfWork.GetRepository<Notification>().InsertAsync(notification);
+
+            // 2. Get all active users
+            var userIds = await _unitOfWork.GetRepository<User>()
+                .Entities
+                .Where(u => !u.DeletedTime.HasValue)
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            // 3. Create NotificationRecipient records and send push notifications
+            var recipients = new List<NotificationRecipient>();
+            foreach (var userId in userIds)
+            {
+                var recipient = new NotificationRecipient
+                {
+                    Id = Guid.NewGuid(),
+                    NotificationId = notification.Id,
+                    RecipientId = userId,
+                    RecipientType = "User",
+                    CreatedBy = createdBy,
+                    CreatedTime = DateTimeOffset.UtcNow,
+                    Status = NotificationStatusEnum.SENT
+                };
+
+                // Send push notification to all devices of the user
+                var userDevices = await _unitOfWork.GetRepository<UserDevice>()
+                    .Entities
+                    .Where(d => d.UserId == userId && !d.DeletedTime.HasValue && d.IsValid == true)
+                    .ToListAsync();
+
+                if (userDevices.Count == 0)
+                {
+                    // Không có device, giữ nguyên status = SENT
+                    recipients.Add(recipient);
+                    continue;
+                }
+
+                bool atLeastOneSuccess = false;
+                bool allFailed = true;
+
+                foreach (var device in userDevices)
+                {
+                    if (!string.IsNullOrEmpty(device.PushToken))
+                    {
+                        try
+                        {
+                            await _firebaseService.SendNotificationAsync(notification.Title, notification.Content, device.PushToken);
+                            atLeastOneSuccess = true;
+                            allFailed = false;
+                        }
+                        catch
+                        {
+                            // Nếu lỗi, vẫn kiểm tra các device khác
+                            allFailed = allFailed && true;
+                        }
+                    }
+                }
+
+                if (atLeastOneSuccess)
+                    recipient.Status = NotificationStatusEnum.DELIVERED;
+                else if (allFailed)
+                    recipient.Status = NotificationStatusEnum.FAILED;
+                // Nếu không có device hợp lệ, giữ nguyên SENT
+
+                recipients.Add(recipient);
+            }
+
+            await _unitOfWork.GetRepository<NotificationRecipient>().InsertRangeAsync(recipients);
+            await _unitOfWork.SaveAsync();
+
+            return notification.Id;
+        }
+
         public async Task DeleteNoti(Guid notiId)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
