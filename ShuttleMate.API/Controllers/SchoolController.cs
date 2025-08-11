@@ -81,6 +81,24 @@ namespace ShuttleMate.API.Controllers
                 data: await _schoolService.GetById(schoolId)));
         }
         /// <summary>
+        /// Xem danh sách điểm danh của trường.
+        /// </summary>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
+        /// <param name="schoolId">id của trường bạn muốn xem.</param>
+        /// <param name="directionOfTravel">lọc theo IN_BOUND, OUT_BOUND.</param>
+        /// <param name="sortAsc">xếp xếp theo thời gian (mặc định false: giảm dần).</param>
+        /// <param name="date">Lọc theo ngày.</param>
+        /// <param name="schoolShiftId">Lọc theo ca học.</param>
+        [HttpGet("{schoolId}/attendances")]
+        public async Task<IActionResult> GetAttendanceOfSchool(int page = 0, int pageSize = 10, DateOnly? date = null, Guid? schoolShiftId = null, Guid? schoolId = null, string? directionOfTravel = null, bool sortAsc = false)
+        {
+            return Ok(new BaseResponseModel<BasePaginatedList<AttendanceOfSchoolResponseModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: await _schoolService.GetAttendanceOfSchool(page, pageSize, date, schoolShiftId, schoolId, directionOfTravel, sortAsc)));
+        }
+        /// <summary>
         /// Gửi mail cho trường nhắc nhở:Type(SCHOOL_SHIFT, SCHOOL_INFOR)
         /// </summary>
         [HttpPost("send-email")]

@@ -330,12 +330,6 @@ namespace ShuttleMate.Services.Services
                     && x.Ticket.Route.IsActive == true
                     && x.Status == HistoryTicketStatus.PAID
                     && !x.DeletedTime.HasValue)!.Id,
-                    TripId = u.HistoryTickets
-                        .SelectMany(h => h.Attendances)
-                        .Where(a => DateOnly.FromDateTime(a.CheckInTime) == todayVN)
-                        .OrderByDescending(a => a.CheckInTime)
-                        .Select(a => (Guid?)a.TripId)
-                        .FirstOrDefault(),
                     IsCheckIn = u.HistoryTickets.Any(h => h.Attendances.Any(a => DateOnly.FromDateTime(a.CheckInTime) == todayVN)),
                     IsCheckOut = u.HistoryTickets.Any(h => h.Attendances.Any(a => DateOnly.FromDateTime(a.CheckOutTime) == todayVN)),
                 })

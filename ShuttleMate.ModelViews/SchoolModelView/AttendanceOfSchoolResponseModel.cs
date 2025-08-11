@@ -9,11 +9,8 @@ namespace ShuttleMate.ModelViews.SchoolModelView
 {
     public class AttendanceOfSchoolResponseModel
     {
-        public Guid StudentId { get; set; }
-        public string? StudentName { get; set; }
-        public string? StudentEmail { get; set; }
-        public string? StudentPhone { get; set; }
-        public DateTime CheckInTime { get; set; }
+        public StudentResponse? Student { get; set; }
+        public DateTime? CheckInTime { get; set; }
         public Guid? CheckInLocation { get; set; }
         public DateTime CheckOutTime { get; set; }
         public Guid? CheckOutLocation { get; set; }
