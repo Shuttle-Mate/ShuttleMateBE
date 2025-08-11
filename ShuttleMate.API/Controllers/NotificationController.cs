@@ -33,6 +33,21 @@ namespace ShuttleMate.API.Controllers
             ));
         }
 
+        [HttpPost("send-template-to-all")]
+        public async Task<IActionResult> SendTemplateToAll([FromBody] NotificationTemplateSendAllRequest req)
+        {
+            var notificationId = await _notificationService.SendNotificationForAllFromTemplateAsync(
+                templateType: req.TemplateType,
+                metadata: req.Metadata
+            );
+            return Ok(new BaseResponseModel<Guid>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: $"Gửi thông báo bằng template {req.TemplateType} đến tất cả người dùng thành công",
+                data: notificationId
+            ));
+        }
+
         [HttpPost("push/send")]
         public async Task<IActionResult> Send([FromBody] NotificationRequest req)
         {
