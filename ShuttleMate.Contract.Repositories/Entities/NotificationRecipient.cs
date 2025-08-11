@@ -5,6 +5,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
 {
     public class NotificationRecipient : BaseEntity
     {
+        public NotificationCategoryEnum NotificationCategory { get; set; }
         public string RecipientType { get; set; }
         public NotificationStatusEnum Status { get; set; }
         public Guid NotificationId { get; set; }

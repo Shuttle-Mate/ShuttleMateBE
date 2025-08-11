@@ -21,6 +21,9 @@ namespace ShuttleMate.API.Controllers
             _firebaseService = firebaseService;
         }
 
+        /// <summary>
+        /// Gửi thông báo đến toàn người dùng không sử dụng template
+        /// </summary>
         [HttpPost("send-to-all")]
         public async Task<IActionResult> SendToAll([FromBody] NotiModel model)
         {
@@ -33,6 +36,9 @@ namespace ShuttleMate.API.Controllers
             ));
         }
 
+        /// <summary>
+        /// Gửi thông báo đến toàn người dùng sử dụng template
+        /// </summary>
         [HttpPost("send-template-to-all")]
         public async Task<IActionResult> SendTemplateToAll([FromBody] NotificationTemplateSendAllRequest req)
         {
@@ -48,6 +54,9 @@ namespace ShuttleMate.API.Controllers
             ));
         }
 
+        /// <summary>
+        /// API này để test device token
+        /// </summary>
         [HttpPost("push/send")]
         public async Task<IActionResult> Send([FromBody] NotificationRequest req)
         {
@@ -55,16 +64,16 @@ namespace ShuttleMate.API.Controllers
             return Ok("Notification sent.");
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CreateNoti(NotiModel model)
-        {
-            await _notificationService.CreateNotification(model);
-            return Ok(new BaseResponseModel<string>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                message: "Tạo thông báo thành công!"
-            ));
-        }
+        //[HttpPost]
+        //public async Task<IActionResult> CreateNoti(NotiModel model)
+        //{
+        //    await _notificationService.CreateNotification(model);
+        //    return Ok(new BaseResponseModel<string>(
+        //        statusCode: StatusCodes.Status200OK,
+        //        code: ResponseCodeConstants.SUCCESS,
+        //        message: "Tạo thông báo thành công!"
+        //    ));
+        //}
         [HttpGet]
         public async Task<IActionResult> GetAllNoti()
         {
@@ -95,8 +104,8 @@ namespace ShuttleMate.API.Controllers
         //        data: "Cập nhật xe thành công"
         //    ));
         //}
-        [HttpDelete]
-        public async Task<IActionResult> DeleteNotification(Guid notiId)
+        [HttpDelete("{notiId}")]
+        public async Task<IActionResult> DeleteNotification([FromRoute]Guid notiId)
         {
             await _notificationService.DeleteNoti(notiId);
             return Ok(new BaseResponseModel<string>(
@@ -105,6 +114,9 @@ namespace ShuttleMate.API.Controllers
                 message: "Xóa thông báo thành công"
             ));
         }
+        /// <summary>
+        /// Gửi thông báo đến list người dùng cụ thể sử dụng template
+        /// </summary>
         [HttpPost("send-template")]
         public async Task<IActionResult> SendFromTemplate([FromBody] NotificationTemplateSendRequest request)
         {

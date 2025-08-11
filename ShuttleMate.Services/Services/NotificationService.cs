@@ -196,7 +196,7 @@ namespace ShuttleMate.Services.Services
                 Id = Guid.NewGuid(),
                 Title = $"Thông báo: {template.Type}", // modify
                 Content = content,
-                Type = template.Type,
+                TemplateType = template.Type,
                 Status = NotificationStatusEnum.SENT, // đã gửi
                 CreatedBy = createdBy,
                 CreatedTime = DateTimeOffset.UtcNow,
@@ -310,7 +310,7 @@ namespace ShuttleMate.Services.Services
                 Id = Guid.NewGuid(),
                 Title = $"Thông báo: {template.Type}", // modify
                 Content = content,
-                Type = template.Type,
+                TemplateType = template.Type,
                 Status = NotificationStatusEnum.SENT, // đã gửi
                 CreatedBy = createdBy,
                 CreatedTime = DateTimeOffset.UtcNow,

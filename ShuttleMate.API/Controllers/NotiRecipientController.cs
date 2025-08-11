@@ -58,8 +58,8 @@ namespace ShuttleMate.API.Controllers
                 message: $"Cập nhật trạng thái thành {model.Status} thành công"
             ));
         }
-        [HttpDelete]
-        public async Task<IActionResult> DeleteNotiRecipient(Guid notiRecipientId)
+        [HttpDelete("{notiRecipientId}")]
+        public async Task<IActionResult> DeleteNotiRecipient([FromRoute]Guid notiRecipientId)
         {
             await _notiRecipientService.DeleteNotiRecipient(notiRecipientId);
             return Ok(new BaseResponseModel<string>(
