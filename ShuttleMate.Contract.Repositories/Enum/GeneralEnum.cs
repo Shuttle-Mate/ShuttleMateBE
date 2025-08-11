@@ -40,11 +40,18 @@
         {
             PENDING,         //Đã tạo nhưng chưa gửi
             SENT,            //Đã gửi thành công (đẩy qua push, email, v.v.)
-            DELIVERED,       //Đã nhận ở thiết bị người dùng (nếu có tracking)
+            DELIVERED,       // Đã nhận thông báo đẩy
             READ,            //Người dùng đã mở và đọc thông báo
             FAILED,          //Gửi thất bại (VD: push token hết hạn)
             ARCHIEVED,        //Đã lưu trữ, không hiển thị trên UI
-            CANCELLED         //Đã hủy (VD: hủy gửi trước giờ chạy)
+        }
+
+        public enum NotificationCategoryEnum
+        {
+            ATTENDANCE,
+            TRIP_STATUS,
+            SYSTEM,
+            SCHOOL
         }
 
         public enum TypePromotionEnum
