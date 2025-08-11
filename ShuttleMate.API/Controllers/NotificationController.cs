@@ -44,7 +44,8 @@ namespace ShuttleMate.API.Controllers
         {
             var notificationId = await _notificationService.SendNotificationForAllFromTemplateAsync(
                 templateType: req.TemplateType,
-                metadata: req.Metadata
+                metadata: req.Metadata,
+                notiCategory: req.NotificationCategory
             );
             return Ok(new BaseResponseModel<Guid>(
                 statusCode: StatusCodes.Status200OK,
@@ -124,7 +125,8 @@ namespace ShuttleMate.API.Controllers
                 templateType: request.TemplateType,
                 recipientIds: request.RecipientIds,
                 metadata: request.Metadata,
-                createdBy: request.CreatedBy
+                createdBy: request.CreatedBy,
+                notiCategory: request.NotificationCategory
             );
 
             return Ok(new BaseResponseModel<Guid>(
