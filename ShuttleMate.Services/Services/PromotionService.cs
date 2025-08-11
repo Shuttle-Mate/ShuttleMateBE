@@ -188,8 +188,18 @@ namespace ShuttleMate.Services.Services
             if (string.IsNullOrWhiteSpace(model.Description))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền mô tả khuyến mãi.");
 
-            if (model.DiscountValue <= 0)
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giá trị khuyến mãi không hợp lệ.");
+            switch (typeEnum)
+            {
+                case TypePromotionEnum.PRICE_DISCOUNT:
+                    if (!model.DiscountPrice.HasValue || model.DiscountPrice <= 0)
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giá trị giảm giá không hợp lệ.");
+                    break;
+
+                case TypePromotionEnum.PERCENTAGE_DISCOUNT:
+                    if (!model.DiscountPercent.HasValue || model.DiscountPercent <= 0 || model.DiscountPercent > 100)
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phần trăm giảm giá không hợp lệ.");
+                    break;
+            }
 
             if (model.LimitSalePrice < 0)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giá trị giới hạn bán không hợp lệ.");
@@ -244,15 +254,10 @@ namespace ShuttleMate.Services.Services
                 IsGlobal = isGlobal
             };
 
-            switch (typeEnum)
-            {
-                case TypePromotionEnum.PRICE_DISCOUNT:
-                    newPromotion.DiscountPrice = model.DiscountValue;
-                    break;
-                case TypePromotionEnum.PERCENTAGE_DISCOUNT:
-                    newPromotion.DiscountPercent = model.DiscountValue;
-                    break;
-            }
+            if (typeEnum == TypePromotionEnum.PRICE_DISCOUNT)
+                newPromotion.DiscountPrice = model.DiscountPrice;
+            else if (typeEnum == TypePromotionEnum.PERCENTAGE_DISCOUNT)
+                newPromotion.DiscountPercent = model.DiscountPercent;
 
             await _unitOfWork.GetRepository<Promotion>().InsertAsync(newPromotion);
             await _unitOfWork.SaveAsync();
@@ -279,8 +284,17 @@ namespace ShuttleMate.Services.Services
             if (string.IsNullOrWhiteSpace(model.Description))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền mô tả khuyến mãi.");
 
-            if (model.DiscountValue <= 0)
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giá trị khuyến mãi không hợp lệ.");
+            switch (typeEnum)
+            {
+                case TypePromotionEnum.PRICE_DISCOUNT:
+                    if (!model.DiscountPrice.HasValue || model.DiscountPrice <= 0)
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giá trị giảm giá không hợp lệ.");
+                    break;
+                case TypePromotionEnum.PERCENTAGE_DISCOUNT:
+                    if (!model.DiscountPercent.HasValue || model.DiscountPercent <= 0 || model.DiscountPercent > 100)
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phần trăm giảm giá không hợp lệ.");
+                    break;
+            }
 
             if (model.LimitSalePrice < 0)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giá trị giới hạn bán không hợp lệ.");
@@ -330,15 +344,11 @@ namespace ShuttleMate.Services.Services
 
             promotion.DiscountPrice = null;
             promotion.DiscountPercent = null;
-            switch (typeEnum)
-            {
-                case TypePromotionEnum.PRICE_DISCOUNT:
-                    promotion.DiscountPrice = model.DiscountValue;
-                    break;
-                case TypePromotionEnum.PERCENTAGE_DISCOUNT:
-                    promotion.DiscountPercent = model.DiscountValue;
-                    break;
-            }
+
+            if (typeEnum == TypePromotionEnum.PRICE_DISCOUNT)
+                promotion.DiscountPrice = model.DiscountPrice;
+            else if (typeEnum == TypePromotionEnum.PERCENTAGE_DISCOUNT)
+                promotion.DiscountPercent = model.DiscountPercent;
 
             await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
             await _unitOfWork.SaveAsync();
