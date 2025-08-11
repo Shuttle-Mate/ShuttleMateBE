@@ -195,10 +195,7 @@ namespace ShuttleMate.Services.Services
                 var attendedCount = await _unitOfWork.GetRepository<Attendance>().Entities
                     .Where(a =>
                         expectedStudentIds.Contains(a.HistoryTicket.UserId) &&
-                        a.Trip.TripDate == todayVN &&
-                        a.Trip.Schedule.RouteId == s.RouteId &&
-                        a.Trip.Schedule.SchoolShiftId == s.SchoolShiftId &&
-                        (a.Status == AttendanceStatusEnum.CHECKED_IN || a.Status == AttendanceStatusEnum.CHECKED_OUT))
+                        ((DateOnly.FromDateTime(a.CheckInTime) == todayVN) || (DateOnly.FromDateTime(a.CheckOutTime) == todayVN)))
                     .Select(a => a.HistoryTicket.UserId)
                     .Distinct()
                     .CountAsync();
