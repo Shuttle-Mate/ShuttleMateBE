@@ -284,10 +284,10 @@ namespace ShuttleMate.Services.Services
 
             return new BasePaginatedList<RouteToSchoolResponseModel>(pagedItems, totalCount, page, pageSize);
         }
-        public async Task<BasePaginatedList<AttendanceOfSchoolResponseModel>> GetAttendanceOfSchool(int page = 0, int pageSize = 10, DateOnly? date = null, Guid? schoolShift = null, Guid? schoolId = null, string? directionOfTravel = null)
-        {
+        //public async Task<BasePaginatedList<AttendanceOfSchoolResponseModel>> GetAttendanceOfSchool(int page = 0, int pageSize = 10, DateOnly? date = null, Guid? schoolShift = null, Guid? schoolId = null, string? directionOfTravel = null)
+        //{
 
-        }
+        //}
         public async Task AssignSchoolForManager(AssignSchoolForManagerModel model)
         {
             var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
