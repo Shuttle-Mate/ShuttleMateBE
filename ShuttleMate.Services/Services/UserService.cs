@@ -439,7 +439,7 @@ namespace ShuttleMate.Services.Services
             {
                 isAllowedTime = true;
             }
-            if (!admin.UserRoles.Any(x => x.Role.Name == "ADMIN" || x.Role.Name == "OPERATOR"))
+            if (!admin.UserRoles.Any(x => x.Role.Name.ToUpper() == "ADMIN" || x.Role.Name.ToUpper() == "OPERATOR"))
             {
                 if (!isAllowedTime)
                 {
