@@ -90,7 +90,8 @@ namespace ShuttleMate.Services.Services
                 templateType: "CheckIn",
                 recipientIds: new List<Guid> { checkin.HistoryTicket.UserId },
                 metadata: metadata,
-                createdBy: "system"
+                createdBy: "system",
+                notiCategory: "ATTENDANCE"
             );
 
             // Nếu có phụ huynh thì gửi cho phụ huynh
@@ -100,7 +101,8 @@ namespace ShuttleMate.Services.Services
                     templateType: "CheckIn",
                     recipientIds: new List<Guid> { checkin.HistoryTicket.User.ParentId.Value },
                     metadata: metadata,
-                    createdBy: "system"
+                    createdBy: "system",
+                    notiCategory: "ATTENDANCE"
                 );
             }
 
@@ -156,7 +158,8 @@ namespace ShuttleMate.Services.Services
                 templateType: "CheckOut",
                 recipientIds: new List<Guid> { checkout.HistoryTicket.UserId },
                 metadata: metadata,
-                createdBy: "system"
+                createdBy: "system",
+                notiCategory: "ATTENDANCE"
             );
 
             // Nếu có phụ huynh thì gửi cho phụ huynh
@@ -166,7 +169,8 @@ namespace ShuttleMate.Services.Services
                     templateType: "CheckOut",
                     recipientIds: new List<Guid> { checkout.HistoryTicket.User.ParentId.Value },
                     metadata: metadata,
-                    createdBy: "system"
+                    createdBy: "system",
+                    notiCategory: "ATTENDANCE"
                 );
             }
         }
@@ -344,7 +348,8 @@ namespace ShuttleMate.Services.Services
                     templateType: "CheckOut",
                     recipientIds: new List<Guid> { user.Id },
                     metadata: metadata,
-                    createdBy: "system"
+                    createdBy: "system",
+                    notiCategory: "ATTENDANCE"
                 );
 
                 // Nếu có phụ huynh thì gửi cho phụ huynh
@@ -354,7 +359,8 @@ namespace ShuttleMate.Services.Services
                         templateType: "CheckOut",
                         recipientIds: new List<Guid> { user.ParentId.Value },
                         metadata: metadata,
-                        createdBy: "system"
+                        createdBy: "system",
+                        notiCategory: "ATTENDANCE"
                     );
                 }
 
