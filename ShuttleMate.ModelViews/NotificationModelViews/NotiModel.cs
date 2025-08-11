@@ -11,7 +11,8 @@ namespace ShuttleMate.ModelViews.NotificationModelViews
     {
         public string Title { get; set; }
         public string Content { get; set; }
-        public string Type { get; set; }
+        public string TemplateType { get; set; }
+        public string NotificationCategory { get; set; }
         //public NotificationStatusEnum Status { get; set; }
     }
 }
