@@ -284,10 +284,113 @@ namespace ShuttleMate.Services.Services
 
             return new BasePaginatedList<RouteToSchoolResponseModel>(pagedItems, totalCount, page, pageSize);
         }
-        //public async Task<BasePaginatedList<AttendanceOfSchoolResponseModel>> GetAttendanceOfSchool(int page = 0, int pageSize = 10, DateOnly? date = null, Guid? schoolShift = null, Guid? schoolId = null, string? directionOfTravel = null)
-        //{
+        public async Task<BasePaginatedList<AttendanceOfSchoolResponseModel>> GetAttendanceOfSchool(int page = 0, int pageSize = 10, DateOnly? date = null, Guid? schoolShiftId = null, Guid? schoolId = null, string? directionOfTravel = null, bool sortAsc = false)
+        {
+            var query = _unitOfWork.GetRepository<User>()
+                .GetQueryable()
+                .Include(x => x.School)
+                .Include(x => x.HistoryTickets)
+                    .ThenInclude(ht => ht.Attendances)
+                        .ThenInclude(a => a.Trip)
+                            .ThenInclude(t => t.Schedule)
+                                .ThenInclude(s => s.Driver)
+                .Include(x => x.HistoryTickets)
+                    .ThenInclude(ht => ht.Attendances)
+                        .ThenInclude(a => a.Trip)
+                            .ThenInclude(t => t.Schedule)
+                                .ThenInclude(s => s.Shuttle)
+                .Where(x => x.Violate == false && !x.DeletedTime.HasValue);
 
-        //}
+            // Filter by school if provided
+            if (schoolId != null)
+            {
+                query = query.Where(x => x.SchoolId == schoolId);
+            }
+
+            // Filter by date if provided
+            if (date != null)
+            {
+                query = query.Where(x => x.HistoryTickets
+                    .Any(ht => ht.Attendances
+                        .Any(a => DateOnly.FromDateTime(a.CheckInTime) == date.Value)));
+            }
+
+            // Filter by school shift if provided
+            if (schoolShiftId != null)
+            {
+                query = query.Where(x => x.HistoryTickets
+                    .Any(ht => ht.Attendances
+                        .Any(a => a.Trip.Schedule.SchoolShiftId == schoolShiftId)));
+            }
+
+            // Filter by direction if provided
+            if (!string.IsNullOrEmpty(directionOfTravel))
+            {
+                query = query.Where(x => x.HistoryTickets
+                    .Any(ht => ht.Attendances
+                        .Any(a => a.Trip.Schedule.Direction.ToString() == directionOfTravel)));
+            }
+
+            // Apply sorting
+            query = sortAsc
+                ? query.OrderBy(x => x.CreatedTime)
+                : query.OrderByDescending(x => x.CreatedTime);
+
+            var totalCount = await query.CountAsync();
+
+            var pagedItems = await query
+                .Select(u => new AttendanceOfSchoolResponseModel
+                {
+                    Student = new StudentResponse
+                    {
+                        Id = u.Id,
+                        Email = u.Email,
+                        FullName = u.FullName,
+                        PhoneNumber = u.PhoneNumber
+                    },
+                    CheckInTime = u.HistoryTickets
+                        .SelectMany(ht => ht.Attendances)
+                        .OrderByDescending(a => a.CheckInTime)
+                        .FirstOrDefault()!.CheckInTime,
+                    CheckInLocation = u.HistoryTickets
+                        .SelectMany(ht => ht.Attendances)
+                        .OrderByDescending(a => a.CheckInTime)
+                        .FirstOrDefault()!.CheckInLocation,
+                    CheckOutTime = u.HistoryTickets
+                        .SelectMany(ht => ht.Attendances)
+                        .OrderByDescending(a => a.CheckOutTime)
+                        .FirstOrDefault()!.CheckOutTime,
+                    CheckOutLocation = u.HistoryTickets
+                        .SelectMany(ht => ht.Attendances)
+                        .OrderByDescending(a => a.CheckOutTime)
+                        .FirstOrDefault()!.CheckOutLocation,
+                    AttendanceStatus = u.HistoryTickets
+                        .SelectMany(ht => ht.Attendances)
+                        .OrderByDescending(a => a.CheckInTime)
+                        .FirstOrDefault()!.Status.ToString().ToUpper(),
+                    Notes = u.HistoryTickets
+                        .SelectMany(ht => ht.Attendances)
+                        .OrderByDescending(a => a.CheckInTime)
+                        .FirstOrDefault()!.Notes,
+                    DriverId = u.HistoryTickets
+                        .SelectMany(ht => ht.Attendances)
+                        .Select(a => a.Trip.Schedule.DriverId)
+                        .FirstOrDefault(),
+                    DriverName = u.HistoryTickets
+                        .SelectMany(ht => ht.Attendances)
+                        .Select(a => a.Trip.Schedule.Driver.FullName)
+                        .FirstOrDefault(),
+                    LicensePlate = u.HistoryTickets
+                        .SelectMany(ht => ht.Attendances)
+                        .Select(a => a.Trip.Schedule.Shuttle.LicensePlate)
+                        .FirstOrDefault()
+                })
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new BasePaginatedList<AttendanceOfSchoolResponseModel>(pagedItems, totalCount, page, pageSize);
+        }
         public async Task AssignSchoolForManager(AssignSchoolForManagerModel model)
         {
             var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
