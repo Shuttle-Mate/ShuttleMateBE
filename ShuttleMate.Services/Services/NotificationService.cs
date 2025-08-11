@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Org.BouncyCastle.Cms;
 using ShuttleMate.Contract.Repositories.Entities;
+using ShuttleMate.Contract.Repositories.Enum;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
@@ -56,11 +58,22 @@ namespace ShuttleMate.Services.Services
         {
             var createdBy = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
+            // Parse string -> enum
+            if (!Enum.TryParse<NotificationCategoryEnum>(model.NotificationCategory, true, out var categoryEnum))
+            {
+                throw new ErrorException(
+                    StatusCodes.Status400BadRequest,
+                    ErrorCode.BadRequest,
+                    $"Giá trị notiCategory '{model.NotificationCategory}' không hợp lệ."
+                );
+            }
+
             // 1. Create the notification record
             var notification = _mapper.Map<Notification>(model);
             notification.Id = Guid.NewGuid();
             notification.CreatedBy = createdBy;
             notification.LastUpdatedBy = createdBy;
+            notification.NotificationCategory = categoryEnum;
             notification.Status = NotificationStatusEnum.SENT;
             notification.CreatedTime = DateTimeOffset.UtcNow;
 
@@ -83,6 +96,7 @@ namespace ShuttleMate.Services.Services
                     NotificationId = notification.Id,
                     RecipientId = userId,
                     RecipientType = "User",
+                    NotificationCategory = categoryEnum,
                     CreatedBy = createdBy,
                     CreatedTime = DateTimeOffset.UtcNow,
                     Status = NotificationStatusEnum.SENT
@@ -168,9 +182,19 @@ namespace ShuttleMate.Services.Services
             return _mapper.Map<ResponseNotiModel>(noti);
         }
 
-        public async Task<Guid> SendNotificationForAllFromTemplateAsync(string templateType, Dictionary<string, string> metadata)
+        public async Task<Guid> SendNotificationForAllFromTemplateAsync(string templateType, Dictionary<string, string> metadata, string notiCategory)
         {
             var createdBy = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            // Parse string -> enum
+            if (!Enum.TryParse<NotificationCategoryEnum>(notiCategory, true, out var categoryEnum))
+            {
+                throw new ErrorException(
+                    StatusCodes.Status400BadRequest,
+                    ErrorCode.BadRequest,
+                    $"Giá trị notiCategory '{notiCategory}' không hợp lệ."
+                );
+            }
 
             var template = await _unitOfWork
                 .GetRepository<NotificationTemplate>()
@@ -182,6 +206,8 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, $"không tìm thấy mẫu thông báo '{templateType}'");
             }
+
+
 
             //thay biến
             string content = template.Template;
@@ -196,9 +222,10 @@ namespace ShuttleMate.Services.Services
                 Id = Guid.NewGuid(),
                 Title = $"Thông báo: {template.Type}", // modify
                 Content = content,
-                Type = template.Type,
+                TemplateType = template.Type,
                 Status = NotificationStatusEnum.SENT, // đã gửi
                 CreatedBy = createdBy,
+                NotificationCategory = categoryEnum,
                 CreatedTime = DateTimeOffset.UtcNow,
                 MetaData = JsonSerializer.Serialize(metadata)
             };
@@ -221,6 +248,7 @@ namespace ShuttleMate.Services.Services
                     NotificationId = notification.Id,
                     RecipientId = recipientId,
                     RecipientType = "User",
+                    NotificationCategory = categoryEnum,
                     CreatedBy = createdBy,
                     CreatedTime = DateTimeOffset.UtcNow,
                     Status = NotificationStatusEnum.SENT // sẽ cập nhật sau khi gửi FCM
@@ -284,8 +312,23 @@ namespace ShuttleMate.Services.Services
             return notification.Id;
         }
 
-        public async Task<Guid> SendNotificationFromTemplateAsync(string templateType, List<Guid> recipientIds, Dictionary<string, string> metadata, string createdBy)
+        public async Task<Guid> SendNotificationFromTemplateAsync(string templateType, List<Guid> recipientIds, Dictionary<string, string> metadata, string createdBy, string notiCategory)
         {
+            if (createdBy.IsNullOrEmpty())
+            {
+                createdBy = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+            }
+
+            // Parse string -> enum
+            if (!Enum.TryParse<NotificationCategoryEnum>(notiCategory, true, out var categoryEnum))
+            {
+                throw new ErrorException(
+                    StatusCodes.Status400BadRequest,
+                    ErrorCode.BadRequest,
+                    $"Giá trị notiCategory '{notiCategory}' không hợp lệ."
+                );
+            }
+
             var template = await _unitOfWork
                 .GetRepository<NotificationTemplate>()
                 .Entities
@@ -310,8 +353,9 @@ namespace ShuttleMate.Services.Services
                 Id = Guid.NewGuid(),
                 Title = $"Thông báo: {template.Type}", // modify
                 Content = content,
-                Type = template.Type,
+                TemplateType = template.Type,
                 Status = NotificationStatusEnum.SENT, // đã gửi
+                NotificationCategory = categoryEnum,
                 CreatedBy = createdBy,
                 CreatedTime = DateTimeOffset.UtcNow,
                 MetaData = JsonSerializer.Serialize(metadata)
@@ -330,6 +374,7 @@ namespace ShuttleMate.Services.Services
                     NotificationId = notification.Id,
                     RecipientId = recipientId,
                     RecipientType = "User",
+                    NotificationCategory = categoryEnum,
                     CreatedBy = createdBy,
                     CreatedTime = DateTimeOffset.UtcNow,
                     Status = NotificationStatusEnum.PENDING // sẽ cập nhật sau khi gửi FCM
@@ -343,27 +388,50 @@ namespace ShuttleMate.Services.Services
                         .Where(u => !u.DeletedTime.HasValue && u.IsValid == true && u.UserId.Equals(recipientId))
                         .ToListAsync();
 
-                    var deviceTokens = userDevices.Select(d => d.PushToken).Where(t => !string.IsNullOrEmpty(t)).ToList();
+                    if (userDevices.Count == 0)
+                    {
+                        // Không có device, giữ nguyên status = SENT
+                        recipients.Add(recipient);
+                        continue;
+                    }
+
+                    bool atLeastOneSuccess = false;
+                    bool allFailed = true;
+
+                    //var deviceTokens = userDevices.Select(d => d.PushToken).Where(t => !string.IsNullOrEmpty(t)).ToList();
 
                     //var token = await _deviceTokenService.GetTokenByUserIdAsync(recipientId); // bạn cần triển khai service này
                     //var token = "duyf6BD7RhOE66NtvuyQyL:APA91bGdMhNmmXaVI45wv-kSi6HubP0PyLgE52j-R_PT763N7v-xqUGnvZ0CX13fZREX41hg5rI722zKyNC1YmYy7FHjPKpWXEPlCj2oYJklvIyjeZppDto";
 
-                    foreach (var token in deviceTokens)
+                    foreach (var device in userDevices)
                     {
-                        if (!string.IsNullOrEmpty(token))
+                        if (!string.IsNullOrEmpty(device.PushToken))
                         {
-                            await _firebaseService.SendNotificationAsync(
-                                notification.Title,
-                                notification.Content,
-                                token: token
-                            );
-                            recipient.Status = NotificationStatusEnum.DELIVERED; // hoặc FAILED nếu có exception
+                            try
+                            {
+                                await _firebaseService.SendNotificationAsync(
+                                    notification.Title,
+                                    notification.Content,
+                                    token: device.PushToken
+                                );
+                                atLeastOneSuccess = true;
+                                allFailed = false;
+                                //recipient.Status = NotificationStatusEnum.DELIVERED; // hoặc FAILED nếu có exception
+                            }
+                            catch
+                            {
+                                allFailed = allFailed && true;
+                            }
                         }
                         else
                         {
                             recipient.Status = NotificationStatusEnum.FAILED;
                         }
                     }
+                    if (atLeastOneSuccess)
+                        recipient.Status = NotificationStatusEnum.DELIVERED;
+                    else if (allFailed)
+                        recipient.Status = NotificationStatusEnum.FAILED;
                 }
                 catch (Exception ex)
                 {
