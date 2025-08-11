@@ -73,9 +73,9 @@ namespace ShuttleMate.API.Controllers
         /// Xóa một lịch trình.
         /// </summary>
         [HttpDelete("{scheduleId}")]
-        public async Task<IActionResult> DeleteSchedule(Guid scheduleId)
+        public async Task<IActionResult> DeleteSchedule(Guid scheduleId, string dayOfWeek)
         {
-            await _scheduleService.DeleteAsync(scheduleId);
+            await _scheduleService.DeleteAsync(scheduleId, dayOfWeek);
             return Ok(new BaseResponseModel<string?>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
