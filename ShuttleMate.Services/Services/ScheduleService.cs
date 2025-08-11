@@ -31,6 +31,9 @@ namespace ShuttleMate.Services.Services
 
         public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByRouteIdAsync(
             Guid routeId,
+            DateOnly from,
+            DateOnly to,
+            string? dayOfWeek,
             string? direction,
             bool sortAsc = true,
             int page = 0,
@@ -47,9 +50,15 @@ namespace ShuttleMate.Services.Services
                 .Include(x => x.Shuttle)
                 .Include(x => x.Driver)
                 .Include(x => x.SchoolShift)
-                .Where(x => x.RouteId == routeId && !x.DeletedTime.HasValue);
+                .Where(x =>
+                    x.RouteId == routeId &&
+                    !x.DeletedTime.HasValue &&
+                    x.From <= to &&
+                    x.To >= from
+                );
 
-            if (!string.IsNullOrWhiteSpace(direction) && Enum.TryParse<RouteDirectionEnum>(direction, true, out var parsedDirection))
+            if (!string.IsNullOrWhiteSpace(direction) &&
+                Enum.TryParse<RouteDirectionEnum>(direction, true, out var parsedDirection))
             {
                 query = query.Where(x => x.Direction == parsedDirection);
             }
@@ -65,16 +74,61 @@ namespace ShuttleMate.Services.Services
                 .Take(pageSize)
                 .ToListAsync();
 
-            var result = _mapper.Map<List<ResponseScheduleModel>>(pagedItems);
+            var dayNamesFull = new[] { "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY" };
 
-            return new BasePaginatedList<ResponseScheduleModel>(result, totalCount, page, pageSize);
+            var validDayIndexes = Enumerable.Range(0, to.DayNumber - from.DayNumber + 1)
+                .Select(offset => from.AddDays(offset))
+                .Select(d => ((int)d.DayOfWeek + 6) % 7)
+                .Distinct()
+                .ToHashSet();
+
+            var groupedQuery = pagedItems
+                .SelectMany(schedule =>
+                    schedule.DayOfWeek
+                        .Select((c, idx) => new { c, idx })
+                        .Where(d => d.c == '1')
+                        .Select(d => new
+                        {
+                            DayName = dayNamesFull[d.idx],
+                            DayIndex = d.idx,
+                            ScheduleDetail = _mapper.Map<ResponseScheduleDetailModel>(schedule)
+                        })
+                );
+
+            if (!string.IsNullOrWhiteSpace(dayOfWeek))
+            {
+                var upperDay = dayOfWeek.ToUpperInvariant();
+                var dayIndex = Array.IndexOf(dayNamesFull, upperDay);
+
+                groupedQuery = groupedQuery.Where(x =>
+                    x.DayName == upperDay &&
+                    validDayIndexes.Contains(x.DayIndex));
+            }
+            else
+            {
+                groupedQuery = groupedQuery.Where(x => validDayIndexes.Contains(x.DayIndex));
+            }
+
+            var grouped = groupedQuery
+                .GroupBy(x => x.DayName)
+                .Select(g => new ResponseScheduleModel
+                {
+                    DayOfWeek = g.Key,
+                    Schedules = g.Select(x => x.ScheduleDetail).ToList()
+                })
+                .OrderBy(g => Array.IndexOf(dayNamesFull, g.DayOfWeek))
+                .ToList();
+
+            return new BasePaginatedList<ResponseScheduleModel>(grouped, totalCount, page, pageSize);
         }
 
         public async Task<IEnumerable<ResponseTodayScheduleForDriverModel>> GetAllTodayAsync()
         {
             var driverId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             Guid.TryParse(driverId, out Guid driverIdGuid);
-            var today = DateOnly.FromDateTime(DateTime.Today);
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
             var dayOfWeek = (int)DateTime.Today.DayOfWeek;
             dayOfWeek = dayOfWeek == 0 ? 6 : dayOfWeek - 1;
 
@@ -92,7 +146,7 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
 
             var overrides = await overrideRepo.Entities
-                .Where(o => o.Date == today && o.OverrideUserId == driverIdGuid && !o.DeletedTime.HasValue)
+                .Where(o => o.Date == todayVN && o.OverrideUserId == driverIdGuid && !o.DeletedTime.HasValue)
                 .Include(x => x.Schedule)
                     .ThenInclude(s => s.SchoolShift)
                 .Include(x => x.Schedule)
@@ -141,7 +195,7 @@ namespace ShuttleMate.Services.Services
                 var attendedCount = await _unitOfWork.GetRepository<Attendance>().Entities
                     .Where(a =>
                         expectedStudentIds.Contains(a.HistoryTicket.UserId) &&
-                        a.Trip.TripDate == today &&
+                        a.Trip.TripDate == todayVN &&
                         a.Trip.Schedule.RouteId == s.RouteId &&
                         a.Trip.Schedule.SchoolShiftId == s.SchoolShiftId &&
                         (a.Status == AttendanceStatusEnum.CHECKED_IN || a.Status == AttendanceStatusEnum.CHECKED_OUT))
@@ -197,7 +251,7 @@ namespace ShuttleMate.Services.Services
                 var attendedCount = await _unitOfWork.GetRepository<Attendance>().Entities
                     .Where(a =>
                         expectedStudentIds.Contains(a.HistoryTicket.UserId) &&
-                        a.Trip.TripDate == today &&
+                        a.Trip.TripDate == todayVN &&
                         a.Trip.Schedule.RouteId == s.RouteId &&
                         a.Trip.Schedule.SchoolShiftId == s.SchoolShiftId &&
                         (a.Status == AttendanceStatusEnum.CHECKED_IN || a.Status == AttendanceStatusEnum.CHECKED_OUT))
@@ -528,7 +582,7 @@ namespace ShuttleMate.Services.Services
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, $"Xe không tồn tại.");
 
             if (shuttle.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Xe {shuttle.Name} đã bị xóa.");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.NOT_FOUND, $"Xe {shuttle.Name} đã bị xóa.");
 
             if (!shuttle.IsActive)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Xe {shuttle.Name} trong trạng thái không hoạt động.");
@@ -635,22 +689,47 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task DeleteAsync(Guid scheduleId)
+        public async Task DeleteAsync(Guid scheduleId, string dayOfWeek)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             var schedule = await _unitOfWork.GetRepository<Schedule>().GetByIdAsync(scheduleId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình không tồn tại.");
 
-            if (schedule.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình đã bị xóa.");
+            int index = ConvertDayOfWeekToIndex(dayOfWeek);
 
-            schedule.LastUpdatedTime = CoreHelper.SystemTimeNow;
-            schedule.LastUpdatedBy = userId;
-            schedule.DeletedTime = CoreHelper.SystemTimeNow;
-            schedule.DeletedBy = userId;
+            if (!IsBitSet(schedule.DayOfWeek, index))
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Lịch trình không chứa ngày này.");
 
-            await _unitOfWork.GetRepository<Schedule>().UpdateAsync(schedule);
+            bool hasTripsForDay = schedule.Trips != null &&
+                schedule.Trips.Any(t =>
+                    t.TripDate >= schedule.From &&
+                    t.TripDate <= schedule.To &&
+                    t.TripDate.DayOfWeek.ToString().Equals(dayOfWeek, StringComparison.OrdinalIgnoreCase)
+                );
+
+            if (hasTripsForDay)
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Không thể xóa lịch trình vì thứ này đã có chuyến đi.");
+
+            var bits = schedule.DayOfWeek.ToCharArray();
+
+            if (bits.Count(c => c == '1') == 1)
+            {
+                if (schedule.StopEstimates.Any() == true)
+                    await _unitOfWork.GetRepository<StopEstimate>().DeleteRangeAsync(schedule.StopEstimates);
+
+                await _unitOfWork.GetRepository<Schedule>().DeleteAsync(schedule);
+            }
+            else
+            {
+                bits[index] = '0';
+                schedule.DayOfWeek = new string(bits);
+                schedule.LastUpdatedTime = CoreHelper.SystemTimeNow;
+                schedule.LastUpdatedBy = userId;
+
+                await _unitOfWork.GetRepository<Schedule>().UpdateAsync(schedule);
+            }
+
             await _unitOfWork.SaveAsync();
         }
 
