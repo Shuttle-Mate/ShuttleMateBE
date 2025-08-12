@@ -30,15 +30,21 @@ namespace ShuttleMate.Services.Services
         }
 
         public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByRouteIdAsync(
-            Guid routeId,
-            DateOnly from,
-            DateOnly to,
-            string? dayOfWeek,
-            string? direction,
-            bool sortAsc = true,
-            int page = 0,
-            int pageSize = 10)
+    Guid routeId,
+    string from,
+    string to,
+    string? dayOfWeek,
+    string? direction,
+    bool sortAsc = true,
+    int page = 0,
+    int pageSize = 10)
         {
+            if (!DateOnly.TryParse(from, out var fromDate))
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày {from} không hợp lệ.");
+
+            if (!DateOnly.TryParse(to, out var toDate))
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày {to} không hợp lệ.");
+
             var route = await _unitOfWork.GetRepository<Route>().GetByIdAsync(routeId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến không tồn tại.");
 
@@ -53,8 +59,8 @@ namespace ShuttleMate.Services.Services
                 .Where(x =>
                     x.RouteId == routeId &&
                     !x.DeletedTime.HasValue &&
-                    x.From <= to &&
-                    x.To >= from
+                    x.From <= toDate &&
+                    x.To >= fromDate
                 );
 
             if (!string.IsNullOrWhiteSpace(direction) &&
@@ -76,33 +82,33 @@ namespace ShuttleMate.Services.Services
 
             var dayNamesFull = new[] { "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY" };
 
-            var validDayIndexes = Enumerable.Range(0, to.DayNumber - from.DayNumber + 1)
-                .Select(offset => from.AddDays(offset))
+            var validDayIndexes = Enumerable.Range(0, toDate.DayNumber - fromDate.DayNumber + 1)
+                .Select(offset => fromDate.AddDays(offset))
                 .Select(d => ((int)d.DayOfWeek + 6) % 7)
                 .Distinct()
                 .ToHashSet();
 
             var groupedQuery = pagedItems
-    .SelectMany(schedule =>
-        schedule.DayOfWeek
-            .Select((c, idx) => new { c, idx })
-            .Where(d => d.c == '1')
-            .SelectMany(d =>
-            {
-                var matchingDates = Enumerable.Range(0, to.DayNumber - from.DayNumber + 1)
-                    .Select(offset => from.AddDays(offset))
-                    .Where(date => ((int)date.DayOfWeek + 6) % 7 == d.idx)
-                    .ToList();
+                .SelectMany(schedule =>
+                    schedule.DayOfWeek
+                        .Select((c, idx) => new { c, idx })
+                        .Where(d => d.c == '1')
+                        .SelectMany(d =>
+                        {
+                            var matchingDates = Enumerable.Range(0, toDate.DayNumber - fromDate.DayNumber + 1)
+                                .Select(offset => fromDate.AddDays(offset))
+                                .Where(date => ((int)date.DayOfWeek + 6) % 7 == d.idx)
+                                .ToList();
 
-                return matchingDates.Select(date => new
-                {
-                    DayName = dayNamesFull[d.idx],
-                    DayIndex = d.idx,
-                    Date = date.ToString("dd-MM-yyyy"),
-                    ScheduleDetail = _mapper.Map<ResponseScheduleDetailModel>(schedule)
-                });
-            })
-    );
+                            return matchingDates.Select(date => new
+                            {
+                                DayName = dayNamesFull[d.idx],
+                                DayIndex = d.idx,
+                                Date = date.ToString("dd-MM-yyyy"),
+                                ScheduleDetail = _mapper.Map<ResponseScheduleDetailModel>(schedule)
+                            });
+                        })
+                );
 
             if (!string.IsNullOrWhiteSpace(dayOfWeek))
             {

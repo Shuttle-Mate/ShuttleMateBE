@@ -66,8 +66,8 @@ namespace ShuttleMate.API.Controllers
         /// Lấy danh sách lịch trình theo tuyến.
         /// </summary>
         /// <param name="routeId">Id của tuyến (bắt buộc).</param>
-        /// <param name="from">Lọc từ ngày (tùy chọn).</param>
-        /// <param name="to">Lọc đến ngày (tùy chọn).</param>
+        /// <param name="from">Lọc từ ngày (bắt buộc).</param>
+        /// <param name="to">Lọc đến ngày (bắt buộc).</param>
         /// <param name="dayOfWeek">Thứ trong tuần (tùy chọn).</param>
         /// <param name="direction">Hướng của tuyến: IN_BOUND, OUT_BOUND (tùy chọn).</param>
         /// <param name="sortAsc">Sắp xếp giảm dần theo giờ khởi hành (true, mặc định) hoặc giảm dần (false).</param>
@@ -77,8 +77,8 @@ namespace ShuttleMate.API.Controllers
         [HttpGet("{routeId}/schedules")]
         public async Task<IActionResult> GetSchedulesByRouteId(
         [FromRoute] Guid routeId,
-        [FromQuery] DateOnly from,
-        [FromQuery] DateOnly to,
+        [FromQuery] string from,
+        [FromQuery] string to,
         [FromQuery] string? dayOfWeek,
         [FromQuery] string? direction,
         [FromQuery] bool sortAsc = true,

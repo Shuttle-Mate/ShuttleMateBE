@@ -66,7 +66,7 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Cập nhật vị trí chuyến đi
         /// </summary>
-        [HttpPatch("({tripId})")]
+        [HttpPatch("{tripId}")]
         public async Task<IActionResult> UpdateTripLocation(Guid tripId, UpdateTripModel model)
         {
             
@@ -77,11 +77,11 @@ namespace ShuttleMate.API.Controllers
             ));
         }
 
-        [HttpPost("{tripId}/start-fake-movement")]
-        public IActionResult StartFakeMovement(Guid tripId)
+        [HttpPost("simulate")]
+        public async Task<IActionResult> Simulate(Guid tripId, string token)
         {
-            _backgroundJob.Enqueue(() => _tripService.FakeTripMovementAsync(tripId));
-            return Ok(new { message = "Fake trip movement started" });
+            await _tripService.Simulate(tripId, token);
+            return Ok("Simulation complete. Check logs.");
         }
     }
 }

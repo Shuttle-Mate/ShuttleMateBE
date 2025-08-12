@@ -11,6 +11,8 @@ namespace ShuttleMate.Core.Bases
         public int StatusCode { get; set; }
         public string Code { get; set; }
 
+        public BaseResponseModel() { }
+
         public BaseResponseModel(int statusCode, string code, T? data, string? message = null)
         {
             this.StatusCode = statusCode;

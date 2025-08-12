@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
@@ -10,6 +11,8 @@ using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.TripModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -357,14 +360,15 @@ namespace ShuttleMate.Services.Services
             var trip = await _unitOfWork.GetRepository<Trip>().GetByIdAsync(tripId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi không tồn tại.");
 
-            var stops = trip.Schedule.Route.RouteStops.OrderBy(rs => rs.StopOrder).ToList();
+            var stops = trip.Schedule.Route.RouteStops
+                .OrderBy(rs => trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND ? rs.StopOrder : -rs.StopOrder)
+                .ToList();
 
             var currentIndex = trip.CurrentStopIndex;
 
-            var nextStop = stops
-                .Where(s => s.StopOrder > currentIndex)
-                .OrderBy(s => s.StopOrder)
-                .FirstOrDefault();
+            var nextStop = trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND
+                ? stops.FirstOrDefault(s => s.StopOrder > currentIndex)
+                : stops.FirstOrDefault(s => s.StopOrder < currentIndex);
 
             if (nextStop == null)
                 return new ResponseTripLocationModel { Message = "No next stop" };
@@ -373,18 +377,11 @@ namespace ShuttleMate.Services.Services
             var speedMps = (40 * 1000) / 3600.0; // giả định 40km/h
             var duration = distance / speedMps;
 
-            //trip.ShuttleLocationRecords.Add(new ShuttleLocationRecord
-            //{
-            //    TripId = trip.Id,
-            //    Lat = (decimal)model.Lat,
-            //    Lng = (decimal)model.Lng,
-            //    TimeStamp = DateTime.UtcNow
-            //});
-            //await _unitOfWork.GetRepository<Trip>().SaveAsync();
-
             int minutes = (int)Math.Ceiling(duration / 60);
+
+            string message = null;
             if (minutes <= 5 && minutes > 0)
-                Console.WriteLine($"[Trip {trip.Id}] Xe sẽ đến {nextStop.Stop.Name} trong {minutes} phút nữa.");
+                message = $"Xe sẽ đến {nextStop.Stop.Name} trong {minutes} phút nữa.";
 
             if (distance < 30)
             {
@@ -392,36 +389,16 @@ namespace ShuttleMate.Services.Services
                 await _unitOfWork.GetRepository<Trip>().UpdateAsync(trip);
                 await _unitOfWork.SaveAsync();
 
-                Console.WriteLine($"[Trip {trip.Id}] Xe đã đến {nextStop.Stop.Name}");
+                message = $"Xe đã đến {nextStop.Stop.Name}";
             }
 
             return new ResponseTripLocationModel
             {
                 DistanceMeters = distance,
                 DurationSeconds = duration,
-                NextStopName = nextStop.Stop.Name
+                NextStopName = nextStop.Stop.Name,
+                Message = message
             };
-        }
-
-        public async Task FakeTripMovementAsync(Guid tripId)
-        {
-            var trip = await _unitOfWork.GetRepository<Trip>().GetByIdAsync(tripId)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi không tồn tại.");
-
-            var points = trip.Schedule.Route.RouteStops
-                .OrderBy(rs => rs.StopOrder)
-                .Select(rs => (lat: rs.Stop.Lat, lng: rs.Stop.Lng))
-                .ToList();
-
-            foreach (var p in points)
-            {
-                await UpdateAsync(tripId, new UpdateTripModel
-                {
-                    Lat = p.lat,
-                    Lng = p.lng
-                }); ;
-                await Task.Delay(2000);
-            }
         }
 
         private double Haversine(double lat1, double lon1, double lat2, double lon2)
@@ -435,6 +412,89 @@ namespace ShuttleMate.Services.Services
                     Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
             var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
             return R * c;
+        }
+
+        public async Task Simulate(Guid tripId, string token)
+        {
+            using var httpClient = new HttpClient { BaseAddress = new Uri("https://localhost:7270") };
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var trip = await _unitOfWork.GetRepository<Trip>().GetByIdAsync(tripId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Trip không tồn tại.");
+
+            var stops = trip.Schedule.Route.RouteStops
+                .OrderBy(rs => trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND ? rs.StopOrder : -rs.StopOrder)
+                .ToList();
+
+            var currentStop = stops.FirstOrDefault(s => s.StopOrder == trip.CurrentStopIndex);
+            if (currentStop == null)
+                throw new Exception("Không tìm thấy stop hiện tại.");
+
+            var nextStop = trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND
+                ? stops.FirstOrDefault(s => s.StopOrder > trip.CurrentStopIndex)
+                : stops.FirstOrDefault(s => s.StopOrder < trip.CurrentStopIndex);
+
+            if (nextStop == null)
+            {
+                Console.WriteLine("🚐 Không còn chặng tiếp theo.");
+                return;
+            }
+
+            Console.WriteLine($"--- Di chuyển từ {currentStop.Stop.Name} đến {nextStop.Stop.Name} ---");
+
+            var vietMapApiKey = "402f419bab73a9275007e8359102b3a8fe3af86beaa1144f";
+
+            var vietmapUrl =
+                $"https://maps.vietmap.vn/api/route?api-version=1.1&apikey={vietMapApiKey}" +
+                $"&point={currentStop.Stop.Lat},{currentStop.Stop.Lng}" +
+                $"&point={nextStop.Stop.Lat},{nextStop.Stop.Lng}" +
+                "&points_encoded=false";
+
+            using var vmClient = new HttpClient();
+            var vmResponse = await vmClient.GetFromJsonAsync<VietMapRouteResponse>(vietmapUrl);
+            var coordinates = vmResponse?.paths?.FirstOrDefault()?.points?.coordinates;
+
+            if (coordinates == null || coordinates.Count == 0)
+                throw new Exception("Không lấy được dữ liệu route từ VietMap.");
+
+            foreach (var coord in coordinates)
+            {
+                double lng = coord[0];
+                double lat = coord[1];
+
+                var body = new { Lat = lat, Lng = lng };
+                var response = await httpClient.PatchAsJsonAsync($"/api/trip/{tripId}", body);
+                var data = await response.Content.ReadFromJsonAsync<BaseResponseModel<ResponseTripLocationModel>>();
+
+                Console.WriteLine($"[{DateTime.Now:T}] Vị trí: {lat}, {lng}");
+
+                if (!string.IsNullOrEmpty(data?.Data?.Message))
+                {
+                    Console.WriteLine(data.Data.Message);
+                    if (data.Data.Message.StartsWith("Xe đã đến"))
+                    {
+                        Console.WriteLine("⏹ Dừng mô phỏng, chặng đã hoàn tất.");
+                        return;
+                    }
+                }
+
+                await Task.Delay(1000);
+            }
+        }
+
+        public class VietMapRouteResponse
+        {
+            public List<Path> paths { get; set; }
+        }
+
+        public class Path
+        {
+            public PointData points { get; set; }
+        }
+
+        public class PointData
+        {
+            public List<List<double>> coordinates { get; set; }
         }
     }
 }
