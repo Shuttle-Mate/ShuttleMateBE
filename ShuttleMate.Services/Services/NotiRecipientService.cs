@@ -1,19 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Ocsp;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.AttendanceModelViews;
 using ShuttleMate.ModelViews.NotificationModelViews;
 using ShuttleMate.ModelViews.NotiRecipientModelView;
 using ShuttleMate.Services.Services.Infrastructure;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -54,14 +57,53 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task<List<ResponseNotiRecipientModel>> GetAll()
+        public async Task<BasePaginatedList<ResponseNotiRecipientModel>> GetAll(GetNotiRecipQuery req)
         {
-            var notiRecipients = await _unitOfWork.GetRepository<NotificationRecipient>().Entities.Where(x => !x.DeletedTime.HasValue).OrderBy(x => x.CreatedTime).ToListAsync();
+            var page = req.page > 0 ? req.page : 0;
+            var pageSize = req.pageSize > 0 ? req.pageSize : 10;
+
+            IQueryable<NotificationRecipient> query = _unitOfWork.GetRepository<NotificationRecipient>()
+                .Entities
+                .Include(x => x.Recipient)
+                .Include(x => x.Notification)
+                .Where(x => !x.DeletedTime.HasValue);
+
+            // Filter by status (string to enum, upper-case)
+            if (!string.IsNullOrWhiteSpace(req.status))
+            {
+                if (Enum.TryParse<NotificationStatusEnum>(req.status.Trim().ToUpperInvariant(), out var statusEnum))
+                {
+                    query = query.Where(x => x.Status == statusEnum);
+                }
+                else
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trạng thái thông báo không hợp lệ!");
+                }
+            }
+
+            if (req.userId.HasValue && req.userId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.RecipientId == req.userId.Value);
+            }
+
+            query = query.OrderBy(x => x.CreatedTime);
+
+            var totalCount = query.Count();
+
+            //Paging
+            var notiRecipients = await query
+                .Skip(req.page * req.pageSize)
+                .Take(req.pageSize)
+                .ToListAsync();
+
             if (!notiRecipients.Any())
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có thông báo nào tồn tại!");
             }
-            return _mapper.Map<List<ResponseNotiRecipientModel>>(notiRecipients);
+
+            var result = _mapper.Map<List<ResponseNotiRecipientModel>>(notiRecipients);
+
+            return new BasePaginatedList<ResponseNotiRecipientModel>(result, totalCount, page, pageSize);
         }
 
         public async Task<ResponseNotiRecipientModel> GetById(Guid notiRecipientId)
