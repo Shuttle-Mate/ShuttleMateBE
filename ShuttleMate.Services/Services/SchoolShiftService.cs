@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
@@ -27,14 +28,16 @@ namespace ShuttleMate.Services.Services
         private readonly IConfiguration _configuration;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IEmailService _emailService;
+        private readonly ILogger<SchoolShiftService> _logger;
 
-        public SchoolShiftService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService)
+        public SchoolShiftService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService, ILogger<SchoolShiftService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _configuration = configuration;
             _contextAccessor = contextAccessor;
             _emailService = emailService;
+            _logger = logger;
         }
         public async Task<BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>> GetAllSchoolShift(int page = 0, int pageSize = 10, string? sessionType = null, string? shiftType = null, bool sortAsc = false)
         {
@@ -279,15 +282,104 @@ namespace ShuttleMate.Services.Services
         }
         public async Task DeleteSchoolShift(Guid id)
         {
-            var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy ca học!");
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
+            // Get the school shift with validation
+            var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities
+                .Include(x => x.School)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.DeletedTime.HasValue)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound,
+                    ResponseCodeConstants.NOT_FOUND,
+                    "Không tìm thấy ca học!");
 
+            // Mark as deleted
             schoolShift.DeletedTime = DateTime.Now;
-
             await _unitOfWork.GetRepository<SchoolShift>().UpdateAsync(schoolShift);
+
+            // Get all related user school shifts with student info
+            var userSchoolShifts = await _unitOfWork.GetRepository<UserSchoolShift>().Entities
+                .Where(x => x.SchoolShiftId == id && !x.DeletedTime.HasValue)
+                .Include(x => x.Student)
+                .ToListAsync();
+
+            if (userSchoolShifts.Any())
+            {
+                // Get distinct students
+                var distinctStudents = userSchoolShifts
+                    .Select(x => x.Student)
+                    .DistinctBy(x => x.Id)
+                    .ToList();
+
+                // Soft delete all user school shift records
+                foreach (var userShift in userSchoolShifts)
+                {
+                    await _unitOfWork.GetRepository<UserSchoolShift>().DeleteAsync(userShift);
+                }
+
+                // Prepare email content
+                var schoolName = schoolShift.School?.Name ?? "trường học";
+                var shiftTime = $"{schoolShift.Time:HH:mm}";
+
+                // Send email to each affected student
+                foreach (var student in distinctStudents)
+                {
+                    try
+                    {
+                        await _emailService.SendEmailAsync(
+                            student.Email,
+                            $"THÔNG BÁO HỦY CA HỌC - {schoolName}",
+                            $@"
+                    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background-color: #FAF9F7;'>
+                        <h2 style='color: #124DA3; border-bottom: 2px solid #F37022; padding-bottom: 10px;'>THÔNG BÁO HỦY CA HỌC</h2>
+                        
+                        <p style='color: #333;'>Xin chào {student.FullName},</p>
+                        
+                        <p style='color: #333;'>Trường đã hủy ca học của bạn với thông tin sau:</p>
+                        
+                        <div style='background: white; padding: 15px; margin: 15px 0; border-radius: 4px; border-left: 4px solid #124DA3;'>
+                            <p style='margin: 5px 0 0; color: #333;'><strong>Ca học:</strong> {shiftTime}</p>
+                            <p style='margin: 5px 0 0; color: #F37022;'><strong>Trạng thái:</strong> ĐÃ HỦY</p>
+                        </div>
+                        
+                        <p style='color: #333;'>Vui lòng đăng nhập vào hệ thống để đăng ký lại ca học mới.</p>
+                        
+                        <a href='#' style='display: inline-block; background-color: #F37022; color: white; 
+                                          padding: 10px 20px; text-decoration: none; border-radius: 4px;
+                                          margin: 15px 0; font-weight: bold;'>
+                            Truy cập hệ thống ngay
+                        </a>
+                        
+                        <p style='color: #ff0000;'><strong>⚠️ Lưu ý:</strong> Bạn cần đăng ký lại ca học mới trước khi hết hạn.</p>
+                        
+                        <p style='color: #4EB748; font-style: italic;'>
+                            <strong>✔️ Thông báo:</strong> Hệ thống đã ghi nhận thay đổi!
+                        </p>
+                        
+                        <p style='color: #333; font-size: 14px;'>
+                            Nếu bạn không nhận ra thay đổi này, vui lòng liên hệ bộ phận hỗ trợ.
+                        </p>
+                        
+                        <div style='margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee;'>
+                            <p style='color: #124DA3; font-weight: bold;'>Đội ngũ hỗ trợ ShuttleMate</p>
+                            <p style='font-size: 12px; color: #999;'>
+                                © {vietnamNow.Year} ShuttleMate. Bảo lưu mọi quyền.
+                            </p>
+                        </div>
+                    </div>
+                    "
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log email failure but continue processing
+                        _logger.LogError(ex, $"Failed to send email to student {student.Id} about deleted shift");
+                    }
+                }
+            }
+
             await _unitOfWork.SaveAsync();
         }
-
-
     }
 }
 

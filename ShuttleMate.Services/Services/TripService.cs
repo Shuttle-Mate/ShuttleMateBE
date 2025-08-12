@@ -195,6 +195,16 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status403Forbidden, ResponseCodeConstants.FORBIDDEN, "Bạn không có quyền kết thúc chuyến đi này. Chỉ tài xế đã bắt đầu chuyến mới được phép kết thúc.");
             }
 
+            if (tripToEnd.Schedule.RouteId  != routeId)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Chuyến đi sai tuyến, không thể kết thúc!");
+            }
+
+            if (tripToEnd.Schedule.SchoolShiftId != schoolShiftId)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Chuyến đi sai ca học, không thể kết thúc!");
+            }
+
             // Get all attendance records for this trip
             var listAttendance = await _unitOfWork.GetRepository<Attendance>().Entities
                 .Include(x => x.HistoryTicket)
@@ -323,7 +333,8 @@ namespace ShuttleMate.Services.Services
                     templateType: "AbsentNotificationForStudent",
                     recipientIds: new List<Guid> { user.Id },
                     metadata: metadata,
-                    createdBy: "system"
+                    createdBy: "system",
+                    notiCategory: "ATTENDANCE"
                 );
 
                 // Nếu có phụ huynh thì gửi cho phụ huynh
@@ -333,7 +344,8 @@ namespace ShuttleMate.Services.Services
                         templateType: "AbsentNotificationForParent",
                         recipientIds: new List<Guid> { user.ParentId.Value },
                         metadata: metadata,
-                        createdBy: "system"
+                        createdBy: "system",
+                        notiCategory: "ATTENDANCE"
                     );
                 }
 

@@ -21,6 +21,43 @@ namespace ShuttleMate.API.Controllers
             _firebaseService = firebaseService;
         }
 
+        /// <summary>
+        /// Gửi thông báo đến toàn người dùng không sử dụng template
+        /// </summary>
+        [HttpPost("send-to-all")]
+        public async Task<IActionResult> SendToAll([FromBody] NotiModel model)
+        {
+            var notificationId = await _notificationService.CreateNotificationForAllUsers(model);
+            return Ok(new BaseResponseModel<Guid>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "Gửi thông báo đến tất cả người dùng thành công",
+                data: notificationId
+            ));
+        }
+
+        /// <summary>
+        /// Gửi thông báo đến toàn người dùng sử dụng template
+        /// </summary>
+        [HttpPost("send-template-to-all")]
+        public async Task<IActionResult> SendTemplateToAll([FromBody] NotificationTemplateSendAllRequest req)
+        {
+            var notificationId = await _notificationService.SendNotificationForAllFromTemplateAsync(
+                templateType: req.TemplateType,
+                metadata: req.Metadata,
+                notiCategory: req.NotificationCategory
+            );
+            return Ok(new BaseResponseModel<Guid>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: $"Gửi thông báo bằng template {req.TemplateType} đến tất cả người dùng thành công",
+                data: notificationId
+            ));
+        }
+
+        /// <summary>
+        /// API này để test device token
+        /// </summary>
         [HttpPost("push/send")]
         public async Task<IActionResult> Send([FromBody] NotificationRequest req)
         {
@@ -28,16 +65,16 @@ namespace ShuttleMate.API.Controllers
             return Ok("Notification sent.");
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CreateNoti(NotiModel model)
-        {
-            await _notificationService.CreateNotification(model);
-            return Ok(new BaseResponseModel<string>(
-                statusCode: StatusCodes.Status200OK,
-                code: ResponseCodeConstants.SUCCESS,
-                message: "Tạo thông báo thành công!"
-            ));
-        }
+        //[HttpPost]
+        //public async Task<IActionResult> CreateNoti(NotiModel model)
+        //{
+        //    await _notificationService.CreateNotification(model);
+        //    return Ok(new BaseResponseModel<string>(
+        //        statusCode: StatusCodes.Status200OK,
+        //        code: ResponseCodeConstants.SUCCESS,
+        //        message: "Tạo thông báo thành công!"
+        //    ));
+        //}
         [HttpGet]
         public async Task<IActionResult> GetAllNoti()
         {
@@ -68,8 +105,8 @@ namespace ShuttleMate.API.Controllers
         //        data: "Cập nhật xe thành công"
         //    ));
         //}
-        [HttpDelete]
-        public async Task<IActionResult> DeleteNotification(Guid notiId)
+        [HttpDelete("{notiId}")]
+        public async Task<IActionResult> DeleteNotification([FromRoute]Guid notiId)
         {
             await _notificationService.DeleteNoti(notiId);
             return Ok(new BaseResponseModel<string>(
@@ -78,6 +115,9 @@ namespace ShuttleMate.API.Controllers
                 message: "Xóa thông báo thành công"
             ));
         }
+        /// <summary>
+        /// Gửi thông báo đến list người dùng cụ thể sử dụng template
+        /// </summary>
         [HttpPost("send-template")]
         public async Task<IActionResult> SendFromTemplate([FromBody] NotificationTemplateSendRequest request)
         {
@@ -85,7 +125,8 @@ namespace ShuttleMate.API.Controllers
                 templateType: request.TemplateType,
                 recipientIds: request.RecipientIds,
                 metadata: request.Metadata,
-                createdBy: request.CreatedBy
+                createdBy: request.CreatedBy,
+                notiCategory: request.NotificationCategory
             );
 
             return Ok(new BaseResponseModel<Guid>(

@@ -228,7 +228,7 @@ namespace ShuttleMate.Services.Services
                     {
                         model = _configuration["OpenAI:Model"] ?? "gpt-3.5-turbo",
                         messages,
-                        temperature = 0.3,
+                        temperature = 0.5,
                         max_tokens = _configuration.GetValue("OpenAI:MaxTokens", 150),
                         top_p = 1.0,
                         frequency_penalty = 0.5,
