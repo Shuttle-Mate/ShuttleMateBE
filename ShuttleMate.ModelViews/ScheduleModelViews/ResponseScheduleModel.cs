@@ -3,6 +3,7 @@
     public class ResponseScheduleModel
     {
         public string DayOfWeek { get; set; }
+        public string Date { get; set; }
         public List<ResponseScheduleDetailModel> Schedules { get; set; } = new();
     }
 

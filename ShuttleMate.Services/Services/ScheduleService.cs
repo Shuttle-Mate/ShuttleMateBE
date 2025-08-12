@@ -83,17 +83,26 @@ namespace ShuttleMate.Services.Services
                 .ToHashSet();
 
             var groupedQuery = pagedItems
-                .SelectMany(schedule =>
-                    schedule.DayOfWeek
-                        .Select((c, idx) => new { c, idx })
-                        .Where(d => d.c == '1')
-                        .Select(d => new
-                        {
-                            DayName = dayNamesFull[d.idx],
-                            DayIndex = d.idx,
-                            ScheduleDetail = _mapper.Map<ResponseScheduleDetailModel>(schedule)
-                        })
-                );
+    .SelectMany(schedule =>
+        schedule.DayOfWeek
+            .Select((c, idx) => new { c, idx })
+            .Where(d => d.c == '1')
+            .SelectMany(d =>
+            {
+                var matchingDates = Enumerable.Range(0, to.DayNumber - from.DayNumber + 1)
+                    .Select(offset => from.AddDays(offset))
+                    .Where(date => ((int)date.DayOfWeek + 6) % 7 == d.idx)
+                    .ToList();
+
+                return matchingDates.Select(date => new
+                {
+                    DayName = dayNamesFull[d.idx],
+                    DayIndex = d.idx,
+                    Date = date.ToString("dd-MM-yyyy"),
+                    ScheduleDetail = _mapper.Map<ResponseScheduleDetailModel>(schedule)
+                });
+            })
+    );
 
             if (!string.IsNullOrWhiteSpace(dayOfWeek))
             {
@@ -110,13 +119,14 @@ namespace ShuttleMate.Services.Services
             }
 
             var grouped = groupedQuery
-                .GroupBy(x => x.DayName)
+                .GroupBy(x => new { x.DayName, x.Date })
                 .Select(g => new ResponseScheduleModel
                 {
-                    DayOfWeek = g.Key,
+                    DayOfWeek = g.Key.DayName,
+                    Date = g.Key.Date,
                     Schedules = g.Select(x => x.ScheduleDetail).ToList()
                 })
-                .OrderBy(g => Array.IndexOf(dayNamesFull, g.DayOfWeek))
+                .OrderBy(g => DateOnly.Parse(g.Date))
                 .ToList();
 
             return new BasePaginatedList<ResponseScheduleModel>(grouped, totalCount, page, pageSize);
