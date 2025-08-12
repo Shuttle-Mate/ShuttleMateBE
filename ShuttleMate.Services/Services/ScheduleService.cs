@@ -99,6 +99,7 @@ namespace ShuttleMate.Services.Services
                             var matchingDates = Enumerable.Range(0, toDate.DayNumber - fromDate.DayNumber + 1)
                                 .Select(offset => fromDate.AddDays(offset))
                                 .Where(date => ((int)date.DayOfWeek + 6) % 7 == d.idx)
+                                .Where(date => date >= schedule.From && date <= schedule.To)
                                 .ToList();
 
                             return matchingDates.Select(date => new
