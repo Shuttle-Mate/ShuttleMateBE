@@ -10,6 +10,7 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.ScheduleModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
+using System.Globalization;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -30,19 +31,19 @@ namespace ShuttleMate.Services.Services
         }
 
         public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByRouteIdAsync(
-    Guid routeId,
-    string from,
-    string to,
-    string? dayOfWeek,
-    string? direction,
-    bool sortAsc = true,
-    int page = 0,
-    int pageSize = 10)
+            Guid routeId,
+            string from,
+            string to,
+            string? dayOfWeek,
+            string? direction,
+            bool sortAsc = true,
+            int page = 0,
+            int pageSize = 10)
         {
-            if (!DateOnly.TryParse(from, out var fromDate))
+            if (!DateOnly.TryParseExact(from, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var fromDate))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày {from} không hợp lệ.");
 
-            if (!DateOnly.TryParse(to, out var toDate))
+            if (!DateOnly.TryParseExact(to, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var toDate))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày {to} không hợp lệ.");
 
             var route = await _unitOfWork.GetRepository<Route>().GetByIdAsync(routeId)
