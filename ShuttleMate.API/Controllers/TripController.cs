@@ -1,23 +1,23 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Hangfire;
+using Microsoft.AspNetCore.Mvc;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
-using ShuttleMate.ModelViews.AttendanceModelViews;
-using ShuttleMate.ModelViews.RouteModelViews;
-using ShuttleMate.ModelViews.ShuttleModelViews;
 using ShuttleMate.ModelViews.TripModelViews;
-using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/trip")]
     [ApiController]
     public class TripController : ControllerBase
     {
         private readonly ITripService _tripService;
-        public TripController(ITripService tripService)
+        private readonly IBackgroundJobClient _backgroundJob;
+
+        public TripController(ITripService tripService, IBackgroundJobClient backgroundJob)
         {
             _tripService = tripService;
+            _backgroundJob = backgroundJob;
         }
 
         /// <summary>
@@ -34,6 +34,7 @@ namespace ShuttleMate.API.Controllers
                 data: tripId.ToString()
             ));
         }
+
         /// <summary>
         /// get all trip với filter
         /// </summary>
@@ -47,6 +48,7 @@ namespace ShuttleMate.API.Controllers
                 data: res
             ));
         }
+
         /// <summary>
         /// tài xế kết thúc chuyến đi
         /// </summary>
@@ -59,6 +61,27 @@ namespace ShuttleMate.API.Controllers
                 code: ResponseCodeConstants.SUCCESS,
                 message: "Kết thúc chuyến đi thành công"
             ));
+        }
+
+        /// <summary>
+        /// Cập nhật vị trí chuyến đi
+        /// </summary>
+        [HttpPatch("({tripId})")]
+        public async Task<IActionResult> UpdateTripLocation(Guid tripId, UpdateTripModel model)
+        {
+            
+            return Ok(new BaseResponseModel<ResponseTripLocationModel>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: await _tripService.UpdateAsync(tripId, model)
+            ));
+        }
+
+        [HttpPost("{tripId}/start-fake-movement")]
+        public IActionResult StartFakeMovement(Guid tripId)
+        {
+            _backgroundJob.Enqueue(() => _tripService.FakeTripMovementAsync(tripId));
+            return Ok(new { message = "Fake trip movement started" });
         }
     }
 }

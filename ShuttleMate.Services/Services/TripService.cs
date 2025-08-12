@@ -1,25 +1,15 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Org.BouncyCastle.Ocsp;
-using Org.BouncyCastle.Pkix;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
-using ShuttleMate.ModelViews.AttendanceModelViews;
-using ShuttleMate.ModelViews.RouteModelViews;
 using ShuttleMate.ModelViews.TripModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -31,16 +21,14 @@ namespace ShuttleMate.Services.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IAttendanceService _attendanceService;
         private readonly INotificationService _notificationService;
-        private readonly IFirebaseService _firebaseService;
 
-        public TripService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IAttendanceService attendanceService, INotificationService notificationService, IFirebaseService firebaseService)
+        public TripService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IAttendanceService attendanceService, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
             _attendanceService = attendanceService;
             _notificationService = notificationService;
-            _firebaseService = firebaseService;
         }
 
         public async Task<Guid> StartTrip(Guid scheduleId)
@@ -175,10 +163,10 @@ namespace ShuttleMate.Services.Services
             throw new NotImplementedException();
         }
 
-        public Task UpdateTrip(UpdateTripModel model)
-        {
-            throw new NotImplementedException();
-        }
+        //public Task UpdateTrip(UpdateTripModel model)
+        //{
+        //    throw new NotImplementedException();
+        //}
 
         public async Task EndTrip(Guid tripId, Guid routeId, Guid schoolShiftId)
         {
@@ -350,6 +338,91 @@ namespace ShuttleMate.Services.Services
                 }
 
             }
+        }
+
+        public async Task<ResponseTripLocationModel> UpdateAsync(Guid tripId, UpdateTripModel model)
+        {
+            var trip = await _unitOfWork.GetRepository<Trip>().GetByIdAsync(tripId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi không tồn tại.");
+
+            var stops = trip.Schedule.Route.RouteStops.OrderBy(rs => rs.StopOrder).ToList();
+
+            var currentIndex = trip.CurrentStopIndex;
+
+            var nextStop = stops
+                .Where(s => s.StopOrder > currentIndex)
+                .OrderBy(s => s.StopOrder)
+                .FirstOrDefault();
+
+            if (nextStop == null)
+                return new ResponseTripLocationModel { Message = "No next stop" };
+
+            var distance = Haversine(model.Lat, model.Lng, nextStop.Stop.Lat, nextStop.Stop.Lng);
+            var speedMps = (40 * 1000) / 3600.0; // giả định 40km/h
+            var duration = distance / speedMps;
+
+            //trip.ShuttleLocationRecords.Add(new ShuttleLocationRecord
+            //{
+            //    TripId = trip.Id,
+            //    Lat = (decimal)model.Lat,
+            //    Lng = (decimal)model.Lng,
+            //    TimeStamp = DateTime.UtcNow
+            //});
+            //await _unitOfWork.GetRepository<Trip>().SaveAsync();
+
+            int minutes = (int)Math.Ceiling(duration / 60);
+            if (minutes <= 5 && minutes > 0)
+                Console.WriteLine($"[Trip {trip.Id}] Xe sẽ đến {nextStop.Stop.Name} trong {minutes} phút nữa.");
+
+            if (distance < 30)
+            {
+                trip.CurrentStopIndex = nextStop.StopOrder;
+                await _unitOfWork.GetRepository<Trip>().UpdateAsync(trip);
+                await _unitOfWork.SaveAsync();
+
+                Console.WriteLine($"[Trip {trip.Id}] Xe đã đến {nextStop.Stop.Name}");
+            }
+
+            return new ResponseTripLocationModel
+            {
+                DistanceMeters = distance,
+                DurationSeconds = duration,
+                NextStopName = nextStop.Stop.Name
+            };
+        }
+
+        public async Task FakeTripMovementAsync(Guid tripId)
+        {
+            var trip = await _unitOfWork.GetRepository<Trip>().GetByIdAsync(tripId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi không tồn tại.");
+
+            var points = trip.Schedule.Route.RouteStops
+                .OrderBy(rs => rs.StopOrder)
+                .Select(rs => (lat: rs.Stop.Lat, lng: rs.Stop.Lng))
+                .ToList();
+
+            foreach (var p in points)
+            {
+                await UpdateAsync(tripId, new UpdateTripModel
+                {
+                    Lat = p.lat,
+                    Lng = p.lng
+                }); ;
+                await Task.Delay(2000);
+            }
+        }
+
+        private double Haversine(double lat1, double lon1, double lat2, double lon2)
+        {
+            const double R = 6371000;
+            var dLat = (lat2 - lat1) * Math.PI / 180.0;
+            var dLon = (lon2 - lon1) * Math.PI / 180.0;
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                    Math.Cos(lat1 * Math.PI / 180.0) *
+                    Math.Cos(lat2 * Math.PI / 180.0) *
+                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return R * c;
         }
     }
 }
