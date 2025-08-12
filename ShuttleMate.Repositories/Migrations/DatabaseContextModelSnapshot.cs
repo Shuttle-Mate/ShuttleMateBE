@@ -1382,9 +1382,6 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Property<DateTimeOffset>("CreatedTime")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<int>("CurrentStopIndex")
-                        .HasColumnType("int");
-
                     b.Property<string>("DeletedBy")
                         .HasColumnType("nvarchar(max)");
 
