@@ -133,7 +133,7 @@ namespace ShuttleMate.Services.Services
                     Date = g.Key.Date,
                     Schedules = g.Select(x => x.ScheduleDetail).ToList()
                 })
-                .OrderBy(g => DateOnly.Parse(g.Date))
+                .OrderBy(g => DateOnly.ParseExact(g.Date, "dd-MM-yyyy", CultureInfo.InvariantCulture))
                 .ToList();
 
             return new BasePaginatedList<ResponseScheduleModel>(grouped, totalCount, page, pageSize);
