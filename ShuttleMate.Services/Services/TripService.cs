@@ -8,6 +8,7 @@ using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
+using ShuttleMate.ModelViews.ScheduleModelViews;
 using ShuttleMate.ModelViews.TripModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
@@ -161,9 +162,15 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ResponseTripModel>(result, totalCount, page, pageSize);
         }
 
-        public Task<ResponseTripModel> GetById(Guid tripId)
+        public async Task<ResponseTripModel> GetByIdAsync(Guid tripId)
         {
-            throw new NotImplementedException();
+            var trip = await _unitOfWork.GetRepository<Trip>().GetByIdAsync(tripId)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi không tồn tại.");
+
+            if (trip.DeletedTime.HasValue)
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi đã bị xóa.");
+
+            return _mapper.Map<ResponseTripModel>(trip);
         }
 
         //public Task UpdateTrip(UpdateTripModel model)

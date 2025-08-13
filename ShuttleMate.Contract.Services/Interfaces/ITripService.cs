@@ -8,7 +8,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<Guid> StartTrip(Guid scheduleId);
         Task EndTrip(Guid tripId, Guid routeId, Guid schoolShiftId);
         Task<BasePaginatedList<ResponseTripModel>> GetAllPaging(GetTripQuery req);
-        Task<ResponseTripModel> GetById(Guid tripId);
+        Task<ResponseTripModel> GetByIdAsync(Guid tripId);
         Task<ResponseTripLocationModel> UpdateAsync(Guid tripId, UpdateTripModel model);
         Task Simulate(Guid tripId, string token);
     }

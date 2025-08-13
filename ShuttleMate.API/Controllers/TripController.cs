@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.ModelViews.FeedbackModelViews;
 using ShuttleMate.ModelViews.TripModelViews;
+using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
 {
@@ -47,6 +49,18 @@ namespace ShuttleMate.API.Controllers
                 code: ResponseCodeConstants.SUCCESS,
                 data: res
             ));
+        }
+
+        /// <summary>
+        /// Lấy chi tiết chuyến đi.
+        /// </summary>
+        [HttpGet("{tripId}")]
+        public async Task<IActionResult> GetTripById(Guid tripId)
+        {
+            return Ok(new BaseResponseModel<ResponseTripModel>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: await _tripService.GetByIdAsync(tripId)));
         }
 
         /// <summary>
