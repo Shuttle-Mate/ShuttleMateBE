@@ -355,7 +355,7 @@ namespace ShuttleMate.Services.Services
                                  DateOnly.FromDateTime(a.CheckOutTime) == todayVN) &&
                                 a.Trip.Schedule.SchoolShiftId == schoolShiftId &&
                                 a.Trip.Schedule.RouteId == routeId)
-                            .Select(a => (Guid?)a.TripId))  // Chú ý: (Guid?) để trả về null
+                            .Select(a => (Guid?)a.TripId))  
                         .FirstOrDefault(),  // Nếu không có, trả về null
                     Address = u.Address,
                 })
@@ -599,7 +599,7 @@ namespace ShuttleMate.Services.Services
                     Address = school.Address,
                     PhoneNumber = school.PhoneNumber,
                     Email = school.Email,
-                    schoolShiftResponses = school.SchoolShifts?.Select(x => new SchoolShiftResponse
+                    schoolShiftResponses = school.SchoolShifts?.Where(x=>!x.DeletedTime.HasValue).Select(x => new SchoolShiftResponse
                     {
                         Id = x.Id,
                         Time = x.Time,
@@ -656,7 +656,7 @@ namespace ShuttleMate.Services.Services
                             Address = childSchool.Address,
                             PhoneNumber = childSchool.PhoneNumber,
                             Email = childSchool.Email,
-                            schoolShiftResponses = childSchool.SchoolShifts?.Where(x => x.UserSchoolShifts.Any(x => x.StudentId == child.Id)).Select(x => new SchoolShiftResponse
+                            schoolShiftResponses = childSchool.SchoolShifts?.Where(x =>!x.DeletedTime.HasValue && x.UserSchoolShifts.Any(x => x.StudentId == child.Id)).Select(x => new SchoolShiftResponse
                             {
                                 Id = x.Id,
                                 Time = x.Time,
@@ -721,7 +721,7 @@ namespace ShuttleMate.Services.Services
                     Address = school.Address,
                     PhoneNumber = school.PhoneNumber,
                     Email = school.Email,
-                    schoolShiftResponses = school.SchoolShifts?.Where(x => x.UserSchoolShifts.Any(x => x.StudentId == user.Id)).Select(x => new SchoolShiftResponse
+                    schoolShiftResponses = school.SchoolShifts?.Where(x => !x.DeletedTime.HasValue && x.UserSchoolShifts.Any(x => x.StudentId == user.Id)).Select(x => new SchoolShiftResponse
                     {
                         Id = x.Id,
                         Time = x.Time,
@@ -778,7 +778,7 @@ namespace ShuttleMate.Services.Services
                             Address = childSchool.Address,
                             PhoneNumber = childSchool.PhoneNumber,
                             Email = childSchool.Email,
-                            schoolShiftResponses = childSchool.SchoolShifts?.Where(x => x.UserSchoolShifts.Any(x => x.StudentId == child.Id)).Select(x => new SchoolShiftResponse
+                            schoolShiftResponses = childSchool.SchoolShifts?.Where(x => !x.DeletedTime.HasValue && x.UserSchoolShifts.Any(x => x.StudentId == child.Id)).Select(x => new SchoolShiftResponse
                             {
                                 Id = x.Id,
                                 Time = x.Time,
