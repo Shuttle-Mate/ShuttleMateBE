@@ -228,7 +228,7 @@ namespace ShuttleMate.Services.Services
                     {
                         model = _configuration["OpenAI:Model"] ?? "gpt-3.5-turbo",
                         messages,
-                        temperature = 0.3,
+                        temperature = 0.5,
                         max_tokens = _configuration.GetValue("OpenAI:MaxTokens", 150),
                         top_p = 1.0,
                         frequency_penalty = 0.5,
@@ -469,7 +469,8 @@ namespace ShuttleMate.Services.Services
                     Where(x=> x.ParentId == userId && !x.DeletedTime.HasValue && x.Violate == false).ToListAsync(); ;
                 if(childs != null)
                 {
-                    foreach(var child in childs)
+                    sb.AppendLine("### DANH SÁCH CON CỦA BẠN:");
+                    foreach (var child in childs)
                     {
                         sb.AppendLine("### THÔNG TIN HỆ THỐNG SHUTTLEMATE CỦA CON BẠN");
                         sb.AppendLine($"Con: {child.FullName} ({child.Email})");
@@ -479,18 +480,18 @@ namespace ShuttleMate.Services.Services
                             var school = child.School;
                             var currentSemester = await GetCurrentSemester(new List<School> { school });
 
-                            sb.AppendLine($"\n**THÔNG TIN TRƯỜNG HỌC CỦA CON**");
+                            sb.AppendLine($"\n**THÔNG TIN TRƯỜNG HỌC CỦA CON BẠN**");
                             sb.AppendLine($"- Tên trường: {school.Name}");
                             sb.AppendLine($"- Địa chỉ: {school.Address}");
                             sb.AppendLine($"- Học kỳ hiện tại: {currentSemester}");
 
-                            sb.AppendLine($"\n**LỊCH HỌC**");
+                            sb.AppendLine($"\n**LỊCH HỌC CỦA CON BẠN**");
                             foreach (var shift in school.SchoolShifts?.OrderBy(s => s.Time) ?? Enumerable.Empty<SchoolShift>())
                             {
                                 sb.AppendLine($"- Ca {shift.ShiftType}: {shift.Time} ({shift.SessionType})");
                             }
 
-                            sb.AppendLine($"\n**TUYẾN XE CỦA TRƯỜNG CON**");
+                            sb.AppendLine($"\n**TUYẾN XE CỦA TRƯỜNG CON BẠN**");
                             foreach (var route in school.Routes.Where(r => r.IsActive))
                             {
                                 sb.AppendLine($"- Tuyến {route.RouteName} ({route.RouteCode})");

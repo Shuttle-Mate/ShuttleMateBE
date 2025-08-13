@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.ModelViews.FeedbackModelViews;
-using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.MapperProfile
 {
@@ -10,31 +9,21 @@ namespace ShuttleMate.Services.MapperProfile
         public FeedbackProfile()
         {
             CreateMap<Feedback, ResponseFeedbackModel>()
-                .ForMember(dest => dest.FeedbackCategory, opt => opt.MapFrom(src => ConvertFeedbackCategoryToVietnameseString(src.FeedbackCategory)))
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.FeedbackCategory, opt => opt.MapFrom(src => src.FeedbackCategory.ToString()))
                 .ForMember(dest => dest.Message, opt => opt.MapFrom(src => src.Message))
                 .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Rating))
-                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
                 .ForMember(dest => dest.TripId, opt => opt.MapFrom(src => src.TripId))
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
                 .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.User.FullName))
                 .ForMember(dest => dest.CreatedTime, opt => opt.MapFrom(src => src.CreatedTime))
                 .ReverseMap();
             CreateMap<Feedback, CreateFeedbackModel>()
-                .ForMember(dest => dest.FeedbackCategory, opt => opt.MapFrom(src => src.FeedbackCategory))
+                .ForMember(dest => dest.FeedbackCategory, opt => opt.MapFrom(src => src.FeedbackCategory.ToString()))
                 .ForMember(dest => dest.Message, opt => opt.MapFrom(src => src.Message))
                 .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Rating))
                 .ForMember(dest => dest.TripId, opt => opt.MapFrom(src => src.TripId))
                 .ReverseMap();
-        }
-
-        private string ConvertFeedbackCategoryToVietnameseString(FeedbackCategoryEnum category)
-        {
-            return category switch
-            {
-                FeedbackCategoryEnum.SHUTTLE_OPERATION => "SHUTTLE_OPERATION",
-                FeedbackCategoryEnum.APP_TECHNICAL => "APP_TECHNICAL",
-                FeedbackCategoryEnum.OTHER => "OTHER",
-                _ => "UNKNOWN"
-            };
         }
     }
 }

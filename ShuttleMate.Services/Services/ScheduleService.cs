@@ -10,6 +10,7 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.ScheduleModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
+using System.Globalization;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -31,14 +32,20 @@ namespace ShuttleMate.Services.Services
 
         public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByRouteIdAsync(
             Guid routeId,
-            DateOnly from,
-            DateOnly to,
+            string from,
+            string to,
             string? dayOfWeek,
             string? direction,
             bool sortAsc = true,
             int page = 0,
             int pageSize = 10)
         {
+            if (!DateOnly.TryParseExact(from, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var fromDate))
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày {from} không hợp lệ.");
+
+            if (!DateOnly.TryParseExact(to, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var toDate))
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày {to} không hợp lệ.");
+
             var route = await _unitOfWork.GetRepository<Route>().GetByIdAsync(routeId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến không tồn tại.");
 
@@ -53,8 +60,8 @@ namespace ShuttleMate.Services.Services
                 .Where(x =>
                     x.RouteId == routeId &&
                     !x.DeletedTime.HasValue &&
-                    x.From <= to &&
-                    x.To >= from
+                    x.From <= toDate &&
+                    x.To >= fromDate
                 );
 
             if (!string.IsNullOrWhiteSpace(direction) &&
@@ -76,8 +83,8 @@ namespace ShuttleMate.Services.Services
 
             var dayNamesFull = new[] { "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY" };
 
-            var validDayIndexes = Enumerable.Range(0, to.DayNumber - from.DayNumber + 1)
-                .Select(offset => from.AddDays(offset))
+            var validDayIndexes = Enumerable.Range(0, toDate.DayNumber - fromDate.DayNumber + 1)
+                .Select(offset => fromDate.AddDays(offset))
                 .Select(d => ((int)d.DayOfWeek + 6) % 7)
                 .Distinct()
                 .ToHashSet();
@@ -87,11 +94,21 @@ namespace ShuttleMate.Services.Services
                     schedule.DayOfWeek
                         .Select((c, idx) => new { c, idx })
                         .Where(d => d.c == '1')
-                        .Select(d => new
+                        .SelectMany(d =>
                         {
-                            DayName = dayNamesFull[d.idx],
-                            DayIndex = d.idx,
-                            ScheduleDetail = _mapper.Map<ResponseScheduleDetailModel>(schedule)
+                            var matchingDates = Enumerable.Range(0, toDate.DayNumber - fromDate.DayNumber + 1)
+                                .Select(offset => fromDate.AddDays(offset))
+                                .Where(date => ((int)date.DayOfWeek + 6) % 7 == d.idx)
+                                .Where(date => date >= schedule.From && date <= schedule.To)
+                                .ToList();
+
+                            return matchingDates.Select(date => new
+                            {
+                                DayName = dayNamesFull[d.idx],
+                                DayIndex = d.idx,
+                                Date = date.ToString("dd-MM-yyyy"),
+                                ScheduleDetail = _mapper.Map<ResponseScheduleDetailModel>(schedule)
+                            });
                         })
                 );
 
@@ -110,13 +127,14 @@ namespace ShuttleMate.Services.Services
             }
 
             var grouped = groupedQuery
-                .GroupBy(x => x.DayName)
+                .GroupBy(x => new { x.DayName, x.Date })
                 .Select(g => new ResponseScheduleModel
                 {
-                    DayOfWeek = g.Key,
+                    DayOfWeek = g.Key.DayName,
+                    Date = g.Key.Date,
                     Schedules = g.Select(x => x.ScheduleDetail).ToList()
                 })
-                .OrderBy(g => Array.IndexOf(dayNamesFull, g.DayOfWeek))
+                .OrderBy(g => DateOnly.ParseExact(g.Date, "dd-MM-yyyy", CultureInfo.InvariantCulture))
                 .ToList();
 
             return new BasePaginatedList<ResponseScheduleModel>(grouped, totalCount, page, pageSize);
@@ -195,8 +213,10 @@ namespace ShuttleMate.Services.Services
                 var attendedCount = await _unitOfWork.GetRepository<Attendance>().Entities
                     .Where(a =>
                         expectedStudentIds.Contains(a.HistoryTicket.UserId) &&
-                        ((DateOnly.FromDateTime(a.CheckInTime) == todayVN) || (DateOnly.FromDateTime(a.CheckOutTime) == todayVN)))
-                    .Select(a => a.HistoryTicket.UserId)
+                        a.Trip.TripDate == todayVN &&
+                        a.Trip.Schedule.RouteId == s.RouteId &&
+                        a.Trip.Schedule.SchoolShiftId == s.SchoolShiftId &&
+                        (a.Status == AttendanceStatusEnum.CHECKED_IN || a.Status == AttendanceStatusEnum.CHECKED_OUT)).Select(a => a.HistoryTicket.UserId)
                     .Distinct()
                     .CountAsync();
 
@@ -226,7 +246,8 @@ namespace ShuttleMate.Services.Services
                     ExpectedStudentCount = expectedStudentIds.Count,
                     EstimatedDuration = $"{(int)duration.TotalHours}h{duration.Minutes}m",
                     Direction = s.Direction.ToString(),
-                    Route = routeInfo
+                    Route = routeInfo,
+                    TripStatus = s.Trips.FirstOrDefault(t => t.TripDate == todayVN && !t.DeletedTime.HasValue && t.ScheduleId == s.Id)?.Status.ToString() ?? $"{TripStatusEnum.SCHEDULED.ToString()}"
                 });
             }
 
@@ -282,7 +303,8 @@ namespace ShuttleMate.Services.Services
                     ExpectedStudentCount = expectedStudentIds.Count,
                     EstimatedDuration = $"{(int)duration.TotalHours}h{duration.Minutes}m",
                     Direction = s.Direction.ToString(),
-                    Route = routeInfo
+                    Route = routeInfo,
+                    TripStatus = s.Trips.FirstOrDefault(t => t.TripDate == todayVN && !t.DeletedTime.HasValue && t.ScheduleId == s.Id)?.Status.ToString() ?? $"{TripStatusEnum.SCHEDULED.ToString()}"
                 });
             }
 

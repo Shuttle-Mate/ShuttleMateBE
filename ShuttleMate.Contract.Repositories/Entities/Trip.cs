@@ -9,6 +9,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public TimeOnly? StartTime { get; set; }
         public TimeOnly? EndTime { get; set; }
         public TripStatusEnum Status { get; set; }
+        public int CurrentStopIndex { get; set; } = 1;
         public Guid ScheduleId { get; set; }
         public virtual Schedule Schedule { get; set; }
         public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
