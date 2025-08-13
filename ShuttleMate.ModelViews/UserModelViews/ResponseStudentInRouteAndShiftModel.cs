@@ -20,6 +20,8 @@ namespace ShuttleMate.ModelViews.UserModelViews
         public bool? IsCheckIn { get; set; }
         public bool? IsCheckOut { get; set; }
         public string? ParentName { get; set; }
+        public string? LicensePlate { get; set; }
+
         public Guid? HistoryTicketId { get; set; }
     }
 }

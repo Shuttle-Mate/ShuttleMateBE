@@ -264,30 +264,6 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<BasePaginatedList<ResponseStudentInRouteAndShiftModel>> GetStudentInRouteAndShift(int page = 0, int pageSize = 10, Guid? routeId = null, Guid? schoolShiftId = null, string? search = null)
         {
-            // Lấy userId từ HttpContext
-            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-
-            Guid.TryParse(userId, out Guid cb);
-            var userRepo = _unitOfWork.GetRepository<User>();
-
-            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
-            var todayVN = DateOnly.FromDateTime(vietnamNow);
-
-            var query = userRepo.Entities
-            .Include(u => u.UserSchoolShifts)
-                .ThenInclude(uss => uss.SchoolShift)
-            .Include(u => u.HistoryTickets)
-                .ThenInclude(ht => ht.Attendances)
-            .Include(u => u.HistoryTickets)
-                .ThenInclude(ht => ht.Ticket)
-                    .ThenInclude(t => t.Route)
-            .Include(u => u.Parent)
-            .Include(u => u.School)
-            .Where(u => !u.DeletedTime.HasValue)
-            .AsQueryable();
-
-
             if (routeId == null)
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy tuyến!");
@@ -296,19 +272,51 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy ca học!");
             }
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
+            var dayOfWeek = vietnamNow.DayOfWeek.ToString();
+
+            var userRepo = _unitOfWork.GetRepository<User>();
+
+            var query = userRepo.Entities
+                .Include(u => u.UserSchoolShifts)
+                    .ThenInclude(uss => uss.SchoolShift)
+                .Include(u => u.HistoryTickets)
+                    .ThenInclude(ht => ht.Attendances)
+                        .ThenInclude(a => a.Trip)
+                .Include(u => u.HistoryTickets)
+                    .ThenInclude(ht => ht.Ticket)
+                        .ThenInclude(t => t.Route)
+                .Include(u => u.Parent)
+                .Include(u => u.School)
+                .Where(u => !u.DeletedTime.HasValue)
+                .AsQueryable();
+
+            // Lọc theo tên nếu có
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(u => u.FullName.Contains(search));
             }
-            //điều kiện hs trong cùng 1 ca học
-            query = query.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId
-            && !x.DeletedTime.HasValue));
-            //điều kiện học sinh có vé tuyến đường này và vé còn thời gian hiệu lực
-            query = query.Where(x => x.HistoryTickets.Any(y => y.Ticket.RouteId == routeId
-            && y.Ticket.Route.IsActive == true
-            && y.ValidUntil >= todayVN
-            && y.Status == HistoryTicketStatus.PAID
-            && !y.DeletedTime.HasValue));
+
+            // Điều kiện: học sinh trong cùng 1 ca học
+            query = query.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId && !x.DeletedTime.HasValue));
+
+            // Điều kiện: học sinh có vé tuyến đường này còn hiệu lực
+            query = query.Where(x => x.HistoryTickets.Any(y =>
+                y.Ticket.RouteId == routeId &&
+                y.Ticket.Route.IsActive == true &&
+                y.ValidUntil >= todayVN &&
+                y.Status == HistoryTicketStatus.PAID &&
+                !y.DeletedTime.HasValue));
+
+            // Thêm điều kiện kiểm tra Schedule nếu cần
+            //query = query.Where(x => x.HistoryTickets.Any(y =>
+            //    y.Ticket.Route.Schedules.Any(s =>
+            //        s.SchoolShiftId == schoolShiftId &&
+            //        s.DayOfWeek.Contains(dayOfWeek) &&
+            //    y.Ticket.RouteId == routeId)));
 
             var totalCount = await query.CountAsync();
 
@@ -324,18 +332,29 @@ namespace ShuttleMate.Services.Services
                     ParentName = u.Parent.FullName,
                     PhoneNumber = u.PhoneNumber,
                     SchoolName = u.School.Name,
-                    HistoryTicketId = u.HistoryTickets.
-                    FirstOrDefault(x => x.ValidUntil >= todayVN
-                    && x.Ticket.RouteId == routeId
-                    && x.Ticket.Route.IsActive == true
-                    && x.Status == HistoryTicketStatus.PAID
-                    && !x.DeletedTime.HasValue)!.Id,
-                    IsCheckIn = u.HistoryTickets.Any(h => h.Attendances.Any(a => DateOnly.FromDateTime(a.CheckInTime) == todayVN)),
-                    IsCheckOut = u.HistoryTickets.Any(h => h.Attendances.Any(a => DateOnly.FromDateTime(a.CheckOutTime) == todayVN)),
+                    HistoryTicketId = u.HistoryTickets
+                        .FirstOrDefault(x => x.ValidUntil >= todayVN &&
+                            x.Ticket.RouteId == routeId &&
+                            x.Ticket.Route.IsActive == true &&
+                            x.Status == HistoryTicketStatus.PAID &&
+                            !x.DeletedTime.HasValue)!.Id,
+                    IsCheckIn = u.HistoryTickets.Any(h =>
+                        h.Attendances.Any(a =>
+                            DateOnly.FromDateTime(a.CheckInTime) == todayVN &&
+                            a.Trip.Schedule.SchoolShiftId == schoolShiftId &&
+                            a.Trip.Schedule.RouteId == routeId)),
+                    IsCheckOut = u.HistoryTickets.Any(h =>
+                        h.Attendances.Any(a =>
+                            DateOnly.FromDateTime(a.CheckOutTime) == todayVN &&
+                            a.Trip.Schedule.SchoolShiftId == schoolShiftId &&
+                            a.Trip.Schedule.RouteId == routeId)),
+                    Address = u.Address,
                 })
+                .OrderBy(u => u.FullName) // Có thể thêm sắp xếp
                 .Skip(page * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
+
             return new BasePaginatedList<ResponseStudentInRouteAndShiftModel>(pagedItems, totalCount, page, pageSize);
         }
         public async Task<BasePaginatedList<AdminResponseUserModel>> GetAllAsync(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
