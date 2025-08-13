@@ -24,6 +24,7 @@
         public int ExpectedStudentCount { get; set; }
         public string EstimatedDuration { get; set; }
         public string Direction { get; set; }
+        public string TripStatus { get; set; }
         public ResponseRouteScheduleForDriverModel Route { get; set; }
     }
 
