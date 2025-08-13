@@ -348,6 +348,15 @@ namespace ShuttleMate.Services.Services
                             DateOnly.FromDateTime(a.CheckOutTime) == todayVN &&
                             a.Trip.Schedule.SchoolShiftId == schoolShiftId &&
                             a.Trip.Schedule.RouteId == routeId)),
+                    TripId = u.HistoryTickets
+                        .SelectMany(ht => ht.Attendances
+                            .Where(a =>
+                                (DateOnly.FromDateTime(a.CheckInTime) == todayVN ||
+                                 DateOnly.FromDateTime(a.CheckOutTime) == todayVN) &&
+                                a.Trip.Schedule.SchoolShiftId == schoolShiftId &&
+                                a.Trip.Schedule.RouteId == routeId)
+                            .Select(a => (Guid?)a.TripId))  // Chú ý: (Guid?) để trả về null
+                        .FirstOrDefault(),  // Nếu không có, trả về null
                     Address = u.Address,
                 })
                 .OrderBy(u => u.FullName) // Có thể thêm sắp xếp
@@ -647,7 +656,7 @@ namespace ShuttleMate.Services.Services
                             Address = childSchool.Address,
                             PhoneNumber = childSchool.PhoneNumber,
                             Email = childSchool.Email,
-                            schoolShiftResponses = childSchool.SchoolShifts?.Where(x=>x.UserSchoolShifts.Any(x=>x.StudentId == child.Id)).Select(x => new SchoolShiftResponse
+                            schoolShiftResponses = childSchool.SchoolShifts?.Where(x => x.UserSchoolShifts.Any(x => x.StudentId == child.Id)).Select(x => new SchoolShiftResponse
                             {
                                 Id = x.Id,
                                 Time = x.Time,
