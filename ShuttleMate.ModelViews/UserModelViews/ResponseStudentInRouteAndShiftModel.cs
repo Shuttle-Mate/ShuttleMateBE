@@ -21,7 +21,6 @@ namespace ShuttleMate.ModelViews.UserModelViews
         public bool? IsCheckOut { get; set; }
         public string? ParentName { get; set; }
         public Guid? TripId { get; set; }
-
         public Guid? HistoryTicketId { get; set; }
     }
 }
