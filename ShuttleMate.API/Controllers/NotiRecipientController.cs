@@ -28,11 +28,14 @@ namespace ShuttleMate.API.Controllers
                 message: "Tạo thông báo người dùng thành công!"
             ));
         }
+        /// <summary>
+        /// lấy thông báo người dùng
+        /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetAllNotiRecipient()
+        public async Task<IActionResult> GetAllNotiRecipient([FromQuery]GetNotiRecipQuery query)
         {
-            var res = await _notiRecipientService.GetAll();
-            return Ok(new BaseResponseModel<List<ResponseNotiRecipientModel>>(
+            var res = await _notiRecipientService.GetAll(query);
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseNotiRecipientModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
                 data: res
