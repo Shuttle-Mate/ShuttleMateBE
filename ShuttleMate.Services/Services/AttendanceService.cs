@@ -1,8 +1,11 @@
 ﻿using AutoMapper;
+using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Firestore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 using Org.BouncyCastle.Ocsp;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
@@ -31,14 +34,16 @@ namespace ShuttleMate.Services.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IUserService _userService;
         private readonly INotificationService _notificationService;
+        private readonly FirestoreService _firestoreService;
 
-        public AttendanceService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IUserService userService, INotificationService notificationService)
+        public AttendanceService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IUserService userService, INotificationService notificationService, FirestoreService firestoreService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
             _userService = userService;
             _notificationService = notificationService;
+            _firestoreService = firestoreService;
         }
 
         public async Task CheckIn(CheckInModel model)
@@ -74,6 +79,18 @@ namespace ShuttleMate.Services.Services
 
             if (checkinWithNav == null)
                 throw new Exception("Không tìm thấy attendance sau khi insert.");
+
+            // ==== Bổ sung Firestore Realtime ====
+            var docRef = _firestoreService.GetCollection("attendance").Document(checkin.HistoryTicketId.ToString());
+            await docRef.SetAsync(new
+            {
+                HistoryTicketId = checkin.HistoryTicketId.ToString(),
+                StudentName = checkinWithNav.HistoryTicket.User.FullName,
+                ShuttleName = checkinWithNav.Trip.Schedule.Shuttle.Name,
+                CheckInLocation = checkinWithNav.StopCheckInLocation.Name,
+                CheckInTime = DateTime.UtcNow,
+                Status = "CHECKED_IN"
+            });
 
             DateTime dateTime = DateTime.Now;
 
@@ -142,6 +159,18 @@ namespace ShuttleMate.Services.Services
 
             if (checkoutWithNav == null)
                 throw new Exception("Không tìm thấy attendance sau khi insert.");
+
+            // ==== Bổ sung Firestore Realtime ====
+            var docRef = _firestoreService.GetCollection("attendance").Document(checkout.HistoryTicketId.ToString());
+            await docRef.SetAsync(new
+            {
+                HistoryTicketId = checkout.HistoryTicketId.ToString(),
+                StudentName = checkoutWithNav.HistoryTicket.User.FullName,
+                ShuttleName = checkoutWithNav.Trip.Schedule.Shuttle.Name,
+                CheckOutLocation = checkoutWithNav.StopCheckOutLocation.Name,
+                CheckOutTime = DateTime.UtcNow,
+                Status = "CHECKED_OUT"
+            });
 
             DateTime dateTime = DateTime.Now;
 
