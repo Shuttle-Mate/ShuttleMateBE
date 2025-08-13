@@ -21,7 +21,7 @@ namespace ShuttleMate.API.Controllers
         /// Lấy toàn bộ đánh giá.
         /// </summary>
         /// <param name="search">Từ khóa tìm kiếm theo tên khuyến mãi (tùy chọn).</param>
-        /// <param name="category">Loại đánh giá: SHUTTLE_OPERATION, APP_TECHNICAL, Other (tùy chọn).</param>
+        /// <param name="category">Loại đánh giá: SHUTTLE_OPERATION, APP_TECHNICAL, OTHER (tùy chọn).</param>
         /// <param name="from">Lọc từ ngày (tùy chọn).</param>
         /// <param name="to">Lọc đến ngày (tùy chọn).</param>
         /// <param name="userId">ID người dùng tạo đánh giá (tùy chọn).</param>
@@ -79,7 +79,6 @@ namespace ShuttleMate.API.Controllers
         /// <summary>
         /// Xóa một đánh giá.
         /// </summary>
-        ///
         [HttpDelete("{feedbackId}")]
         public async Task<IActionResult> DeleteFeedback(Guid feedbackId)
         {
