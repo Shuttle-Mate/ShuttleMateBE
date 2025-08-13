@@ -246,7 +246,8 @@ namespace ShuttleMate.Services.Services
                     ExpectedStudentCount = expectedStudentIds.Count,
                     EstimatedDuration = $"{(int)duration.TotalHours}h{duration.Minutes}m",
                     Direction = s.Direction.ToString(),
-                    Route = routeInfo
+                    Route = routeInfo,
+                    TripStatus = s.Trips.FirstOrDefault(t => t.TripDate == todayVN && !t.DeletedTime.HasValue && t.ScheduleId == s.Id)?.Status.ToString() ?? $"{TripStatusEnum.SCHEDULED.ToString()}"
                 });
             }
 
@@ -302,7 +303,8 @@ namespace ShuttleMate.Services.Services
                     ExpectedStudentCount = expectedStudentIds.Count,
                     EstimatedDuration = $"{(int)duration.TotalHours}h{duration.Minutes}m",
                     Direction = s.Direction.ToString(),
-                    Route = routeInfo
+                    Route = routeInfo,
+                    TripStatus = s.Trips.FirstOrDefault(t => t.TripDate == todayVN && !t.DeletedTime.HasValue && t.ScheduleId == s.Id)?.Status.ToString() ?? $"{TripStatusEnum.SCHEDULED.ToString()}"
                 });
             }
 
