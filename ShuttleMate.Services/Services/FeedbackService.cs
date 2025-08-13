@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using ShuttleMate.Contract.Repositories.Entities;
@@ -18,12 +19,16 @@ namespace ShuttleMate.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
+        private readonly IGenericRepository<Feedback> _feedbackRepo;
+        private readonly IGenericRepository<Trip> _tripRepo;
 
         public FeedbackService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
+            _feedbackRepo = _unitOfWork.GetRepository<Feedback>();
+            _tripRepo = _unitOfWork.GetRepository<Trip>();
         }
 
         public async Task<BasePaginatedList<ResponseFeedbackModel>> GetAllAsync(
@@ -39,14 +44,14 @@ namespace ShuttleMate.Services.Services
             int page = 0,
             int pageSize = 10)
         {
-            var query = _unitOfWork.GetRepository<Feedback>()
+            var query = _feedbackRepo
                 .GetQueryable()
                 .Include(f => f.User)
                 .Include(f => f.Trip)
                 .Where(f => !f.DeletedTime.HasValue);
 
             if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(f => f.Message.ToLower().Contains(search.Trim().ToLower()));
+                query = query.Where(f => f.Message.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(category) && Enum.TryParse<FeedbackCategoryEnum>(category, true, out var parsedCategory))
                 query = query.Where(f => f.FeedbackCategory == parsedCategory);
@@ -75,23 +80,23 @@ namespace ShuttleMate.Services.Services
 
             var totalCount = await query.CountAsync();
 
-            var pagedItems = await query
+            var result = await query
                 .Skip(page * pageSize)
                 .Take(pageSize)
+                .ProjectTo<ResponseFeedbackModel>(_mapper.ConfigurationProvider)
+                .AsNoTracking()
                 .ToListAsync();
-
-            var result = _mapper.Map<List<ResponseFeedbackModel>>(pagedItems);
 
             return new BasePaginatedList<ResponseFeedbackModel>(result, totalCount, page, pageSize);
         }
 
         public async Task<ResponseFeedbackModel> GetByIdAsync(Guid feedbackId)
         {
-            var feedback = await _unitOfWork.GetRepository<Feedback>().GetByIdAsync(feedbackId)
+            var feedback = await _feedbackRepo.GetQueryable()
+                .Where(f => f.Id == feedbackId && !f.DeletedTime.HasValue)
+                .AsNoTracking()
+                .FirstOrDefaultAsync()
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Đánh giá không tồn tại.");
-
-            if (feedback.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Đánh giá đã bị xóa.");
 
             return _mapper.Map<ResponseFeedbackModel>(feedback);
         }
@@ -102,26 +107,34 @@ namespace ShuttleMate.Services.Services
             Guid.TryParse(userId, out Guid userIdGuid);
             model.TrimAllStrings();
 
-            var trip = await _unitOfWork.GetRepository<Trip>().GetByIdAsync(model.TripId)
+            var trip = await _tripRepo.GetQueryable()
+                .Where(t => t.Id == model.TripId && !t.DeletedTime.HasValue)
+                .AsNoTracking()
+                .FirstOrDefaultAsync()
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi không tồn tại.");
 
-            if (trip.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi đã bị xóa.");
+            if (trip.Status != TripStatusEnum.COMPLETED)
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Chuyến đi này chưa kết thúc.");
+
+            if (!trip.Attendances.Any(a => a.HistoryTicket.UserId == userIdGuid && a.Status == AttendanceStatusEnum.CHECKED_OUT))
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn chưa check-in cho chuyến đi này.");
+
+            var existingFeedback = await _feedbackRepo.GetQueryable()
+                .Where(f => f.TripId == model.TripId && f.UserId == userIdGuid && !f.DeletedTime.HasValue)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            if (existingFeedback != null)
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn đã đánh giá cho chuyến đi này.");
 
             if (!Enum.TryParse<FeedbackCategoryEnum>(model.FeedbackCategory, true, out var categoryEnum) || !Enum.IsDefined(typeof(FeedbackCategoryEnum), categoryEnum))
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phân loại phản hồi không hợp lệ.");
-            }
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phân loại đánh giá không hợp lệ.");
 
             if (string.IsNullOrWhiteSpace(model.Message))
-            {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền thông điệp phản hồi.");
-            }
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng điền nội dung đánh giá.");
 
             if (model.Rating < 1 || model.Rating > 5)
-            {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Đánh giá phải nằm trong khoảng từ 1 đến 5.");
-            }
 
             var newFeedback = _mapper.Map<Feedback>(model);
 
@@ -130,7 +143,7 @@ namespace ShuttleMate.Services.Services
             newFeedback.CreatedBy = userId;
             newFeedback.LastUpdatedBy = userId;
 
-            await _unitOfWork.GetRepository<Feedback>().InsertAsync(newFeedback);
+            await _feedbackRepo.InsertAsync(newFeedback);
             await _unitOfWork.SaveAsync();
         }
 
@@ -138,20 +151,17 @@ namespace ShuttleMate.Services.Services
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            var feedback = await _unitOfWork.GetRepository<Feedback>().GetByIdAsync(feedbackId)
+            var feedback = await _feedbackRepo.GetQueryable()
+                .Where(f => f.Id == feedbackId && !f.DeletedTime.HasValue)
+                .FirstOrDefaultAsync()
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Đánh giá không tồn tại.");
-
-            if (feedback.DeletedTime.HasValue)
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Đánh giá đã bị xóa.");
-            }
 
             feedback.LastUpdatedTime = CoreHelper.SystemTimeNow;
             feedback.LastUpdatedBy = userId;
             feedback.DeletedTime = CoreHelper.SystemTimeNow;
             feedback.DeletedBy = userId;
 
-            await _unitOfWork.GetRepository<Feedback>().UpdateAsync(feedback);
+            await _feedbackRepo.UpdateAsync(feedback);
             await _unitOfWork.SaveAsync();
         }
     }
