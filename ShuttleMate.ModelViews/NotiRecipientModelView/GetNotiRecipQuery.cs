@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.ModelViews.NotiRecipientModelView
 {
@@ -16,6 +17,10 @@ namespace ShuttleMate.ModelViews.NotiRecipientModelView
         /// <summary>
         /// Lọc theo trạng thái PENDING, SENT, DELIVERED, READ, FAILED, ARCHIEVED
         /// </summary>
-        public string? status { get; set; } = null!;
+        public NotificationStatusEnum? status { get; set; } = null!;
+        /// <summary>
+        /// Lọc theo loại thông báo
+        /// </summary>
+        public NotificationCategoryEnum? notificationCategory { get; set; } = null!;
     }
 }

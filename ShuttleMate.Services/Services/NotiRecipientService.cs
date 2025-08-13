@@ -69,21 +69,31 @@ namespace ShuttleMate.Services.Services
                 .Where(x => !x.DeletedTime.HasValue);
 
             // Filter by status (string to enum, upper-case)
-            if (!string.IsNullOrWhiteSpace(req.status))
+            //if (!string.IsNullOrWhiteSpace(req.status))
+            //{
+            //    if (Enum.TryParse<NotificationStatusEnum>(req.status.Trim().ToUpperInvariant(), out var statusEnum))
+            //    {
+            //        query = query.Where(x => x.Status == statusEnum);
+            //    }
+            //    else
+            //    {
+            //        throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trạng thái thông báo không hợp lệ!");
+            //    }
+            //}
+
+            if (req.status != null)
             {
-                if (Enum.TryParse<NotificationStatusEnum>(req.status.Trim().ToUpperInvariant(), out var statusEnum))
-                {
-                    query = query.Where(x => x.Status == statusEnum);
-                }
-                else
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trạng thái thông báo không hợp lệ!");
-                }
+                query = query.Where(x => x.Status == req.status);
             }
 
             if (req.userId.HasValue && req.userId.Value != Guid.Empty)
             {
                 query = query.Where(x => x.RecipientId == req.userId.Value);
+            }
+
+            if (req.notificationCategory != null)
+            {
+                query = query.Where (x => x.NotificationCategory == req.notificationCategory);
             }
 
             query = query.OrderBy(x => x.CreatedTime);
