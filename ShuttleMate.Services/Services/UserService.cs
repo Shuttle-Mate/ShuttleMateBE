@@ -680,7 +680,6 @@ namespace ShuttleMate.Services.Services
                 }
             }
 
-
             UserInforModel inforModel = new UserInforModel
             {
                 Id = user.Id,

@@ -131,7 +131,7 @@ namespace ShuttleMate.Services.Services
 
             if (!string.IsNullOrWhiteSpace(paymentStatus))
             {
-                query = query.Where(u => u.Status.ToString().ToUpper() == paymentStatus.ToUpper());
+                query = query.Where(u => u.Status == Enum.Parse<PaymentStatus>(paymentStatus));
             }
             if (CreateTime == true)
             {
