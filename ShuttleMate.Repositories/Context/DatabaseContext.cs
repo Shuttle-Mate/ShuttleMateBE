@@ -203,18 +203,22 @@ namespace ShuttleMate.Repositories.Context
                     .WithMany(r => r.ScheduleOverrides)
                     .HasForeignKey(t => t.ScheduleId)
                     .OnDelete(DeleteBehavior.NoAction);
-                entity.HasOne(t => t.Shuttle)
-                    .WithMany(r => r.ScheduleOverrides)
-                    .HasForeignKey(t => t.ShuttleId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(t => t.OriginalShuttle)
+                    .WithMany(t => t.OriginalScheduleOverrides)
+                    .HasForeignKey(t => t.OriginalShuttleId)
+                    .OnDelete(DeleteBehavior.NoAction);
+                entity.HasOne(t => t.OverrideShuttle)
+                    .WithMany(t => t.OverrideScheduleOverrides)
+                    .HasForeignKey(t => t.OverrideShuttleId)
+                    .OnDelete(DeleteBehavior.NoAction);
                 entity.HasOne(t => t.OriginalUser)
-                    .WithMany(r => r.OriginalScheduleOverrides)
+                    .WithMany(u => u.OriginalScheduleOverrides)
                     .HasForeignKey(t => t.OriginalUserId)
-                    .OnDelete(DeleteBehavior.ClientSetNull);
+                    .OnDelete(DeleteBehavior.NoAction);
                 entity.HasOne(t => t.OverrideUser)
-                    .WithMany(r => r.OverrideScheduleOverrides)
+                    .WithMany(u => u.OverrideScheduleOverrides)
                     .HasForeignKey(t => t.OverrideUserId)
-                    .OnDelete(DeleteBehavior.ClientSetNull);
+                    .OnDelete(DeleteBehavior.NoAction);
             });
 
             modelBuilder.Entity<School>(entity =>
