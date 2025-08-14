@@ -501,7 +501,8 @@ namespace ShuttleMate.Services.Services
                 CheckInTime = x.attendance.CheckInTime,
                 CheckOutTime = x.attendance.CheckOutTime,
                 CheckInLocation = x.attendance.StopCheckInLocation?.Name,
-                CheckOutLocation = x.attendance.StopCheckOutLocation?.Name
+                CheckOutLocation = x.attendance.StopCheckOutLocation?.Name,
+                Time = x.shift.Time
             }).ToList();
 
             return new BasePaginatedList<GetAttendanceForUserModel>(paginatedItems, totalCount, page, pageSize);

@@ -13,6 +13,7 @@ namespace ShuttleMate.ModelViews.UserModelViews
         public string? SessionType { get; set; }
         public DateTime? CheckInTime { get; set; }
         public string? CheckOutLocation { get; set; }
+        public TimeOnly? Time { get; set; }
         public string? CheckInLocation { get; set; }
         public DateTime? CheckOutTime { get; set; }
 
