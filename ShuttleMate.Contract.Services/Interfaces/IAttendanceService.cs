@@ -19,6 +19,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task BulkCheckOutByTrip(Guid tripId, Guid checkOutLocation, string? notes = null);
         Task<BasePaginatedList<ResponseAttendanceModel>> GetAll(GetAttendanceQuery query);
         Task<BasePaginatedList<ResponseStudentInRouteAndShiftModel>> ListAbsentStudent (GetAbsentQuery req);
+        Task<BasePaginatedList<GetAttendanceForUserModel>> GetAttendanceForUser(int page = 0, int pageSize = 10, Guid? userId = null, DateOnly? date = null);
         Task<ResponseAttendanceModel> GetById(Guid attendanceId);
         //Task UpdateAttendance(UpdateAttendanceModel model);
         Task DeleteAttendance(Guid attendanceId);

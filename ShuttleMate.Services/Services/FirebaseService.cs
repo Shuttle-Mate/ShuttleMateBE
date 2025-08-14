@@ -18,7 +18,7 @@ namespace ShuttleMate.Services.Services
             {
                 FirebaseApp.Create(new AppOptions()
                 {
-                    Credential = GoogleCredential.GetApplicationDefault()
+                    Credential = GoogleCredential.FromFile("serviceaccountkey.json")
                 });
             }
         }
