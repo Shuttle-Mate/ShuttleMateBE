@@ -18,6 +18,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public bool IsActive { get; set; } = true;
         public bool IsAvailable { get; set; } = true;
         public virtual ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
-        public virtual ICollection<ScheduleOverride> ScheduleOverrides { get; set; } = new List<ScheduleOverride>();
+        public virtual ICollection<ScheduleOverride> OriginalScheduleOverrides { get; set; } = new List<ScheduleOverride>();
+        public virtual ICollection<ScheduleOverride> OverrideScheduleOverrides { get; set; } = new List<ScheduleOverride>();
     }
 }

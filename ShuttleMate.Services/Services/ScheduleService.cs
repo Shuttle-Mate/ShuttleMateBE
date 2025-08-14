@@ -171,7 +171,7 @@ namespace ShuttleMate.Services.Services
                     .ThenInclude(s => s.Route)
                         .ThenInclude(r => r.RouteStops)
                             .ThenInclude(rs => rs.Stop)
-                .Include(x => x.Shuttle)
+                .Include(x => x.OverrideShuttle)
                 .Include(x => x.OverrideUser)
                 .ToListAsync();
 
@@ -277,7 +277,7 @@ namespace ShuttleMate.Services.Services
                     .Distinct()
                     .CountAsync();
 
-                var shuttle = o.Shuttle;
+                var shuttle = o.OverrideShuttle;
 
                 responseList.Add(new ResponseTodayScheduleForDriverModel
                 {
