@@ -1,14 +1,18 @@
 ﻿using AutoMapper;
+using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Firestore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 using Org.BouncyCastle.Ocsp;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.AttendanceModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
@@ -31,14 +35,16 @@ namespace ShuttleMate.Services.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IUserService _userService;
         private readonly INotificationService _notificationService;
+        private readonly FirestoreService _firestoreService;
 
-        public AttendanceService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IUserService userService, INotificationService notificationService)
+        public AttendanceService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IUserService userService, INotificationService notificationService, FirestoreService firestoreService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
             _userService = userService;
             _notificationService = notificationService;
+            _firestoreService = firestoreService;
         }
 
         public async Task CheckIn(CheckInModel model)
@@ -55,7 +61,7 @@ namespace ShuttleMate.Services.Services
             }
 
             var checkin = _mapper.Map<Attendance>(model);
-            checkin.CheckInTime = DateTime.UtcNow;
+            checkin.CheckInTime = CoreHelper.SystemTimeNow.DateTime;
             checkin.Status = AttendanceStatusEnum.CHECKED_IN;
             checkin.CreatedBy = userId;
             checkin.LastUpdatedBy = userId;
@@ -75,7 +81,19 @@ namespace ShuttleMate.Services.Services
             if (checkinWithNav == null)
                 throw new Exception("Không tìm thấy attendance sau khi insert.");
 
-            DateTime dateTime = DateTime.Now;
+            // ==== Bổ sung Firestore Realtime ====
+            var docRef = _firestoreService.GetCollection("attendance").Document(checkin.HistoryTicketId.ToString());
+            await docRef.SetAsync(new
+            {
+                HistoryTicketId = checkin.HistoryTicketId.ToString(),
+                StudentName = checkinWithNav.HistoryTicket.User.FullName,
+                ShuttleName = checkinWithNav.Trip.Schedule.Shuttle.Name,
+                CheckInLocation = checkinWithNav.StopCheckInLocation.Name,
+                CheckInTime = CoreHelper.SystemTimeNow.DateTime,
+                Status = "CHECKED_IN"
+            });
+
+            DateTime dateTime = CoreHelper.SystemTimeNow.DateTime;
 
             var metadata = new Dictionary<string, string>
                 {
@@ -125,9 +143,9 @@ namespace ShuttleMate.Services.Services
 
             _mapper.Map(model, checkout);
             checkout.Status = AttendanceStatusEnum.CHECKED_OUT;
-            checkout.CheckOutTime = DateTime.UtcNow;
+            checkout.CheckOutTime = CoreHelper.SystemTimeNow.DateTime;
             checkout.LastUpdatedBy = userId;
-            checkout.LastUpdatedTime = DateTime.UtcNow;
+            checkout.LastUpdatedTime = CoreHelper.SystemTimeNow.DateTime;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(checkout);
             await _unitOfWork.SaveAsync();
 
@@ -143,7 +161,19 @@ namespace ShuttleMate.Services.Services
             if (checkoutWithNav == null)
                 throw new Exception("Không tìm thấy attendance sau khi insert.");
 
-            DateTime dateTime = DateTime.Now;
+            // ==== Bổ sung Firestore Realtime ====
+            var docRef = _firestoreService.GetCollection("attendance").Document(checkout.HistoryTicketId.ToString());
+            await docRef.SetAsync(new
+            {
+                HistoryTicketId = checkout.HistoryTicketId.ToString(),
+                StudentName = checkoutWithNav.HistoryTicket.User.FullName,
+                ShuttleName = checkoutWithNav.Trip.Schedule.Shuttle.Name,
+                CheckOutLocation = checkoutWithNav.StopCheckOutLocation.Name,
+                CheckOutTime = CoreHelper.SystemTimeNow.DateTime,
+                Status = "CHECKED_OUT"
+            });
+
+            DateTime dateTime = CoreHelper.SystemTimeNow.DateTime;
 
             var metadata = new Dictionary<string, string>
                 {
@@ -180,7 +210,7 @@ namespace ShuttleMate.Services.Services
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             var attendance = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Id == attendanceId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy thông tin điểm danh!");
-            attendance.DeletedTime = DateTime.Now;
+            attendance.DeletedTime = CoreHelper.SystemTimeNow.DateTime;
             attendance.DeletedBy = userId;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(attendance);
             await _unitOfWork.SaveAsync();
@@ -305,11 +335,11 @@ namespace ShuttleMate.Services.Services
             foreach (var attendance in attendances)
             {
                 attendance.Status = AttendanceStatusEnum.CHECKED_OUT;
-                attendance.CheckOutTime = DateTime.UtcNow;
+                attendance.CheckOutTime = CoreHelper.SystemTimeNow.DateTime;
                 attendance.CheckOutLocation = checkOutLocation;
                 attendance.Notes = notes;
                 attendance.LastUpdatedBy = userId;
-                attendance.LastUpdatedTime = DateTime.UtcNow;
+                attendance.LastUpdatedTime = CoreHelper.SystemTimeNow.DateTime;
             }
 
             await _unitOfWork.GetRepository<Attendance>().UpdateRangeAsync(attendances);
@@ -333,7 +363,7 @@ namespace ShuttleMate.Services.Services
 
             foreach (var user in users)
             {
-                DateTime dateTime = DateTime.Now;
+                DateTime dateTime = CoreHelper.SystemTimeNow.DateTime;
 
                 var metadata = new Dictionary<string, string>
                 {
@@ -392,7 +422,7 @@ namespace ShuttleMate.Services.Services
             userQuery = userQuery.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == req.schoolShiftId && !x.DeletedTime.HasValue));
             userQuery = userQuery.Where(x => x.HistoryTickets.Any(x => x.Ticket.Route.Id == req.routeId
             && x.Ticket.Route.IsActive == true
-            && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
+            && x.ValidUntil >= DateOnly.FromDateTime(CoreHelper.SystemTimeNow.DateTime)
             && x.Status == HistoryTicketStatus.PAID
             && !x.DeletedTime.HasValue));
 
@@ -410,7 +440,7 @@ namespace ShuttleMate.Services.Services
                     PhoneNumber = u.PhoneNumber,
                     SchoolName = u.School.Name,
                     HistoryTicketId = u.HistoryTickets.
-                    FirstOrDefault(x => x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
+                    FirstOrDefault(x => x.ValidUntil >= DateOnly.FromDateTime(CoreHelper.SystemTimeNow.DateTime)
                     && x.Status == HistoryTicketStatus.PAID
                     && !x.DeletedTime.HasValue)!.Id,
                 })
@@ -450,20 +480,62 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ResponseStudentInRouteAndShiftModel>(result, totalCount, page, pageSize);
         }
 
-        //public Task UpdateAttendance(UpdateAttendanceModel model)
-        //{
-        //    throw new NotImplementedException();
-        //}
+        public async Task<BasePaginatedList<GetAttendanceForUserModel>> GetAttendanceForUser(
+            int page = 0,
+            int pageSize = 10,
+            Guid? userId = null,
+            DateOnly? date = null)
+        {
+            // Validate input
+            if (pageSize <= 0) pageSize = 10;
+            if (page < 0) page = 0;
+            if (userId == null) throw new ArgumentNullException(nameof(userId));
 
-        //static string ConvertAttendanceStatusToString(AttendanceStatusEnum status)
-        //{
-        //    return status switch
-        //    {
-        //        AttendanceStatusEnum.NotCheckedIn => "Chưa Check In",
-        //        AttendanceStatusEnum.CheckedIn => "Đã Check In",
-        //        AttendanceStatusEnum.CheckedOut => "Đã Check Out",
-        //        _ => "Không xác định"
-        //    };
-        //}
+            var schoolShiftQuery = _unitOfWork.GetRepository<SchoolShift>().Entities
+                .Where(x => x.UserSchoolShifts.Any(uss => uss.StudentId == userId) && !x.DeletedTime.HasValue);
+
+            var attendanceQuery = _unitOfWork.GetRepository<Attendance>().Entities
+                .Where(a => !a.DeletedTime.HasValue &&
+                           a.HistoryTicket.UserId == userId &&
+                           a.Trip.Schedule.SchoolShift.UserSchoolShifts.Any(uss => uss.StudentId == userId));
+
+            if (date.HasValue)
+            {
+                var dateTime = date.Value.ToDateTime(TimeOnly.MinValue);
+                attendanceQuery = attendanceQuery.Where(a => a.CheckInTime.Date == dateTime.Date);
+            }
+
+            var query = from attendance in attendanceQuery
+                        join shift in schoolShiftQuery
+                            on attendance.Trip.Schedule.SchoolShiftId equals shift.Id
+                        select new { attendance, shift };
+
+            var totalCount = await query.CountAsync(); 
+
+            var paginatedData = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            //Kiểm tra dữ liệu thô
+            if (paginatedData.Count == 0 && totalCount > 0)
+            {
+                Console.WriteLine($"Warning: Data mismatch! Total: {totalCount}, Page: {page}");
+            }
+
+            var paginatedItems = paginatedData.Select(x => new GetAttendanceForUserModel
+            {
+                Id = x.attendance.Id,
+                ShiftType = x.shift.ShiftType.ToString(),
+                SessionType = x.shift.SessionType.ToString(),
+                CheckInTime = x.attendance.CheckInTime,
+                CheckOutTime = x.attendance.CheckOutTime,
+                CheckInLocation = x.attendance.StopCheckInLocation?.Name,
+                CheckOutLocation = x.attendance.StopCheckOutLocation?.Name,
+                Time = x.shift.Time
+            }).ToList();
+
+            return new BasePaginatedList<GetAttendanceForUserModel>(paginatedItems, totalCount, page, pageSize);
+        }
     }
 }

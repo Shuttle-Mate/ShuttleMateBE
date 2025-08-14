@@ -72,6 +72,19 @@ namespace ShuttleMate.API.Controllers
             ));
         }
         /// <summary>
+        /// Lấy danh sách điểm danh của người dùng
+        /// </summary>
+        [HttpGet("{userId}/list")]
+        public async Task<IActionResult> GetAttendanceForUser(int page = 0, int pageSize = 10, Guid? userId = null, DateOnly? date = null)
+        {
+            var res= await _attendanceService.GetAttendanceForUser(page, page, userId, date);
+            return Ok(new BaseResponseModel<BasePaginatedList<GetAttendanceForUserModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: res
+            ));
+        }
+        /// <summary>
         /// Get All cho operator/admin
         /// FE: CheckOutTime = 0001-01-01 00:00:00.0000000 => chưa checkout, hiển thị thời gian null
         /// </summary>
