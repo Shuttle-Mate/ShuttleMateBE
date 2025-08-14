@@ -479,20 +479,62 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ResponseStudentInRouteAndShiftModel>(result, totalCount, page, pageSize);
         }
 
-        //public Task UpdateAttendance(UpdateAttendanceModel model)
-        //{
-        //    throw new NotImplementedException();
-        //}
+        public async Task<BasePaginatedList<GetAttendanceForUserModel>> GetAttendanceForUser(
+            int page = 0,
+            int pageSize = 10,
+            Guid? userId = null,
+            DateOnly? date = null)
+        {
+            // Validate input
+            if (pageSize <= 0) pageSize = 10;
+            if (page < 0) page = 0;
+            if (userId == null) throw new ArgumentNullException(nameof(userId));
 
-        //static string ConvertAttendanceStatusToString(AttendanceStatusEnum status)
-        //{
-        //    return status switch
-        //    {
-        //        AttendanceStatusEnum.NotCheckedIn => "Chưa Check In",
-        //        AttendanceStatusEnum.CheckedIn => "Đã Check In",
-        //        AttendanceStatusEnum.CheckedOut => "Đã Check Out",
-        //        _ => "Không xác định"
-        //    };
-        //}
+            var schoolShiftQuery = _unitOfWork.GetRepository<SchoolShift>().Entities
+                .Where(x => x.UserSchoolShifts.Any(uss => uss.StudentId == userId) && !x.DeletedTime.HasValue);
+
+            var attendanceQuery = _unitOfWork.GetRepository<Attendance>().Entities
+                .Where(a => !a.DeletedTime.HasValue &&
+                           a.HistoryTicket.UserId == userId &&
+                           a.Trip.Schedule.SchoolShift.UserSchoolShifts.Any(uss => uss.StudentId == userId));
+
+            if (date.HasValue)
+            {
+                var dateTime = date.Value.ToDateTime(TimeOnly.MinValue);
+                attendanceQuery = attendanceQuery.Where(a => a.CheckInTime.Date == dateTime.Date);
+            }
+
+            var query = from attendance in attendanceQuery
+                        join shift in schoolShiftQuery
+                            on attendance.Trip.Schedule.SchoolShiftId equals shift.Id
+                        select new { attendance, shift };
+
+            var totalCount = await query.CountAsync(); 
+
+            var paginatedData = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            //Kiểm tra dữ liệu thô
+            if (paginatedData.Count == 0 && totalCount > 0)
+            {
+                Console.WriteLine($"Warning: Data mismatch! Total: {totalCount}, Page: {page}");
+            }
+
+            var paginatedItems = paginatedData.Select(x => new GetAttendanceForUserModel
+            {
+                Id = x.attendance.Id,
+                ShiftType = x.shift.ShiftType.ToString(),
+                SessionType = x.shift.SessionType.ToString(),
+                CheckInTime = x.attendance.CheckInTime,
+                CheckOutTime = x.attendance.CheckOutTime,
+                CheckInLocation = x.attendance.StopCheckInLocation?.Name,
+                CheckOutLocation = x.attendance.StopCheckOutLocation?.Name,
+                Time = x.shift.Time
+            }).ToList();
+
+            return new BasePaginatedList<GetAttendanceForUserModel>(paginatedItems, totalCount, page, pageSize);
+        }
     }
 }

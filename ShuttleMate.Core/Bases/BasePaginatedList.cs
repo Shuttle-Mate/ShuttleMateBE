@@ -14,6 +14,9 @@
 
         public BasePaginatedList(IReadOnlyCollection<T> items, int count, int pageNumber, int pageSize)
         {
+            // Đảm bảo pageSize > 0 (nếu không, dùng giá trị mặc định)
+            pageSize = pageSize <= 0 ? 10 : pageSize;
+
             TotalItems = count;
             CurrentPage = pageNumber;
             PageSize = pageSize;
