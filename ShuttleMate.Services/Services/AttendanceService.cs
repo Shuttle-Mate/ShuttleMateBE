@@ -12,6 +12,7 @@ using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
+using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.AttendanceModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
@@ -60,7 +61,7 @@ namespace ShuttleMate.Services.Services
             }
 
             var checkin = _mapper.Map<Attendance>(model);
-            checkin.CheckInTime = DateTime.UtcNow;
+            checkin.CheckInTime = CoreHelper.SystemTimeNow.DateTime;
             checkin.Status = AttendanceStatusEnum.CHECKED_IN;
             checkin.CreatedBy = userId;
             checkin.LastUpdatedBy = userId;
@@ -88,11 +89,11 @@ namespace ShuttleMate.Services.Services
                 StudentName = checkinWithNav.HistoryTicket.User.FullName,
                 ShuttleName = checkinWithNav.Trip.Schedule.Shuttle.Name,
                 CheckInLocation = checkinWithNav.StopCheckInLocation.Name,
-                CheckInTime = DateTime.UtcNow,
+                CheckInTime = CoreHelper.SystemTimeNow.DateTime,
                 Status = "CHECKED_IN"
             });
 
-            DateTime dateTime = DateTime.Now;
+            DateTime dateTime = CoreHelper.SystemTimeNow.DateTime;
 
             var metadata = new Dictionary<string, string>
                 {
@@ -142,9 +143,9 @@ namespace ShuttleMate.Services.Services
 
             _mapper.Map(model, checkout);
             checkout.Status = AttendanceStatusEnum.CHECKED_OUT;
-            checkout.CheckOutTime = DateTime.UtcNow;
+            checkout.CheckOutTime = CoreHelper.SystemTimeNow.DateTime;
             checkout.LastUpdatedBy = userId;
-            checkout.LastUpdatedTime = DateTime.UtcNow;
+            checkout.LastUpdatedTime = CoreHelper.SystemTimeNow.DateTime;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(checkout);
             await _unitOfWork.SaveAsync();
 
@@ -168,11 +169,11 @@ namespace ShuttleMate.Services.Services
                 StudentName = checkoutWithNav.HistoryTicket.User.FullName,
                 ShuttleName = checkoutWithNav.Trip.Schedule.Shuttle.Name,
                 CheckOutLocation = checkoutWithNav.StopCheckOutLocation.Name,
-                CheckOutTime = DateTime.UtcNow,
+                CheckOutTime = CoreHelper.SystemTimeNow.DateTime,
                 Status = "CHECKED_OUT"
             });
 
-            DateTime dateTime = DateTime.Now;
+            DateTime dateTime = CoreHelper.SystemTimeNow.DateTime;
 
             var metadata = new Dictionary<string, string>
                 {
@@ -209,7 +210,7 @@ namespace ShuttleMate.Services.Services
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             var attendance = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Id == attendanceId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy thông tin điểm danh!");
-            attendance.DeletedTime = DateTime.Now;
+            attendance.DeletedTime = CoreHelper.SystemTimeNow.DateTime;
             attendance.DeletedBy = userId;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(attendance);
             await _unitOfWork.SaveAsync();
@@ -334,11 +335,11 @@ namespace ShuttleMate.Services.Services
             foreach (var attendance in attendances)
             {
                 attendance.Status = AttendanceStatusEnum.CHECKED_OUT;
-                attendance.CheckOutTime = DateTime.UtcNow;
+                attendance.CheckOutTime = CoreHelper.SystemTimeNow.DateTime;
                 attendance.CheckOutLocation = checkOutLocation;
                 attendance.Notes = notes;
                 attendance.LastUpdatedBy = userId;
-                attendance.LastUpdatedTime = DateTime.UtcNow;
+                attendance.LastUpdatedTime = CoreHelper.SystemTimeNow.DateTime;
             }
 
             await _unitOfWork.GetRepository<Attendance>().UpdateRangeAsync(attendances);
@@ -362,7 +363,7 @@ namespace ShuttleMate.Services.Services
 
             foreach (var user in users)
             {
-                DateTime dateTime = DateTime.Now;
+                DateTime dateTime = CoreHelper.SystemTimeNow.DateTime;
 
                 var metadata = new Dictionary<string, string>
                 {
@@ -421,7 +422,7 @@ namespace ShuttleMate.Services.Services
             userQuery = userQuery.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == req.schoolShiftId && !x.DeletedTime.HasValue));
             userQuery = userQuery.Where(x => x.HistoryTickets.Any(x => x.Ticket.Route.Id == req.routeId
             && x.Ticket.Route.IsActive == true
-            && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
+            && x.ValidUntil >= DateOnly.FromDateTime(CoreHelper.SystemTimeNow.DateTime)
             && x.Status == HistoryTicketStatus.PAID
             && !x.DeletedTime.HasValue));
 
@@ -439,7 +440,7 @@ namespace ShuttleMate.Services.Services
                     PhoneNumber = u.PhoneNumber,
                     SchoolName = u.School.Name,
                     HistoryTicketId = u.HistoryTickets.
-                    FirstOrDefault(x => x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
+                    FirstOrDefault(x => x.ValidUntil >= DateOnly.FromDateTime(CoreHelper.SystemTimeNow.DateTime)
                     && x.Status == HistoryTicketStatus.PAID
                     && !x.DeletedTime.HasValue)!.Id,
                 })

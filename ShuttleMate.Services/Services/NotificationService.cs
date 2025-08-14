@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using Org.BouncyCastle.Cms;
 using ShuttleMate.Contract.Repositories.Entities;
@@ -28,13 +29,15 @@ namespace ShuttleMate.Services.Services
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IFirebaseService _firebaseService;
+        private readonly FirestoreService _firestoreService;
 
-        public NotificationService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IFirebaseService firebaseService)
+        public NotificationService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IFirebaseService firebaseService, FirestoreService firestoreService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
             _firebaseService = firebaseService;
+            _firestoreService = firestoreService;
         }
 
 
@@ -125,6 +128,15 @@ namespace ShuttleMate.Services.Services
                         try
                         {
                             await _firebaseService.SendNotificationAsync(notification.Title, notification.Content, device.PushToken);
+                            var docRef = _firestoreService.GetCollection("notifications").Document(device.UserId.ToString());
+                            await docRef.SetAsync(new
+                            {
+                                Title = notification.Title.ToString(),
+                                Content = notification.Content.ToString(),
+                                Status = notification.Status.ToString(),
+                                NotificationCategory = notification.NotificationCategory.ToString(),
+                                RecipientId = device.UserId.ToString()
+                            });
                             atLeastOneSuccess = true;
                             allFailed = false;
                         }
@@ -137,9 +149,7 @@ namespace ShuttleMate.Services.Services
                 }
 
                 if (atLeastOneSuccess)
-                    recipient.Status = NotificationStatusEnum.DELIVERED;
-                else if (allFailed)
-                    recipient.Status = NotificationStatusEnum.FAILED;
+                    recipient.Status = NotificationStatusEnum.SENT;
                 // Nếu không có device hợp lệ, giữ nguyên SENT
 
                 recipients.Add(recipient);
@@ -279,6 +289,15 @@ namespace ShuttleMate.Services.Services
                             try
                             {
                                 await _firebaseService.SendNotificationAsync(notification.Title, notification.Content, device.PushToken);
+                                var docRef = _firestoreService.GetCollection("notifications").Document(device.UserId.ToString());
+                                await docRef.SetAsync(new
+                                {
+                                    Title = notification.Title.ToString(),
+                                    Content = notification.Content.ToString(),
+                                    Status = notification.Status.ToString(),
+                                    NotificationCategory = notification.NotificationCategory.ToString(),
+                                    RecipientId = device.UserId.ToString()
+                                });
                                 atLeastOneSuccess = true;
                                 allFailed = false;
                             }
@@ -288,19 +307,13 @@ namespace ShuttleMate.Services.Services
                                 allFailed = allFailed && true;
                             }
                         }
-                        else
-                        {
-                            recipient.Status = NotificationStatusEnum.FAILED;
-                        }
                     }
                     if (atLeastOneSuccess)
-                        recipient.Status = NotificationStatusEnum.DELIVERED;
-                    else if (allFailed)
-                        recipient.Status = NotificationStatusEnum.FAILED;
+                        recipient.Status = NotificationStatusEnum.SENT;
                 }
                 catch (Exception ex)
                 {
-                    recipient.Status = NotificationStatusEnum.FAILED;
+                    recipient.Status = NotificationStatusEnum.SENT;
                 }
 
 
@@ -414,6 +427,15 @@ namespace ShuttleMate.Services.Services
                                     notification.Content,
                                     token: device.PushToken
                                 );
+                                var docRef = _firestoreService.GetCollection("notifications").Document(device.UserId.ToString());
+                                await docRef.SetAsync(new
+                                {
+                                    Title = notification.Title.ToString(),
+                                    Content = notification.Content.ToString(),
+                                    Status = notification.Status.ToString(),
+                                    NotificationCategory = notification.NotificationCategory.ToString(),
+                                    RecipientId = device.UserId.ToString()
+                                });
                                 atLeastOneSuccess = true;
                                 allFailed = false;
                                 //recipient.Status = NotificationStatusEnum.DELIVERED; // hoặc FAILED nếu có exception
@@ -423,19 +445,13 @@ namespace ShuttleMate.Services.Services
                                 allFailed = allFailed && true;
                             }
                         }
-                        else
-                        {
-                            recipient.Status = NotificationStatusEnum.FAILED;
-                        }
                     }
                     if (atLeastOneSuccess)
-                        recipient.Status = NotificationStatusEnum.DELIVERED;
-                    else if (allFailed)
-                        recipient.Status = NotificationStatusEnum.FAILED;
+                        recipient.Status = NotificationStatusEnum.SENT;
                 }
                 catch (Exception ex)
                 {
-                    recipient.Status = NotificationStatusEnum.FAILED;
+                    recipient.Status = NotificationStatusEnum.SENT;
                 }
 
                 recipients.Add(recipient);
