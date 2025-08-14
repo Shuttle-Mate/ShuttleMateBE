@@ -187,7 +187,7 @@ namespace ShuttleMate.Services.Services
             var noti = await _unitOfWork.GetRepository<Notification>()
                 .Entities
                 .FirstOrDefaultAsync(x => x.Id == notiId && !x.DeletedTime.HasValue) 
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy thông báo!");
 
             return _mapper.Map<ResponseNotiModel>(noti);
         }
