@@ -10,5 +10,6 @@ namespace ShuttleMate.ModelViews.TripModelViews
         public TimeOnly? EndTime { get; set; }
         public TripStatusEnum Status { get; set; }
         public Guid ScheduleId { get; set; }
+        public int CurrentStopIndex { get; set; }
     }
 }
