@@ -253,6 +253,7 @@ namespace ShuttleMate.API
             services.AddScoped<ISupabaseService, SupabaseService>();
             services.AddScoped<IUserDeviceService, UserDeviceService>();
             services.AddScoped<IUserPromotionService, UserPromotionService>();
+            services.AddSingleton<FirestoreService>();
         }
 
         public static void AddEmailConfig(this IServiceCollection services, IConfiguration configuration)
