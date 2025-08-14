@@ -253,6 +253,7 @@ namespace ShuttleMate.API
             services.AddScoped<ISupabaseService, SupabaseService>();
             services.AddScoped<IUserDeviceService, UserDeviceService>();
             services.AddScoped<IUserPromotionService, UserPromotionService>();
+            services.AddScoped<IScheduleOverrideService, ScheduleOverrideService>();
             services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
             services.AddSingleton<FirestoreService>();
         }

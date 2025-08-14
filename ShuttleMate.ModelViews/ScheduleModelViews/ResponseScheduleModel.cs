@@ -1,4 +1,6 @@
-﻿namespace ShuttleMate.ModelViews.ScheduleModelViews
+﻿using ShuttleMate.ModelViews.ScheduleOverrideModelView;
+
+namespace ShuttleMate.ModelViews.ScheduleModelViews
 {
     public class ResponseScheduleModel
     {
@@ -15,6 +17,7 @@
         public ResponseShuttleScheduleModel Shuttle { get; set; }
         public ResponseDriverScheduleModel Driver { get; set; }
         public ResponseSchoolShiftScheduleModel SchoolShift { get; set; }
+        public ResponseScheduleOverrideModel? OverrideSchedule { get; set; }
     }
 
     public class ResponseShuttleScheduleModel
