@@ -228,11 +228,11 @@ namespace ShuttleMate.Services.Services
             }
             if (!string.IsNullOrWhiteSpace(status))
             {
-                query = query.Where(u => u.Status.ToString().ToUpper() == status.ToUpper());
+                query = query.Where(u => u.Status == Enum.Parse<HistoryTicketStatus>(status));
             }
             if (!string.IsNullOrWhiteSpace(ticketType))
             {
-                query = query.Where(x => x.Ticket.Type.ToString().ToUpper() == ticketType.ToUpper());
+                query = query.Where(x => x.Ticket.Type == Enum.Parse<TicketTypeEnum>(ticketType));
             }
             if (PurchaseAt.HasValue)
             {

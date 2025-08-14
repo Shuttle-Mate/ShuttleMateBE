@@ -10,8 +10,8 @@ namespace ShuttleMate.ModelViews.HistoryTicketModelView
     public class HistoryTicketResponseModel
     {
         public Guid Id { get; set; }
-        public Guid UserId { get; set; }
-        public Guid TicketId { get; set; }
+        public Guid? UserId { get; set; }
+        public Guid? TicketId { get; set; }
         public string? RouteName { get; set; }
         public decimal? Price { get; set; }
         public string? Ticket { get; set; }
