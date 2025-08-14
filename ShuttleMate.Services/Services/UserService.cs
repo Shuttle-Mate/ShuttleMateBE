@@ -74,7 +74,28 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
             if (email != null)
             {
-                await _emailService.SendEmailAsync(email, "Thông báo từ ShuttleMate", $"Học sinh {user.FullName} đã xóa bạn khỏi vai trò phụ huynh!</div>");
+                await _emailService.SendEmailAsync(
+                    email,
+                    "Thông báo từ ShuttleMate",
+                    $@"
+                <html>
+                <body style='font-family: Arial, sans-serif; background-color: #FAF9F7; padding: 20px;'>
+                    <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba      (0,0,0,0.1);'>
+                        <h2 style='color: #124DA3; margin-top: 0;'>THÔNG BÁO THAY ĐỔI VAI TRÒ PHỤ HUYNH</h2>
+                        
+                        <p>Xin chào,</p>
+                        
+                        <p>Hệ thống ShuttleMate xin thông báo học sinh <strong>{user.FullName}</strong> đã xóa bạn khỏi vai trò phụ huynh.</p>
+                        
+                        <p style='color: #F37022; font-weight: bold;'>Nếu đây là hành động không mong muốn, vui lòng liên hệ lại với học sinh để được   thêm   lại.</p>
+                        
+                        <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;'>
+                            <p>Trân trọng,<br>Đội ngũ ShuttleMate</p>
+                        </div>
+                    </div>
+                </body>
+                </html>"
+                );
             }
         }
         public async Task RemoveStudent(RemoveStudentModel model)
@@ -355,7 +376,7 @@ namespace ShuttleMate.Services.Services
                                  DateOnly.FromDateTime(a.CheckOutTime) == todayVN) &&
                                 a.Trip.Schedule.SchoolShiftId == schoolShiftId &&
                                 a.Trip.Schedule.RouteId == routeId)
-                            .Select(a => (Guid?)a.TripId))  
+                            .Select(a => (Guid?)a.TripId))
                         .FirstOrDefault(),  // Nếu không có, trả về null
                     Address = u.Address,
                 })
@@ -599,7 +620,7 @@ namespace ShuttleMate.Services.Services
                     Address = school.Address,
                     PhoneNumber = school.PhoneNumber,
                     Email = school.Email,
-                    schoolShiftResponses = school.SchoolShifts?.Where(x=>!x.DeletedTime.HasValue).Select(x => new SchoolShiftResponse
+                    schoolShiftResponses = school.SchoolShifts?.Where(x => !x.DeletedTime.HasValue).Select(x => new SchoolShiftResponse
                     {
                         Id = x.Id,
                         Time = x.Time,
@@ -656,7 +677,7 @@ namespace ShuttleMate.Services.Services
                             Address = childSchool.Address,
                             PhoneNumber = childSchool.PhoneNumber,
                             Email = childSchool.Email,
-                            schoolShiftResponses = childSchool.SchoolShifts?.Where(x =>!x.DeletedTime.HasValue && x.UserSchoolShifts.Any(x => x.StudentId == child.Id)).Select(x => new SchoolShiftResponse
+                            schoolShiftResponses = childSchool.SchoolShifts?.Where(x => !x.DeletedTime.HasValue && x.UserSchoolShifts.Any(x => x.StudentId == child.Id)).Select(x => new SchoolShiftResponse
                             {
                                 Id = x.Id,
                                 Time = x.Time,
@@ -969,34 +990,53 @@ namespace ShuttleMate.Services.Services
                 guide.Email,
                 "Thông Báo khóa tài khoản",
                 $@"
-            <html>
-            <body>
-                <h2>THÔNG BÁO KHÓA TÀI KHOẢN</h2>
+        <html>
+        <body style='font-family: Arial, sans-serif; background-color: #FAF9F7; padding: 20px;'>
+            <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+                <h2 style='color: #124DA3; margin-top: 0;'>THÔNG BÁO KHÓA TÀI KHOẢN</h2>
+                
                 <p>Xin chào {guide.FullName},</p>
-                <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã bị khóa do vi phạm vi định của app.</p>
-                <p><strong>Trạng thái tài khoản:</strong> Đã khóa</p>
-                <p>Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi.</p>
-                <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-            </body>
-            </html>"
+                
+                <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã bị khóa do vi phạm điều khoản sử dụng của ShuttleMate.</p>
+                
+                <p><strong style='color: #F37022;'>Trạng thái tài khoản:</strong> <span style='color: #F37022; font-weight: bold;'>Đã khóa</span></p>
+                
+                <p style='color: #F37022; font-weight: bold;'>Nếu bạn cho rằng đây là sự nhầm lẫn, vui lòng liên hệ với bộ phận hỗ trợ của chúng tôi.</p>
+                
+                <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;'>
+                    <p>Trân trọng,<br>Đội ngũ ShuttleMate</p>
+                </div>
+            </div>
+        </body>
+        </html>"
             );
         }
+
         private async Task SendUnBlockUserEmail(User guide)
         {
             await _emailService.SendEmailAsync(
                 guide.Email,
                 "Thông Báo mở khóa tài khoản",
                 $@"
-            <html>
-            <body>
-                <h2>THÔNG BÁO MỞ KHÓA TÀI KHOẢN</h2>
+        <html>
+        <body style='font-family: Arial, sans-serif; background-color: #FAF9F7; padding: 20px;'>
+            <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+                <h2 style='color: #4EB748; margin-top: 0;'>THÔNG BÁO MỞ KHÓA TÀI KHOẢN</h2>
+                
                 <p>Xin chào {guide.FullName},</p>
-                <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã được mở khóa.</p>
-                <p><strong>Trạng thái tài khoản:</strong> Mở khóa</p>
-                <p>Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi.</p>
-                <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-            </body>
-            </html>"
+                
+                <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã được mở khóa và có thể sử dụng lại bình thường.</p>
+                
+                <p><strong style='color: #4EB748;'>Trạng thái tài khoản:</strong> <span style='color: #4EB748; font-weight: bold;'>Đã mở khóa</span></p>
+                
+                <p style='color: #124DA3;'>Cảm ơn bạn đã hợp tác với chúng tôi!</p>
+                
+                <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;'>
+                    <p>Trân trọng,<br>Đội ngũ ShuttleMate</p>
+                </div>
+            </div>
+        </body>
+        </html>"
             );
         }
     }
