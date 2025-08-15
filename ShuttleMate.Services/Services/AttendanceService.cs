@@ -60,8 +60,11 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vé này đã CheckIn nhưng chưa được CheckOut!!");
             }
 
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
             var checkin = _mapper.Map<Attendance>(model);
-            checkin.CheckInTime = CoreHelper.SystemTimeNow.DateTime;
+            checkin.CheckInTime = vietnamNow;
             checkin.Status = AttendanceStatusEnum.CHECKED_IN;
             checkin.CreatedBy = userId;
             checkin.LastUpdatedBy = userId;
@@ -89,11 +92,11 @@ namespace ShuttleMate.Services.Services
                 StudentName = checkinWithNav.HistoryTicket.User.FullName,
                 ShuttleName = checkinWithNav.Trip.Schedule.Shuttle.Name,
                 CheckInLocation = checkinWithNav.StopCheckInLocation.Name,
-                CheckInTime = CoreHelper.SystemTimeNow.DateTime,
+                CheckInTime = DateTime.UtcNow,
                 Status = "CHECKED_IN"
             });
 
-            DateTime dateTime = CoreHelper.SystemTimeNow.DateTime;
+            DateTime dateTime = vietnamNow;
 
             var metadata = new Dictionary<string, string>
                 {
@@ -142,10 +145,14 @@ namespace ShuttleMate.Services.Services
             }
 
             _mapper.Map(model, checkout);
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
             checkout.Status = AttendanceStatusEnum.CHECKED_OUT;
-            checkout.CheckOutTime = CoreHelper.SystemTimeNow.DateTime;
+            checkout.CheckOutTime = vietnamNow;
             checkout.LastUpdatedBy = userId;
-            checkout.LastUpdatedTime = CoreHelper.SystemTimeNow.DateTime;
+            checkout.LastUpdatedTime = vietnamNow;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(checkout);
             await _unitOfWork.SaveAsync();
 
@@ -169,11 +176,11 @@ namespace ShuttleMate.Services.Services
                 StudentName = checkoutWithNav.HistoryTicket.User.FullName,
                 ShuttleName = checkoutWithNav.Trip.Schedule.Shuttle.Name,
                 CheckOutLocation = checkoutWithNav.StopCheckOutLocation.Name,
-                CheckOutTime = CoreHelper.SystemTimeNow.DateTime,
+                CheckOutTime = DateTime.UtcNow,
                 Status = "CHECKED_OUT"
             });
 
-            DateTime dateTime = CoreHelper.SystemTimeNow.DateTime;
+            DateTime dateTime = vietnamNow;
 
             var metadata = new Dictionary<string, string>
                 {
@@ -209,8 +216,11 @@ namespace ShuttleMate.Services.Services
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
             var attendance = await _unitOfWork.GetRepository<Attendance>().Entities.FirstOrDefaultAsync(x => x.Id == attendanceId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy thông tin điểm danh!");
-            attendance.DeletedTime = CoreHelper.SystemTimeNow.DateTime;
+            attendance.DeletedTime = vietnamNow;
             attendance.DeletedBy = userId;
             await _unitOfWork.GetRepository<Attendance>().UpdateAsync(attendance);
             await _unitOfWork.SaveAsync();
@@ -332,14 +342,17 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có học sinh nào cần checkout trên chuyến này!");
             }
 
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
             foreach (var attendance in attendances)
             {
                 attendance.Status = AttendanceStatusEnum.CHECKED_OUT;
-                attendance.CheckOutTime = CoreHelper.SystemTimeNow.DateTime;
+                attendance.CheckOutTime = vietnamNow;
                 attendance.CheckOutLocation = checkOutLocation;
                 attendance.Notes = notes;
                 attendance.LastUpdatedBy = userId;
-                attendance.LastUpdatedTime = CoreHelper.SystemTimeNow.DateTime;
+                attendance.LastUpdatedTime = vietnamNow;
             }
 
             await _unitOfWork.GetRepository<Attendance>().UpdateRangeAsync(attendances);
@@ -363,7 +376,7 @@ namespace ShuttleMate.Services.Services
 
             foreach (var user in users)
             {
-                DateTime dateTime = CoreHelper.SystemTimeNow.DateTime;
+                DateTime dateTime = vietnamNow;
 
                 var metadata = new Dictionary<string, string>
                 {
@@ -419,10 +432,14 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy ca học!");
             }
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
             userQuery = userQuery.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == req.schoolShiftId && !x.DeletedTime.HasValue));
             userQuery = userQuery.Where(x => x.HistoryTickets.Any(x => x.Ticket.Route.Id == req.routeId
             && x.Ticket.Route.IsActive == true
-            && x.ValidUntil >= DateOnly.FromDateTime(CoreHelper.SystemTimeNow.DateTime)
+            && x.ValidUntil >= DateOnly.FromDateTime(vietnamNow)
             && x.Status == HistoryTicketStatus.PAID
             && !x.DeletedTime.HasValue));
 
@@ -440,7 +457,7 @@ namespace ShuttleMate.Services.Services
                     PhoneNumber = u.PhoneNumber,
                     SchoolName = u.School.Name,
                     HistoryTicketId = u.HistoryTickets.
-                    FirstOrDefault(x => x.ValidUntil >= DateOnly.FromDateTime(CoreHelper.SystemTimeNow.DateTime)
+                    FirstOrDefault(x => x.ValidUntil >= DateOnly.FromDateTime(vietnamNow)
                     && x.Status == HistoryTicketStatus.PAID
                     && !x.DeletedTime.HasValue)!.Id,
                 })
