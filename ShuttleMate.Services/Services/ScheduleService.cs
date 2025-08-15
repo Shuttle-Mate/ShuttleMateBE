@@ -197,7 +197,10 @@ namespace ShuttleMate.Services.Services
             var overrideRepo = _unitOfWork.GetRepository<ScheduleOverride>();
 
             var schedules = await scheduleRepo.Entities
-                .Where(s => s.DriverId == driverIdGuid && !s.DeletedTime.HasValue)
+                .Where(s => s.DriverId == driverIdGuid
+                    && !s.DeletedTime.HasValue
+                    && s.From <= todayVN
+                    && s.To >= todayVN)
                 .Include(s => s.Shuttle)
                 .Include(s => s.Driver)
                 .Include(s => s.SchoolShift)
