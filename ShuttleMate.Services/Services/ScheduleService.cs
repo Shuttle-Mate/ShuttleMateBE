@@ -22,13 +22,20 @@ namespace ShuttleMate.Services.Services
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IStopEstimateService _stopEstimateService;
+        private readonly IFirebaseService _firebaseService;
+        private readonly FirestoreService _firestoreService;
+        private readonly INotificationService _notificationService;
 
-        public ScheduleService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IStopEstimateService stopEstimateService)
+        public ScheduleService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IStopEstimateService stopEstimateService,
+            IFirebaseService firebaseService, FirestoreService firestoreService, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
             _stopEstimateService = stopEstimateService;
+            _firebaseService = firebaseService;
+            _firestoreService = firestoreService;
+            _notificationService = notificationService;
         }
 
         public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByRouteIdAsync(
@@ -622,6 +629,40 @@ namespace ShuttleMate.Services.Services
 
             if (newSchedules.Any())
                 await _unitOfWork.GetRepository<Schedule>().InsertRangeAsync(newSchedules);
+
+            //var newSchedules = new List<Schedule>();
+            var userIds = newSchedules.Select(x => x.Driver.Id).ToList();
+
+            var users = await _unitOfWork.GetRepository<User>()
+                .Entities
+                .Where(u => !u.DeletedTime.HasValue)
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, u.FullName})
+                .ToListAsync();
+
+            var createdBy = "system";
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
+            foreach (var user in users)
+            {
+                DateTime dateTime = vietnamNow;
+
+                var metadata = new Dictionary<string, string>
+                {
+                    { "DriverName", user.FullName }
+                };
+
+                // đẩy thông báo
+                await _notificationService.SendNotificationFromTemplateAsync(
+                    templateType: "UpdateSchedule",
+                    recipientIds: new List<Guid> { user.Id },
+                    metadata: metadata,
+                    createdBy: "system",
+                    notiCategory: "SCHEDULE"
+                );
+            }
 
             await _stopEstimateService.CreateAsync(newSchedules, model.RouteId);
 
