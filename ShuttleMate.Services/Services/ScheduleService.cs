@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.SqlServer.Design.Internal;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.Enum;
 using ShuttleMate.Contract.Repositories.IUOW;
@@ -706,6 +707,8 @@ namespace ShuttleMate.Services.Services
             var schedule = await _unitOfWork.GetRepository<Schedule>().GetByIdAsync(scheduleId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình không tồn tại.");
 
+            var oldDriverId = schedule.DriverId;
+
             var route = await _unitOfWork.GetRepository<Route>().GetByIdAsync(schedule.RouteId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến không tồn tại.");
 
@@ -828,6 +831,38 @@ namespace ShuttleMate.Services.Services
             await _stopEstimateService.UpdateAsync(new List<Schedule> { schedule }, schedule.RouteId);
             await _unitOfWork.GetRepository<Schedule>().UpdateAsync(schedule);
             await _unitOfWork.SaveAsync();
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
+            DateTime dateTime = vietnamNow;
+
+            // lấy thông tin tài xế mới
+            var newDriverId = schedule.DriverId;
+
+            // lấy thông tin tài xế cũ và mới (tránh gửi trùng nếu là cùng 1 người)
+            var driverIds = new List<Guid> { oldDriverId };
+            if (oldDriverId != newDriverId)
+                driverIds.Add(newDriverId);
+
+            foreach (var driverId in driverIds)
+            {
+                var driverTemp = await _unitOfWork.GetRepository<User>().GetByIdAsync(driverId);
+
+                var metadata = new Dictionary<string, string>
+                {
+                    { "DriverName", driverTemp.FullName }
+                };
+
+                // đẩy thông báo tài xế
+                await _notificationService.SendNotificationFromTemplateAsync(
+                    templateType: "UpdateSchedule",
+                    recipientIds: new List<Guid> { driverId },
+                    metadata: metadata,
+                    createdBy: "system",
+                    notiCategory: "SCHEDULE"
+                );
+            }
         }
 
         public async Task DeleteAsync(Guid scheduleId, string dayOfWeek)
