@@ -872,6 +872,17 @@ namespace ShuttleMate.Services.Services
             var schedule = await _unitOfWork.GetRepository<Schedule>().GetByIdAsync(scheduleId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình không tồn tại.");
 
+            // Lấy thông tin tài xế trước khi xóa hoặc cập nhật
+            var driver = schedule.Driver;
+            if (driver == null)
+            {
+                // Nếu navigation property chưa được load, load từ DB
+                driver = await _unitOfWork.GetRepository<User>().GetByIdAsync(schedule.DriverId);
+            }
+
+            string driverName = driver?.FullName ?? "";
+            Guid driverId = driver?.Id ?? Guid.Empty;
+
             int index = ConvertDayOfWeekToIndex(dayOfWeek);
 
             if (!IsBitSet(schedule.DayOfWeek, index))
@@ -904,6 +915,27 @@ namespace ShuttleMate.Services.Services
                 schedule.LastUpdatedBy = userId;
 
                 await _unitOfWork.GetRepository<Schedule>().UpdateAsync(schedule);
+            }
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
+            DateTime dateTime = vietnamNow;
+
+            var metadata = new Dictionary<string, string>
+            {
+                { "DriverName", driverName }
+            };
+
+            if (driverId != Guid.Empty)
+            {
+                await _notificationService.SendNotificationFromTemplateAsync(
+                    templateType: "UpdateSchedule",
+                    recipientIds: new List<Guid> { driverId },
+                    metadata: metadata,
+                    createdBy: "system",
+                    notiCategory: "SCHEDULE"
+                );
             }
 
             await _unitOfWork.SaveAsync();
