@@ -17,6 +17,7 @@ namespace ShuttleMate.ModelViews.UserModelViews
         public DateTime? DateOfBirth { get; set; }
         //public int Balance { get; set; }
         public string? Address { get; set; }
+        public string? AssignCode { get; set; }
         public bool Gender { get; set; }
         public SchoolResponse? School { get; set; }
 

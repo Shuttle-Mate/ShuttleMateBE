@@ -1,5 +1,6 @@
 ﻿using ShuttleMate.Core.Bases;
 using ShuttleMate.ModelViews.HistoryTicketModelView;
+using ShuttleMate.ModelViews.SchoolShiftModelViews;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,8 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<BasePaginatedList<HistoryTicketResponseModel>> GetAllForUserAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateOnly? ValidFrom = null, DateOnly? ValidUntil = null, Guid? ticketId = null, string? ticketType = null);
         Task<BasePaginatedList<HistoryTicketResponseModel>> GetAllForParentAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateOnly? ValidFrom = null, DateOnly? ValidUntil = null, Guid? ticketId = null, Guid? studentId = null, string? ticketType = null);
         Task<BasePaginatedList<HistoryTicketAdminResponseModel>> GetAllForAdminAsync(int page = 0, int pageSize = 10, string? status = null, DateTime? PurchaseAt = null, bool? CreateTime = null, DateOnly? ValidFrom = null, DateOnly? ValidUntil = null, Guid? userId = null, Guid? ticketId = null, string? ticketType = null);
+        Task UpdateSchoolShiftByHistoryId(Guid historyTicketId, UpdateSchoolShiftByHistoryIdModel model);
+        Task<List<ResponseSchoolShiftListByTicketIdMode>> GetSchoolShiftListByHistoryTicketId(Guid historyTicketId);
         Task PayOSCallback(PayOSWebhookRequest request);
         Task<string> CreateZaloPayOrder(CreateZaloPayOrderModel model);
         Task<string> ResponseHistoryTicketStatus(Guid historyTicketId);
