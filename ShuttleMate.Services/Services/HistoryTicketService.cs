@@ -16,6 +16,7 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.HistoryTicketModelView;
+using ShuttleMate.ModelViews.SchoolShiftModelViews;
 using ShuttleMate.ModelViews.TicketTypeModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using System;
@@ -477,37 +478,31 @@ namespace ShuttleMate.Services.Services
                     historyTicket.ValidUntil = ticket.Route.School.EndSemTwo ?? throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường tạm thời chưa xếp giờ cho vé này!"); break;
             }
 
-            //Xóa  
-            var userShift = await _unitOfWork.GetRepository<UserSchoolShift>()
-                .Entities
-                .Where(x => x.StudentId == user.Id && !x.DeletedTime.HasValue).ToListAsync();
-            // Xoá các userShift trước
-            if (userShift != null)
-            {
-                foreach (var del in userShift)
-                {
-                    await _unitOfWork.GetRepository<UserSchoolShift>().DeleteAsync(del);
-                }
-                await _unitOfWork.SaveAsync();
-            }
 
-            // Tiếp tục insert
+            List<SchoolShift> schoolShifts = new List<SchoolShift>();
+
             foreach (var schoolShiftId in model.ListSchoolShiftId)
             {
                 var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities
                     .FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue)
                     ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
 
-                var userShiftNew = new UserSchoolShift
+                schoolShifts.Add(schoolShift);
+            }
+            if (schoolShifts != null)
+            {
+                foreach (var schoolShift in schoolShifts)
                 {
-                    Id = Guid.NewGuid(),
-                    SchoolShiftId = schoolShiftId,
-                    StudentId = user.Id,
-                    CreatedTime = vietnamNow,
-                    LastUpdatedTime = vietnamNow
-                };
-
-                await _unitOfWork.GetRepository<UserSchoolShift>().InsertAsync(userShiftNew);
+                    var historyTicketSchoolShift = new HistoryTicketSchoolShift
+                    {
+                        Id = Guid.NewGuid(),
+                        SchoolShiftId = schoolShift.Id,
+                        HistoryTicketId = historyTicket.Id,
+                        CreatedTime = vietnamNow,
+                        LastUpdatedTime = vietnamNow
+                    };
+                    await _unitOfWork.GetRepository<HistoryTicketSchoolShift>().InsertAsync(historyTicketSchoolShift);
+                }
             }
 
             await _unitOfWork.GetRepository<HistoryTicket>().InsertAsync(historyTicket);
@@ -572,6 +567,95 @@ namespace ShuttleMate.Services.Services
             TimeSpan.FromMinutes(10) // Delay 10 phút
         );
             return response;
+        }
+        public async Task UpdateSchoolShiftByHistoryId(Guid historyTicketId, UpdateSchoolShiftByHistoryIdModel model)
+        {
+            // Lấy userId từ HttpContext
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            Guid.TryParse(userId, out Guid cb);
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
+            // Check if current time is within allowed period (7PM Sat to 5PM Sun)
+            var dayOfWeek = vietnamNow.DayOfWeek;
+            var currentTime = vietnamNow.TimeOfDay;
+
+            User admin = await _unitOfWork.GetRepository<User>()
+                .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
+
+            bool isAllowedTime = false;
+
+            // Saturday case
+            if (dayOfWeek == DayOfWeek.Saturday && currentTime >= new TimeSpan(19, 0, 0))
+            {
+                isAllowedTime = true;
+            }
+            // Sunday case
+            else if (dayOfWeek == DayOfWeek.Sunday && currentTime <= new TimeSpan(17, 0, 0))
+            {
+                isAllowedTime = true;
+            }
+            if (!admin.UserRoles.Any(x => x.Role.Name.ToUpper() == "ADMIN" || x.Role.Name.ToUpper() == "OPERATOR"))
+            {
+                if (!isAllowedTime)
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest,
+                        "Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần");
+                }
+            }
+            var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities.FirstOrDefaultAsync(x => x.Id == historyTicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch sử vé không tồn tại!");
+
+            List<Guid> listSchoolShift = new List<Guid>();
+            //Check xem đúng hết chưa 
+            foreach (var schoolShiftId in model.SchoolShifts!)
+            {
+                var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.FirstOrDefaultAsync(x => x.Id == schoolShiftId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại!");
+                listSchoolShift.Add(schoolShift.Id);
+            }
+            //xóa userShift
+            var historyTicketSchoolShift = await _unitOfWork.GetRepository<HistoryTicketSchoolShift>().Entities.Where(x => x.HistoryTicketId == historyTicketId && !x.DeletedTime.HasValue).ToListAsync();
+            if (historyTicketSchoolShift != null)
+            {
+                foreach (var del in historyTicketSchoolShift)
+                {
+                    await _unitOfWork.GetRepository<HistoryTicketSchoolShift>().DeleteAsync(del);
+                }
+                await _unitOfWork.SaveAsync();
+            }
+            //Add vào 
+            foreach (var schoolShiftId in listSchoolShift)
+            {
+                var historyTicketSchoolShiftNew = new HistoryTicketSchoolShift
+                {
+                    Id = Guid.NewGuid(),
+                    SchoolShiftId = schoolShiftId,
+                    HistoryTicketId = historyTicket.Id,
+                    CreatedTime = vietnamNow,
+                    LastUpdatedTime = vietnamNow
+                };
+                await _unitOfWork.GetRepository<HistoryTicketSchoolShift>().InsertAsync(historyTicketSchoolShiftNew);
+            }
+            await _unitOfWork.SaveAsync();
+        }
+        public async Task<List<ResponseSchoolShiftListByTicketIdMode>> GetSchoolShiftListByHistoryTicketId(Guid historyTicketId)
+        {
+            var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>().Entities.FirstOrDefaultAsync(x => x.Id == historyTicketId
+            && x.Ticket.Route.IsActive == true
+            && x.Ticket.Route.School.IsActive == true
+            && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy lịch sử vé!");
+            var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().Entities.Where(x => x.HistoryTicketSchoolShifts.Any(x => x.HistoryTicketId == historyTicketId && !x.DeletedTime.HasValue) && !x.DeletedTime.HasValue).ToListAsync() ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var list = schoolShift.Select(x => new ResponseSchoolShiftListByTicketIdMode
+            {
+                Id = x.Id,
+                SchoolId = x.SchoolId,
+                SchoolName = x.School.Name,
+                SessionType = x.SessionType.ToString().ToUpper(),
+                ShiftType = x.ShiftType.ToString().ToUpper(),
+                Time = x.Time,
+
+            }).ToList();
+            return list;
         }
         public async Task<string> ResponseHistoryTicketStatus(Guid historyTicketId)
         {

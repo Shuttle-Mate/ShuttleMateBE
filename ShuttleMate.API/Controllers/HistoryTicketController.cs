@@ -9,6 +9,8 @@ using ShuttleMate.ModelViews.TicketTypeModelViews;
 using ShuttleMate.Services.Services;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 using System.Text.Json;
+using ShuttleMate.ModelViews.SchoolShiftModelViews;
+using ShuttleMate.ModelViews.UserModelViews;
 
 
 namespace ShuttleMate.API.Controllers
@@ -60,6 +62,34 @@ namespace ShuttleMate.API.Controllers
                 code: ResponseCodeConstants.SUCCESS,
                 data: response
             ));
+        }
+        /// <summary>
+        /// lấy tất cả ca học từ id của lịch sử vé học sinh/phụ huynh đặt(PARENT/STUDENT)
+        /// </summary>
+        /// <param name="historyTicketId">id của lịch sử vé học sinh/phụ huynh đã mua.</param>
+
+        [HttpGet("{historyTicketId}/school-shifts")]
+        public async Task<IActionResult> GetSchoolShiftListByTicketId(Guid historyTicketId)
+        {
+            var res = await _historyTicketService.GetSchoolShiftListByHistoryTicketId(historyTicketId);
+            return Ok(new BaseResponseModel<List<ResponseSchoolShiftListByTicketIdMode>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: res
+            ));
+        }
+        /// <summary>
+        /// HS/PH cập cập ca học của vé(Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần)
+        /// </summary>
+        [HttpPatch("{historyTicketId}/school-shifts")]
+        public async Task<IActionResult> UpdateSchoolForUser(Guid historyTicketId , UpdateSchoolShiftByHistoryIdModel model)
+        {
+            await _historyTicketService.UpdateSchoolShiftByHistoryId(historyTicketId, model);
+            return Ok(new BaseResponseModel<string>(
+                 statusCode: StatusCodes.Status200OK,
+                 code: ResponseCodeConstants.SUCCESS,
+                 message: "Cập nhật ca học của vé thành công!"
+             ));
         }
         /// <summary>
         /// Mua vé (PAYOS): ValidFrom ko áp dụng cho vé loại SEMESTER_ONE, SEMESTER_TWO(STUDENT), StudentId trong model khi nào là parent mới nhập lấy từ api /api/user/get-child
