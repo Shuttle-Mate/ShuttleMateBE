@@ -77,6 +77,7 @@ namespace ShuttleMate.Services.Services
             newUser.PhoneNumber = model.PhoneNumber;
             newUser.PasswordHash = passwordHasher.HashPassword(null, model.Password); // Băm mật khẩu tại đây
             newUser.EmailVerified = false;
+            newUser.AssignCode = await GenerateUniqueAssignCodeAsync();
 
 
             // Xác định vai trò
@@ -169,6 +170,25 @@ namespace ShuttleMate.Services.Services
             );
             await _unitOfWork.SaveAsync();
 
+        }
+        private async Task<string> GenerateUniqueAssignCodeAsync()
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+            string assignCode;
+            bool exists;
+
+            do
+            {
+                assignCode = new string(Enumerable.Repeat(chars, 8)
+                    .Select(s => s[random.Next(s.Length)]).ToArray());
+
+                exists = await _unitOfWork.GetRepository<User>().Entities
+                    .AnyAsync(x => x.AssignCode == assignCode && !x.DeletedTime.HasValue);
+            }
+            while (exists);
+
+            return assignCode;
         }
         public async Task ResendConfirmationEmail(EmailModelView emailModelView)
         {

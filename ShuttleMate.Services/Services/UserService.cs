@@ -74,7 +74,28 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
             if (email != null)
             {
-                await _emailService.SendEmailAsync(email, "Thông báo từ ShuttleMate", $"Học sinh {user.FullName} đã xóa bạn khỏi vai trò phụ huynh!</div>");
+                await _emailService.SendEmailAsync(
+                    email,
+                    "Thông báo từ ShuttleMate",
+                    $@"
+                <html>
+                <body style='font-family: Arial, sans-serif; background-color: #FAF9F7; padding: 20px;'>
+                    <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba      (0,0,0,0.1);'>
+                        <h2 style='color: #124DA3; margin-top: 0;'>THÔNG BÁO THAY ĐỔI VAI TRÒ PHỤ HUYNH</h2>
+                        
+                        <p>Xin chào,</p>
+                        
+                        <p>Hệ thống ShuttleMate xin thông báo học sinh <strong>{user.FullName}</strong> đã xóa bạn khỏi vai trò phụ huynh.</p>
+                        
+                        <p style='color: #F37022; font-weight: bold;'>Nếu đây là hành động không mong muốn, vui lòng liên hệ lại với học sinh để được   thêm   lại.</p>
+                        
+                        <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;'>
+                            <p>Trân trọng,<br>Đội ngũ ShuttleMate</p>
+                        </div>
+                    </div>
+                </body>
+                </html>"
+                );
             }
         }
         public async Task RemoveStudent(RemoveStudentModel model)
@@ -122,6 +143,7 @@ namespace ShuttleMate.Services.Services
             newUser.PhoneNumber = model.PhoneNumber;
             newUser.PasswordHash = passwordHasher.HashPassword(null, model.Password); // Băm mật khẩu tại đây
             newUser.EmailVerified = true;
+            newUser.AssignCode = await GenerateUniqueAssignCodeAsync();
 
             switch (model.RoleName)
             {
@@ -237,23 +259,8 @@ namespace ShuttleMate.Services.Services
                 .Entities.FirstOrDefaultAsync(x => x.Id == studentId && !x.DeletedTime.HasValue)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại!");
             var parent = await _unitOfWork.GetRepository<User>()
-                .Entities.FirstOrDefaultAsync(x => x.Id == model.ParentId && !x.DeletedTime.HasValue);
-            if (parent == null)
-            {
-                parent = await _unitOfWork.GetRepository<User>()
-                .Entities.FirstOrDefaultAsync(x => x.Id == user.ParentId && !x.DeletedTime.HasValue);
-                if (parent.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "PARENT")
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò phụ huynh!");
-                }
-                if (parent.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "PARENT")
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò phụ huynh!");
-                }
-                user.ParentId = parent.Id;
-                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
-                await _unitOfWork.SaveAsync();
-            }
+                .Entities.FirstOrDefaultAsync(x => x.AssignCode == model.AssignCode && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy mã code!");
+
             if (parent.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "PARENT")
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò phụ huynh!");
@@ -261,6 +268,41 @@ namespace ShuttleMate.Services.Services
             user.ParentId = parent.Id;
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
+        }
+        public async Task AssignStudent(Guid parentId, AssignStudentModel model)
+        {
+            var parent = await _unitOfWork.GetRepository<User>()
+                .Entities.FirstOrDefaultAsync(x => x.Id == parentId && !x.DeletedTime.HasValue)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại!");
+            var student = await _unitOfWork.GetRepository<User>()
+                .Entities.FirstOrDefaultAsync(x => x.AssignCode == model.AssignCode && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy mã code!");
+
+            if (student.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "STUDENT")
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò học sinh!");
+            }
+            student.ParentId = parent.Id;
+            await _unitOfWork.GetRepository<User>().UpdateAsync(student);
+            await _unitOfWork.SaveAsync();
+        }
+        private async Task<string> GenerateUniqueAssignCodeAsync()
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+            string assignCode;
+            bool exists;
+
+            do
+            {
+                assignCode = new string(Enumerable.Repeat(chars, 8)
+                    .Select(s => s[random.Next(s.Length)]).ToArray());
+
+                exists = await _unitOfWork.GetRepository<User>().Entities
+                    .AnyAsync(x => x.AssignCode == assignCode && !x.DeletedTime.HasValue);
+            }
+            while (exists);
+
+            return assignCode;
         }
         public async Task<BasePaginatedList<ResponseStudentInRouteAndShiftModel>> GetStudentInRouteAndShift(int page = 0, int pageSize = 10, Guid? routeId = null, Guid? schoolShiftId = null, string? search = null)
         {
@@ -355,7 +397,7 @@ namespace ShuttleMate.Services.Services
                                  DateOnly.FromDateTime(a.CheckOutTime) == todayVN) &&
                                 a.Trip.Schedule.SchoolShiftId == schoolShiftId &&
                                 a.Trip.Schedule.RouteId == routeId)
-                            .Select(a => (Guid?)a.TripId))  
+                            .Select(a => (Guid?)a.TripId))
                         .FirstOrDefault(),  // Nếu không có, trả về null
                     Address = u.Address,
                 })
@@ -571,7 +613,6 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
 
         }
-
         public async Task<UserInforModel> GetInfor()
         {
             // Lấy userId từ HttpContext
@@ -599,7 +640,7 @@ namespace ShuttleMate.Services.Services
                     Address = school.Address,
                     PhoneNumber = school.PhoneNumber,
                     Email = school.Email,
-                    schoolShiftResponses = school.SchoolShifts?.Where(x=>!x.DeletedTime.HasValue).Select(x => new SchoolShiftResponse
+                    schoolShiftResponses = school.SchoolShifts?.Where(x => !x.DeletedTime.HasValue).Select(x => new SchoolShiftResponse
                     {
                         Id = x.Id,
                         Time = x.Time,
@@ -625,6 +666,7 @@ namespace ShuttleMate.Services.Services
                         Email = parent.Email,
                         FullName = parent.FullName,
                         Gender = parent.Gender,
+                        AssignCode = parent.AssignCode,
                         PhoneNumber = parent.PhoneNumber,
                         ProfileImageUrl = parent.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(parent.ProfileImageUrl) : null,
                     };
@@ -656,7 +698,7 @@ namespace ShuttleMate.Services.Services
                             Address = childSchool.Address,
                             PhoneNumber = childSchool.PhoneNumber,
                             Email = childSchool.Email,
-                            schoolShiftResponses = childSchool.SchoolShifts?.Where(x =>!x.DeletedTime.HasValue && x.UserSchoolShifts.Any(x => x.StudentId == child.Id)).Select(x => new SchoolShiftResponse
+                            schoolShiftResponses = childSchool.SchoolShifts?.Where(x => !x.DeletedTime.HasValue && x.UserSchoolShifts.Any(x => x.StudentId == child.Id)).Select(x => new SchoolShiftResponse
                             {
                                 Id = x.Id,
                                 Time = x.Time,
@@ -673,6 +715,7 @@ namespace ShuttleMate.Services.Services
                         Email = child.Email,
                         FullName = child.FullName,
                         Gender = child.Gender,
+                        AssignCode = child.AssignCode,
                         PhoneNumber = child.PhoneNumber,
                         ProfileImageUrl = child.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(child.ProfileImageUrl) : null,
                         School = childSchoolResponse
@@ -689,6 +732,7 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
+                AssignCode = user.AssignCode,
                 ProfileImageUrl = user.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(user.ProfileImageUrl) : null,
                 Parent = parentResponse,
                 Childs = children,
@@ -745,6 +789,7 @@ namespace ShuttleMate.Services.Services
                         DateOfBirth = parent.DateOfBirth,
                         Email = parent.Email,
                         FullName = parent.FullName,
+                        AssignCode = parent.AssignCode,
                         Gender = parent.Gender,
                         PhoneNumber = parent.PhoneNumber,
                         ProfileImageUrl = parent.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(parent.ProfileImageUrl) : null,
@@ -794,6 +839,7 @@ namespace ShuttleMate.Services.Services
                         Email = child.Email,
                         FullName = child.FullName,
                         Gender = child.Gender,
+                        AssignCode = child.AssignCode,
                         PhoneNumber = child.PhoneNumber,
                         ProfileImageUrl = child.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(child.ProfileImageUrl) : null,
                         School = childSchoolResponse
@@ -811,6 +857,7 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
+                AssignCode = user.AssignCode,
                 ProfileImageUrl = user.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(user.ProfileImageUrl) : null,
                 Parent = parentResponse,
                 Childs = children,
@@ -969,34 +1016,53 @@ namespace ShuttleMate.Services.Services
                 guide.Email,
                 "Thông Báo khóa tài khoản",
                 $@"
-            <html>
-            <body>
-                <h2>THÔNG BÁO KHÓA TÀI KHOẢN</h2>
+        <html>
+        <body style='font-family: Arial, sans-serif; background-color: #FAF9F7; padding: 20px;'>
+            <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+                <h2 style='color: #124DA3; margin-top: 0;'>THÔNG BÁO KHÓA TÀI KHOẢN</h2>
+                
                 <p>Xin chào {guide.FullName},</p>
-                <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã bị khóa do vi phạm vi định của app.</p>
-                <p><strong>Trạng thái tài khoản:</strong> Đã khóa</p>
-                <p>Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi.</p>
-                <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-            </body>
-            </html>"
+                
+                <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã bị khóa do vi phạm điều khoản sử dụng của ShuttleMate.</p>
+                
+                <p><strong style='color: #F37022;'>Trạng thái tài khoản:</strong> <span style='color: #F37022; font-weight: bold;'>Đã khóa</span></p>
+                
+                <p style='color: #F37022; font-weight: bold;'>Nếu bạn cho rằng đây là sự nhầm lẫn, vui lòng liên hệ với bộ phận hỗ trợ của chúng tôi.</p>
+                
+                <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;'>
+                    <p>Trân trọng,<br>Đội ngũ ShuttleMate</p>
+                </div>
+            </div>
+        </body>
+        </html>"
             );
         }
+
         private async Task SendUnBlockUserEmail(User guide)
         {
             await _emailService.SendEmailAsync(
                 guide.Email,
                 "Thông Báo mở khóa tài khoản",
                 $@"
-            <html>
-            <body>
-                <h2>THÔNG BÁO MỞ KHÓA TÀI KHOẢN</h2>
+        <html>
+        <body style='font-family: Arial, sans-serif; background-color: #FAF9F7; padding: 20px;'>
+            <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+                <h2 style='color: #4EB748; margin-top: 0;'>THÔNG BÁO MỞ KHÓA TÀI KHOẢN</h2>
+                
                 <p>Xin chào {guide.FullName},</p>
-                <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã được mở khóa.</p>
-                <p><strong>Trạng thái tài khoản:</strong> Mở khóa</p>
-                <p>Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi.</p>
-                <p>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-            </body>
-            </html>"
+                
+                <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã được mở khóa và có thể sử dụng lại bình thường.</p>
+                
+                <p><strong style='color: #4EB748;'>Trạng thái tài khoản:</strong> <span style='color: #4EB748; font-weight: bold;'>Đã mở khóa</span></p>
+                
+                <p style='color: #124DA3;'>Cảm ơn bạn đã hợp tác với chúng tôi!</p>
+                
+                <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;'>
+                    <p>Trân trọng,<br>Đội ngũ ShuttleMate</p>
+                </div>
+            </div>
+        </body>
+        </html>"
             );
         }
     }

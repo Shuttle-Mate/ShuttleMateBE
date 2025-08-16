@@ -16,6 +16,7 @@ namespace ShuttleMate.ModelViews.UserModelViews
         public string? Address { get; set; }
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
+        public string? AssignCode { get; set; }
         public bool? EmailVerified { get; set; }
         public bool? Violate { get; set; } = false;
         public string? RoleName { get; set; }

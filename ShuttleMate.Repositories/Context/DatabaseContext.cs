@@ -41,6 +41,7 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
         public virtual DbSet<UserDevice> UserDevices => Set<UserDevice>();
         public virtual DbSet<ConversationSummary> ConversationSummaries => Set<ConversationSummary>();
+        public virtual DbSet<HistoryTicketSchoolShift> HistoryTicketSchoolShifts => Set<HistoryTicketSchoolShift>();
         #endregion
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -393,6 +394,22 @@ namespace ShuttleMate.Repositories.Context
                 entity.HasOne(t => t.User)
                     .WithMany(u => u.ConversationSummaries)
                     .HasForeignKey(t => t.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<HistoryTicketSchoolShift>(entity =>
+            {
+                entity.ToTable("HistoryTicketSchoolShifts");
+
+                entity.HasKey(htss => new { htss.HistoryTicketId, htss.SchoolShiftId });
+
+                entity.HasOne(htss => htss.HistoryTicket)
+                    .WithMany(ht => ht.HistoryTicketSchoolShifts)
+                    .HasForeignKey(htss => htss.HistoryTicketId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(htss => htss.SchoolShift)
+                    .WithMany(ss => ss.HistoryTicketSchoolShifts)
+                    .HasForeignKey(htss => htss.SchoolShiftId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
         }
