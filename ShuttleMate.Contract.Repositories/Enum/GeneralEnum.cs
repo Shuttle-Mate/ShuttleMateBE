@@ -49,6 +49,7 @@
             ATTENDANCE,
             TRIP_STATUS,
             SYSTEM,
+            SCHEDULE,
             SCHOOL
         }
 
