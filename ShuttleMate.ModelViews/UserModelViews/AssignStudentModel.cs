@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ShuttleMate.ModelViews.UserModelViews
 {
-    public class AssignParentModel
+    public class AssignStudentModel
     {
         public string AssignCode { get; set; }
     }

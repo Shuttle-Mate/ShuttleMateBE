@@ -143,6 +143,7 @@ namespace ShuttleMate.Services.Services
             newUser.PhoneNumber = model.PhoneNumber;
             newUser.PasswordHash = passwordHasher.HashPassword(null, model.Password); // Băm mật khẩu tại đây
             newUser.EmailVerified = true;
+            newUser.AssignCode = await GenerateUniqueAssignCodeAsync();
 
             switch (model.RoleName)
             {
@@ -258,23 +259,8 @@ namespace ShuttleMate.Services.Services
                 .Entities.FirstOrDefaultAsync(x => x.Id == studentId && !x.DeletedTime.HasValue)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại!");
             var parent = await _unitOfWork.GetRepository<User>()
-                .Entities.FirstOrDefaultAsync(x => x.Id == model.ParentId && !x.DeletedTime.HasValue);
-            if (parent == null)
-            {
-                parent = await _unitOfWork.GetRepository<User>()
-                .Entities.FirstOrDefaultAsync(x => x.Id == user.ParentId && !x.DeletedTime.HasValue);
-                if (parent.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "PARENT")
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò phụ huynh!");
-                }
-                if (parent.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "PARENT")
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò phụ huynh!");
-                }
-                user.ParentId = parent.Id;
-                await _unitOfWork.GetRepository<User>().UpdateAsync(user);
-                await _unitOfWork.SaveAsync();
-            }
+                .Entities.FirstOrDefaultAsync(x => x.AssignCode == model.AssignCode && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy mã code!");
+
             if (parent.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "PARENT")
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò phụ huynh!");
@@ -282,6 +268,41 @@ namespace ShuttleMate.Services.Services
             user.ParentId = parent.Id;
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
+        }
+        public async Task AssignStudent(Guid parentId, AssignStudentModel model)
+        {
+            var parent = await _unitOfWork.GetRepository<User>()
+                .Entities.FirstOrDefaultAsync(x => x.Id == parentId && !x.DeletedTime.HasValue)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại!");
+            var student = await _unitOfWork.GetRepository<User>()
+                .Entities.FirstOrDefaultAsync(x => x.AssignCode == model.AssignCode && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy mã code!");
+
+            if (student.UserRoles.FirstOrDefault().Role.Name.ToUpper() != "STUDENT")
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài khoản này không phải vai trò học sinh!");
+            }
+            student.ParentId = parent.Id;
+            await _unitOfWork.GetRepository<User>().UpdateAsync(student);
+            await _unitOfWork.SaveAsync();
+        }
+        private async Task<string> GenerateUniqueAssignCodeAsync()
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+            string assignCode;
+            bool exists;
+
+            do
+            {
+                assignCode = new string(Enumerable.Repeat(chars, 8)
+                    .Select(s => s[random.Next(s.Length)]).ToArray());
+
+                exists = await _unitOfWork.GetRepository<User>().Entities
+                    .AnyAsync(x => x.AssignCode == assignCode && !x.DeletedTime.HasValue);
+            }
+            while (exists);
+
+            return assignCode;
         }
         public async Task<BasePaginatedList<ResponseStudentInRouteAndShiftModel>> GetStudentInRouteAndShift(int page = 0, int pageSize = 10, Guid? routeId = null, Guid? schoolShiftId = null, string? search = null)
         {
@@ -592,7 +613,6 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
 
         }
-
         public async Task<UserInforModel> GetInfor()
         {
             // Lấy userId từ HttpContext
@@ -646,6 +666,7 @@ namespace ShuttleMate.Services.Services
                         Email = parent.Email,
                         FullName = parent.FullName,
                         Gender = parent.Gender,
+                        AssignCode = parent.AssignCode,
                         PhoneNumber = parent.PhoneNumber,
                         ProfileImageUrl = parent.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(parent.ProfileImageUrl) : null,
                     };
@@ -694,6 +715,7 @@ namespace ShuttleMate.Services.Services
                         Email = child.Email,
                         FullName = child.FullName,
                         Gender = child.Gender,
+                        AssignCode = child.AssignCode,
                         PhoneNumber = child.PhoneNumber,
                         ProfileImageUrl = child.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(child.ProfileImageUrl) : null,
                         School = childSchoolResponse
@@ -710,6 +732,7 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
+                AssignCode = user.AssignCode,
                 ProfileImageUrl = user.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(user.ProfileImageUrl) : null,
                 Parent = parentResponse,
                 Childs = children,
@@ -766,6 +789,7 @@ namespace ShuttleMate.Services.Services
                         DateOfBirth = parent.DateOfBirth,
                         Email = parent.Email,
                         FullName = parent.FullName,
+                        AssignCode = parent.AssignCode,
                         Gender = parent.Gender,
                         PhoneNumber = parent.PhoneNumber,
                         ProfileImageUrl = parent.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(parent.ProfileImageUrl) : null,
@@ -815,6 +839,7 @@ namespace ShuttleMate.Services.Services
                         Email = child.Email,
                         FullName = child.FullName,
                         Gender = child.Gender,
+                        AssignCode = child.AssignCode,
                         PhoneNumber = child.PhoneNumber,
                         ProfileImageUrl = child.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(child.ProfileImageUrl) : null,
                         School = childSchoolResponse
@@ -832,6 +857,7 @@ namespace ShuttleMate.Services.Services
                 FullName = user.FullName,
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
+                AssignCode = user.AssignCode,
                 ProfileImageUrl = user.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(user.ProfileImageUrl) : null,
                 Parent = parentResponse,
                 Childs = children,

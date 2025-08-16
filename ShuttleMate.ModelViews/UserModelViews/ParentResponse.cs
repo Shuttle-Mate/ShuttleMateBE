@@ -14,6 +14,7 @@ namespace ShuttleMate.ModelViews.UserModelViews
         public string PhoneNumber { get; set; }
         public string ProfileImageUrl { get; set; }
         public DateTime? DateOfBirth { get; set; }
+        public string? AssignCode { get; set; }
         //public int Balance { get; set; }
         public string? Address { get; set; }
         public bool Gender { get; set; }

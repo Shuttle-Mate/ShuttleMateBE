@@ -12,5 +12,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual School School { get; set; }
         public virtual ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();
         public virtual ICollection<UserSchoolShift> UserSchoolShifts { get; set; } = new List<UserSchoolShift>();
+        public virtual ICollection<HistoryTicketSchoolShift> HistoryTicketSchoolShifts { get; set; } = new List<HistoryTicketSchoolShift>();
     }
 }
