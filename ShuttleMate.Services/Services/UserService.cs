@@ -343,7 +343,7 @@ namespace ShuttleMate.Services.Services
             }
 
             // Điều kiện: học sinh trong cùng 1 ca học
-            query = query.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId && !x.DeletedTime.HasValue));
+            query = query.Where(x => x.HistoryTickets.Any(x => x.HistoryTicketSchoolShifts.Any(x=>x.SchoolShiftId == schoolShiftId) && !x.DeletedTime.HasValue));
 
             // Điều kiện: học sinh có vé tuyến đường này còn hiệu lực
             query = query.Where(x => x.HistoryTickets.Any(y =>
@@ -375,11 +375,15 @@ namespace ShuttleMate.Services.Services
                     PhoneNumber = u.PhoneNumber,
                     SchoolName = u.School.Name,
                     HistoryTicketId = u.HistoryTickets
-                        .FirstOrDefault(x => x.ValidUntil >= todayVN &&
-                            x.Ticket.RouteId == routeId &&
-                            x.Ticket.Route.IsActive == true &&
-                            x.Status == HistoryTicketStatus.PAID &&
-                            !x.DeletedTime.HasValue)!.Id,
+                        .Where(ht =>
+                            ht.ValidUntil >= todayVN &&
+                            ht.Ticket.RouteId == routeId &&
+                            ht.Ticket.Route.IsActive &&
+                            ht.Status == HistoryTicketStatus.PAID &&
+                            !ht.DeletedTime.HasValue &&
+                            ht.HistoryTicketSchoolShifts.Any(htss => htss.SchoolShiftId == schoolShiftId))
+                        .Select(ht => ht.Id)
+                        .FirstOrDefault(),
                     IsCheckIn = u.HistoryTickets.Any(h =>
                         h.Attendances.Any(a =>
                             DateOnly.FromDateTime(a.CheckInTime) == todayVN &&
