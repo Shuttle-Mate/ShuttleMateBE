@@ -368,6 +368,7 @@ namespace ShuttleMate.Services.Services
 
             var users = await _unitOfWork.GetRepository<User>()
                 .Entities
+                .Where(u => !u.DeletedTime.HasValue)
                 .Where(u => userIds.Contains(u.Id))
                 .Select(u => new { u.Id, u.FullName, u.ParentId })
                 .ToListAsync();
