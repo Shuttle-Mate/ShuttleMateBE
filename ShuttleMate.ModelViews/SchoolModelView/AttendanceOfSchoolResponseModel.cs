@@ -12,7 +12,7 @@ namespace ShuttleMate.ModelViews.SchoolModelView
         public StudentResponse? Student { get; set; }
         public DateTime? CheckInTime { get; set; }
         public Guid? CheckInLocation { get; set; }
-        public DateTime CheckOutTime { get; set; }
+        public DateTime? CheckOutTime { get; set; }
         public Guid? CheckOutLocation { get; set; }
         public string? AttendanceStatus { get; set; }
         public string? Notes { get; set; }
