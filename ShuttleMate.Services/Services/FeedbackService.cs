@@ -119,12 +119,12 @@ namespace ShuttleMate.Services.Services
             if (!trip.Attendances.Any(a => a.HistoryTicket.UserId == userIdGuid && a.Status == AttendanceStatusEnum.CHECKED_OUT))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn chưa check-in cho chuyến đi này.");
 
-            var existingFeedback = await _feedbackRepo.GetQueryable()
-                .Where(f => f.TripId == model.TripId && f.UserId == userIdGuid && !f.DeletedTime.HasValue)
-                .AsNoTracking()
-                .FirstOrDefaultAsync();
+            var hasExistingFeedback = await _feedbackRepo.GetQueryable()
+                .AnyAsync(f => f.TripId == model.TripId &&
+                          f.UserId == userIdGuid &&
+                          !f.DeletedTime.HasValue);
 
-            if (existingFeedback != null)
+            if (hasExistingFeedback)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn đã đánh giá cho chuyến đi này.");
 
             if (!Enum.TryParse<FeedbackCategoryEnum>(model.FeedbackCategory, true, out var categoryEnum) || !Enum.IsDefined(typeof(FeedbackCategoryEnum), categoryEnum))
