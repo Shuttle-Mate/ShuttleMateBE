@@ -56,8 +56,8 @@ namespace ShuttleMate.Services.Services
                 var lowered = search.Trim().ToLower();
                 query = query.Where(x =>
                     x.Name.ToLower().Contains(lowered) ||
-                    x.Address.ToLower().Contains(lowered)||
-                    x.PhoneNumber.ToLower().Contains(lowered)||
+                    x.Address.ToLower().Contains(lowered) ||
+                    x.PhoneNumber.ToLower().Contains(lowered) ||
                     x.Email.ToLower().Contains(lowered));
             }
 
@@ -83,18 +83,18 @@ namespace ShuttleMate.Services.Services
                     IsActive = u.IsActive,
                     Name = u.Name,
                     PhoneNumber = u.PhoneNumber,
-                    ProfileImageUrl = u.Students.FirstOrDefault(x => x.SchoolId == u.Id && x.UserRoles.Any(x => x.Role.Name.ToUpper() == "SCHOOL")).ProfileImageUrl != null 
-                    ? _supabaseService.GetPublicUrl(u.Students.FirstOrDefault(x=>x.SchoolId == u.Id && x.UserRoles.Any(x=>x.Role.Name.ToUpper() == "SCHOOL")).ProfileImageUrl) 
+                    ProfileImageUrl = u.Students.FirstOrDefault(x => x.SchoolId == u.Id && x.UserRoles.Any(x => x.Role.Name.ToUpper() == "SCHOOL")).ProfileImageUrl != null
+                    ? _supabaseService.GetPublicUrl(u.Students.FirstOrDefault(x => x.SchoolId == u.Id && x.UserRoles.Any(x => x.Role.Name.ToUpper() == "SCHOOL")).ProfileImageUrl)
                     : null,
                     StartSemOne = u.StartSemOne,
-                    StartSemTwo = u.StartSemTwo,                       
+                    StartSemTwo = u.StartSemTwo,
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
             return new BasePaginatedList<SchoolResponseModel>(pagedItems, totalCount, page, pageSize);
         }
-        public async Task<BasePaginatedList<ListStudentInSchoolResponse>> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null,  bool sortAsc = false, Guid? schoolShiftId = null)
+        public async Task<BasePaginatedList<ListStudentInSchoolResponse>> GetAllStudentInSchool(int page = 0, int pageSize = 10, string? search = null, bool sortAsc = false, Guid? schoolShiftId = null)
         {
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
@@ -118,9 +118,9 @@ namespace ShuttleMate.Services.Services
             var query = _unitOfWork.GetRepository<User>()
                 .GetQueryable()
                 .Include(x => x.School)
-                .Where(x =>  x.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() == "STUDENT" 
+                .Where(x => x.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() == "STUDENT"
                             && x.SchoolId == user.SchoolId
-                            &&!x.DeletedTime.HasValue);
+                            && !x.DeletedTime.HasValue);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -135,7 +135,7 @@ namespace ShuttleMate.Services.Services
             if (schoolShiftId != null)
             {
                 query = query.Where(x =>
-                    x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId) && x.HistoryTickets.Any(x =>x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)));
+                    x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId) && x.HistoryTickets.Any(x => x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)));
             }
 
             //if (routeId != null)
@@ -161,7 +161,7 @@ namespace ShuttleMate.Services.Services
                     Email = u.Email,
                     FullName = u.FullName,
                     Gender = u.Gender,
-                    ParentName = u.Parent.FullName   
+                    ParentName = u.Parent.FullName
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)
@@ -236,12 +236,12 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
             return new BasePaginatedList<ListStudentInSchoolResponse>(pagedItems, totalCount, page, pageSize);
         }
-        public async Task<BasePaginatedList<RouteToSchoolResponseModel>> GetAllRouteToSchool(int page = 0, int pageSize = 10, string? search = null,  bool sortAsc = false, Guid ? schoolId = null)
+        public async Task<BasePaginatedList<RouteToSchoolResponseModel>> GetAllRouteToSchool(int page = 0, int pageSize = 10, string? search = null, bool sortAsc = false, Guid? schoolId = null)
         {
             var query = _unitOfWork.GetRepository<Route>()
                 .GetQueryable()
                 .Include(x => x.School)
-                .Where(x => x.IsActive == true 
+                .Where(x => x.IsActive == true
                         && x.SchoolId == schoolId
                         && !x.DeletedTime.HasValue);
 
@@ -286,6 +286,11 @@ namespace ShuttleMate.Services.Services
         }
         public async Task<BasePaginatedList<AttendanceOfSchoolResponseModel>> GetAttendanceOfSchool(int page = 0, int pageSize = 10, DateOnly? date = null, Guid? schoolShiftId = null, Guid? schoolId = null, string? directionOfTravel = null, bool sortAsc = false)
         {
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
+            var filterDate = date ?? todayVN;
+
             var query = _unitOfWork.GetRepository<User>()
                 .GetQueryable()
                 .Include(x => x.School)
@@ -299,7 +304,11 @@ namespace ShuttleMate.Services.Services
                         .ThenInclude(a => a.Trip)
                             .ThenInclude(t => t.Schedule)
                                 .ThenInclude(s => s.Shuttle)
-                .Where(x => x.Violate == false && !x.DeletedTime.HasValue);
+                .Where(x => x.Violate == false && !x.DeletedTime.HasValue)
+                // Luôn filter theo ngày (nếu không có thì dùng ngày hôm nay)
+                .Where(x => x.HistoryTickets
+                    .Any(ht => ht.Attendances
+                        .Any(a => DateOnly.FromDateTime(a.CheckInTime) == filterDate)));
 
             // Filter by school if provided
             if (schoolId != null)
@@ -338,56 +347,53 @@ namespace ShuttleMate.Services.Services
 
             var totalCount = await query.CountAsync();
 
-            var pagedItems = await query
-                .Select(u => new AttendanceOfSchoolResponseModel
+            var queryResult = await query
+                .Select(u => new
                 {
-                    Student = new StudentResponse
-                    {
-                        Id = u.Id,
-                        Email = u.Email,
-                        FullName = u.FullName,
-                        PhoneNumber = u.PhoneNumber
-                    },
-                    CheckInTime = u.HistoryTickets
+                    User = u,
+                    LatestCheckInAttendance = u.HistoryTickets
                         .SelectMany(ht => ht.Attendances)
+                        .Where(a => DateOnly.FromDateTime(a.CheckInTime) == filterDate)
                         .OrderByDescending(a => a.CheckInTime)
-                        .FirstOrDefault()!.CheckInTime,
-                    CheckInLocation = u.HistoryTickets
-                        .SelectMany(ht => ht.Attendances)
-                        .OrderByDescending(a => a.CheckInTime)
-                        .FirstOrDefault()!.CheckInLocation,
-                    CheckOutTime = u.HistoryTickets
-                        .SelectMany(ht => ht.Attendances)
-                        .OrderByDescending(a => a.CheckOutTime)
-                        .FirstOrDefault()!.CheckOutTime,
-                    CheckOutLocation = u.HistoryTickets
-                        .SelectMany(ht => ht.Attendances)
-                        .OrderByDescending(a => a.CheckOutTime)
-                        .FirstOrDefault()!.CheckOutLocation,
-                    AttendanceStatus = u.HistoryTickets
-                        .SelectMany(ht => ht.Attendances)
-                        .OrderByDescending(a => a.CheckInTime)
-                        .FirstOrDefault()!.Status.ToString().ToUpper(),
-                    Notes = u.HistoryTickets
-                        .SelectMany(ht => ht.Attendances)
-                        .OrderByDescending(a => a.CheckInTime)
-                        .FirstOrDefault()!.Notes,
-                    DriverId = u.HistoryTickets
-                        .SelectMany(ht => ht.Attendances)
-                        .Select(a => a.Trip.Schedule.DriverId)
                         .FirstOrDefault(),
-                    DriverName = u.HistoryTickets
+                    LatestCheckOutAttendance = u.HistoryTickets
                         .SelectMany(ht => ht.Attendances)
-                        .Select(a => a.Trip.Schedule.Driver.FullName)
+                        .Where(a => DateOnly.FromDateTime(a.CheckOutTime) == filterDate)
+                        .OrderByDescending(a => a.CheckOutTime)
                         .FirstOrDefault(),
-                    LicensePlate = u.HistoryTickets
+                    FirstDriverInfo = u.HistoryTickets
                         .SelectMany(ht => ht.Attendances)
-                        .Select(a => a.Trip.Schedule.Shuttle.LicensePlate)
+                        .Select(a => new
+                        {
+                            DriverId = a.Trip.Schedule.DriverId,
+                            DriverName = a.Trip.Schedule.Driver.FullName,
+                            LicensePlate = a.Trip.Schedule.Shuttle.LicensePlate
+                        })
                         .FirstOrDefault()
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToListAsync(); // Sử dụng ToListAsync ở đây
+
+            var pagedItems = queryResult.Select(x => new AttendanceOfSchoolResponseModel
+            {
+                Student = new StudentResponse
+                {
+                    Id = x.User.Id,
+                    Email = x.User.Email,
+                    FullName = x.User.FullName,
+                    PhoneNumber = x.User.PhoneNumber
+                },
+                CheckInTime = x.LatestCheckInAttendance?.CheckInTime,
+                CheckInLocation = x.LatestCheckInAttendance?.CheckInLocation,
+                CheckOutTime = x.LatestCheckOutAttendance?.CheckOutTime,
+                CheckOutLocation = x.LatestCheckOutAttendance?.CheckOutLocation,
+                AttendanceStatus = x.LatestCheckInAttendance?.Status.ToString().ToUpper(),
+                Notes = x.LatestCheckInAttendance?.Notes,
+                DriverId = x.FirstDriverInfo?.DriverId,
+                DriverName = x.FirstDriverInfo?.DriverName,
+                LicensePlate = x.FirstDriverInfo?.LicensePlate
+            }).ToList();
 
             return new BasePaginatedList<AttendanceOfSchoolResponseModel>(pagedItems, totalCount, page, pageSize);
         }
@@ -395,7 +401,8 @@ namespace ShuttleMate.Services.Services
         {
             var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == model.UserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
-            if (user.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() != "SCHOOL") {
+            if (user.UserRoles.FirstOrDefault()!.Role.Name.ToUpper() != "SCHOOL")
+            {
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không đúng role school!");
             }
 
@@ -453,7 +460,7 @@ namespace ShuttleMate.Services.Services
                 EndSemTwo = model.EndSemTwo,
                 StartSemOne = model.StartSemOne,
                 Address = model.Address,
-                Email = model.Email,    
+                Email = model.Email,
                 IsActive = true,
                 Name = model.Name,
                 PhoneNumber = model.PhoneNumber,
@@ -477,17 +484,17 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Thời gian kết thúc kì 1 không được bé hơn thời gian bắt đầu kì 2!");
             }
-            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x=>x.Id == id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
             if (school.IsActive == false)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Trường đã bị khóa!");
             }
             var user = await _unitOfWork.GetRepository<User>().Entities
-                .FirstOrDefaultAsync(x=>x.SchoolId == school.Id 
-                                 && !x.DeletedTime.HasValue 
-                                 && x.UserRoles.Any(x=>x.Role.Name.ToUpper() == "SCHOOL"));
+                .FirstOrDefaultAsync(x => x.SchoolId == school.Id
+                                 && !x.DeletedTime.HasValue
+                                 && x.UserRoles.Any(x => x.Role.Name.ToUpper() == "SCHOOL"));
 
-            if(model.ProfileImageUrl != null && user != null)
+            if (model.ProfileImageUrl != null && user != null)
             {
                 user.ProfileImageUrl = model.ProfileImageUrl;
             }
@@ -497,7 +504,7 @@ namespace ShuttleMate.Services.Services
             school.Address = model.Address;
             school.PhoneNumber = model.PhoneNumber;
             school.Email = model.Email;
-            school.Email =  model.Email;
+            school.Email = model.Email;
             school.StartSemOne = model.StartSemOne;
             school.EndSemOne = model.EndSemOne;
             school.StartSemTwo = model.StartSemTwo;
@@ -507,7 +514,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<School>().UpdateAsync(school);
             await _unitOfWork.SaveAsync();
         }
-        public async Task DeleteSchool (Guid schoolId)
+        public async Task DeleteSchool(Guid schoolId)
         {
             var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == schoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
 
@@ -519,7 +526,7 @@ namespace ShuttleMate.Services.Services
         }
         public async Task SendEmailToSchool(SendEmailToSchoolModel model)
         {
-            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x=>x.Id == model.SchoolId) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
+            var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
             switch (model.Type)
             {
                 case "SCHOOL_SHIFT":
@@ -710,7 +717,7 @@ namespace ShuttleMate.Services.Services
             );
         }
 
-        private async Task SendCreateStudentSessionsEmail( string schoolEmail)
+        private async Task SendCreateStudentSessionsEmail(string schoolEmail)
         {
             await _emailService.SendEmailAsync(
                 schoolEmail,

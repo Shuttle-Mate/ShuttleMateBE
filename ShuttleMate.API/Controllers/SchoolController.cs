@@ -88,7 +88,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="schoolId">id của trường bạn muốn xem.</param>
         /// <param name="directionOfTravel">lọc theo IN_BOUND, OUT_BOUND.</param>
         /// <param name="sortAsc">xếp xếp theo thời gian (mặc định false: giảm dần).</param>
-        /// <param name="date">Lọc theo ngày.</param>
+        /// <param name="date">Lọc theo ngày, ko có ngày mặc định là hôm nay.</param>
         /// <param name="schoolShiftId">Lọc theo ca học.</param>
         [HttpGet("{schoolId}/attendances")]
         public async Task<IActionResult> GetAttendanceOfSchool(int page = 0, int pageSize = 10, DateOnly? date = null, Guid? schoolShiftId = null, Guid? schoolId = null, string? directionOfTravel = null, bool sortAsc = false)
