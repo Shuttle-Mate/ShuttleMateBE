@@ -9,9 +9,18 @@ namespace ShuttleMate.Services.MapperProfile
         public PromotionProfile()
         {
             CreateMap<Promotion, ResponsePromotionModel>()
-                .ForMember(dest => dest.PromotionType, opt => opt.MapFrom(src => src.Type.ToString().ToUpper()));
-            CreateMap<Promotion, CreatePromotionModel>().ReverseMap();
-            CreateMap<Promotion, UpdatePromotionModel>().ReverseMap();
+                .ForMember(dest => dest.PromotionType, opt => opt.MapFrom(src => src.Type.ToString()))
+                .ForMember(dest => dest.ApplicableTicketType, opt => opt.MapFrom(src => src.ApplicableTicketType.HasValue ? src.ApplicableTicketType.Value.ToString() : null));
+            CreateMap<CreatePromotionModel, Promotion>()
+                .ForMember(dest => dest.Type, opt => opt.Ignore())
+                .ForMember(dest => dest.ApplicableTicketType, opt => opt.Ignore())
+                .ForMember(dest => dest.IsGlobal, opt => opt.Ignore())
+                .ForMember(dest => dest.TicketId, opt => opt.Ignore());
+            CreateMap<UpdatePromotionModel, Promotion>()
+                .ForMember(dest => dest.Type, opt => opt.Ignore())
+                .ForMember(dest => dest.ApplicableTicketType, opt => opt.Ignore())
+                .ForMember(dest => dest.IsGlobal, opt => opt.Ignore())
+                .ForMember(dest => dest.TicketId, opt => opt.Ignore());
         }
     }
 }

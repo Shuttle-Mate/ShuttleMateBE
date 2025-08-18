@@ -22,7 +22,7 @@ namespace ShuttleMate.API.Controllers
         /// Lấy toàn bộ khuyến mãi.
         /// </summary>
         /// <param name="search">Từ khóa tìm kiếm theo tên khuyến mãi (tùy chọn).</param>
-        /// <param name="type">Loại khuyến mãi: DIRECT_DISCOUNT, PERCENTAGE_DISCOUNT, FIXED_AMOUNT_DISCOUNT (tùy chọn).</param>
+        /// <param name="type">Loại khuyến mãi: DIRECT_DISCOUNT, PERCENTAGE_DISCOUNT (tùy chọn).</param>
         /// <param name="isExpired">Trạng thái hết hạn: true (đã hết hạn), false (còn hiệu lực), null (tất cả) (tùy chọn).</param>
         /// <param name="startEndDate">Lọc từ thời gian hết hạn (tùy chọn).</param>
         /// <param name="endEndDate">Lọc đến thời gian hết hạn (tùy chọn).</param>
