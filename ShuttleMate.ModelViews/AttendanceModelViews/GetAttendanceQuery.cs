@@ -21,6 +21,10 @@ namespace ShuttleMate.ModelViews.AttendanceModelViews
         /// Lọc theo userId
         /// </summary>
         public Guid? userId { get; set; } = null!;
+        /// <summary>
+        /// Lọc theo historyTicket
+        /// </summary>
+        public Guid? historyTicketId { get; set; } = null!;
         public DateTime? fromDate { get; set; } = null!;
         public DateTime? toDate { get; set; } = null!;
     }

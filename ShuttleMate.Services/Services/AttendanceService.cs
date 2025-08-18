@@ -247,6 +247,11 @@ namespace ShuttleMate.Services.Services
                 query = query.Where(x => x.HistoryTicket.UserId == req.userId.Value);
             }
 
+            if (req.historyTicketId.HasValue && req.historyTicketId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.HistoryTicket.Id == req.historyTicketId.Value);
+            }
+
             if (req.fromDate.HasValue)
             {
                 query = query.Where(a => a.CheckInTime >= req.fromDate.Value);
