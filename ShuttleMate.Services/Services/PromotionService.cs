@@ -20,7 +20,6 @@ namespace ShuttleMate.Services.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IGenericRepository<Promotion> _promotionRepo;
         private readonly IGenericRepository<Ticket> _ticketRepo;
-        private readonly IGenericRepository<UserPromotion> _userPromotionRepo;
 
         public PromotionService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
         {
@@ -29,7 +28,6 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _promotionRepo = _unitOfWork.GetRepository<Promotion>();
             _ticketRepo = _unitOfWork.GetRepository<Ticket>();
-            _userPromotionRepo = _unitOfWork.GetRepository<UserPromotion>();
         }
 
         public async Task<BasePaginatedList<ResponsePromotionModel>> GetAllAsync(
@@ -46,7 +44,6 @@ namespace ShuttleMate.Services.Services
             var query = _promotionRepo
                 .GetQueryable()
                 .Include(p => p.Ticket)
-                .Include(p => p.UserPromotions)
                 .Where(p => !p.DeletedTime.HasValue)
                 .AsNoTracking();
 
@@ -64,9 +61,6 @@ namespace ShuttleMate.Services.Services
 
             if (isExpired.HasValue)
                 query = query.Where(p => p.IsExpiredOrReachLimit == isExpired.Value);
-
-            if (userId.HasValue)
-                query = query.Where(p => p.UserPromotions.Any(up => up.UserId == userId.Value));
 
             query = sortAsc
                 ? query.OrderBy(p => p.EndDate)
@@ -95,11 +89,6 @@ namespace ShuttleMate.Services.Services
                 ?? throw new ErrorException(StatusCodes.Status404NotFound,
                     ResponseCodeConstants.NOT_FOUND, "Vé không tồn tại.");
 
-            var usedPromotionIds = await _userPromotionRepo.GetQueryable()
-                .Where(up => up.UserId == userId && !up.DeletedTime.HasValue)
-                .Select(up => up.PromotionId)
-                .ToListAsync();
-
             var currentTime = CoreHelper.SystemTimeNow;
 
             var applicablePromotions = await _promotionRepo.GetQueryable()
@@ -115,10 +104,6 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
 
             var result = _mapper.Map<List<ResponsePromotionModel>>(applicablePromotions);
-            foreach (var promo in result)
-            {
-                promo.IsUsed = usedPromotionIds.Contains(promo.Id);
-            }
 
             return result;
         }
