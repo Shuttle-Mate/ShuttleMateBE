@@ -18,6 +18,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<List<ResponseNotiModel>> GetAll();
         Task<ResponseNotiModel> GetById(Guid notiId);
         Task UpdateNoti(UpdateNotiModel model);
+        Task HandleNotiStatus(Guid notiReciId, NotificationStatusEnum status);
         Task DeleteNoti(Guid notiId);
     }
 }
