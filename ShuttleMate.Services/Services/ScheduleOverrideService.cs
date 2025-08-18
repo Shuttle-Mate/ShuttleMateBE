@@ -73,12 +73,12 @@ namespace ShuttleMate.Services.Services
                     //noti tài
                     var metadata = new Dictionary<string, string>
                     {
-                        { "DriverName", existingOverride.OriginalUser.FullName }
+                        { "DriverName", existingOverride.OverrideUser.FullName }
                     };
 
                     await _notificationService.SendNotificationFromTemplateAsync(
                         templateType: "UpdateSchedule",
-                        recipientIds: new List<Guid> { existingOverride.OriginalUserId },
+                        recipientIds: new List<Guid> { (Guid)existingOverride.OverrideUserId },
                         metadata: metadata,
                         createdBy: "system",
                         notiCategory: "SCHEDULE"
@@ -113,22 +113,19 @@ namespace ShuttleMate.Services.Services
                         notiCategory: "SCHEDULE"
                     );
 
-                    if (model.OverrideUserId != null || model.OverrideUserId != Guid.Empty || existingOverride.OverrideUserId != null)
+                    var metadata02 = new Dictionary<string, string>
                     {
-                        var metadata02 = new Dictionary<string, string>
-                        {
-                            { "DriverName", existingOverride.OverrideUser.FullName }
-                        };
+                        { "DriverName", existingOverride.OverrideUser.FullName }
+                    };
 
-                        await _notificationService.SendNotificationFromTemplateAsync(
-                            templateType: "UpdateSchedule",
-                            recipientIds: new List<Guid> { existingOverride.OverrideUser.Id },
-                            metadata: metadata02,
-                            createdBy: "system",
-                            notiCategory: "SCHEDULE"
-                        );
-                        return;
-                    }
+                    await _notificationService.SendNotificationFromTemplateAsync(
+                        templateType: "UpdateSchedule",
+                        recipientIds: new List<Guid> { existingOverride.OverrideUser.Id },
+                        metadata: metadata02,
+                        createdBy: "system",
+                        notiCategory: "SCHEDULE"
+                    );
+                    return;
                 }
 
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
