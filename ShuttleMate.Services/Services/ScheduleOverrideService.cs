@@ -49,13 +49,26 @@ namespace ShuttleMate.Services.Services
 
             if (existingOverride != null)
             {
+                var newReasonParts = new List<string>();
+                var currentReason = existingOverride.Reason ?? "";
+
                 if (existingOverride.OverrideUserId != null &&
                     existingOverride.OverrideShuttleId == null &&
                     model.OverrideShuttleId != null &&
                     model.OverrideUserId == null)
                 {
                     existingOverride.OverrideShuttleId = model.OverrideShuttleId;
-                    existingOverride.Reason = model.Reason ?? existingOverride.Reason;
+
+                    if (!string.IsNullOrEmpty(currentReason))
+                    {
+                        newReasonParts.Add(currentReason);
+                    }
+                    if (!string.IsNullOrEmpty(model.Reason))
+                    {
+                        newReasonParts.Add(model.Reason);
+                    }
+
+                    existingOverride.Reason = newReasonParts.Any() ? string.Join(", ", newReasonParts) : null;
                     existingOverride.LastUpdatedBy = userId;
 
                     await _unitOfWork.GetRepository<ScheduleOverride>().UpdateAsync(existingOverride);
@@ -69,7 +82,17 @@ namespace ShuttleMate.Services.Services
                     model.OverrideShuttleId == null)
                 {
                     existingOverride.OverrideUserId = model.OverrideUserId;
-                    existingOverride.Reason = model.Reason ?? existingOverride.Reason;
+
+                    if (!string.IsNullOrEmpty(currentReason))
+                    {
+                        newReasonParts.Add(currentReason);
+                    }
+                    if (!string.IsNullOrEmpty(model.Reason))
+                    {
+                        newReasonParts.Add(model.Reason);
+                    }
+
+                    existingOverride.Reason = newReasonParts.Any() ? string.Join(", ", newReasonParts) : null;
                     existingOverride.LastUpdatedBy = userId;
 
                     await _unitOfWork.GetRepository<ScheduleOverride>().UpdateAsync(existingOverride);
