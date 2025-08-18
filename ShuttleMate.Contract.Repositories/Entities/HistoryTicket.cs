@@ -14,6 +14,8 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual Ticket Ticket { get; set; }
         public Guid UserId { get; set; }
         public virtual User User { get; set; }
+        public Guid? PromotionId { get; set; }
+        public virtual Promotion Promotion { get; set; }
         public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
         public virtual ICollection<HistoryTicketSchoolShift> HistoryTicketSchoolShifts { get; set; } = new List<HistoryTicketSchoolShift>();
         public virtual Transaction Transaction { get; set; }

@@ -34,7 +34,6 @@ namespace ShuttleMate.Repositories.Context
         public virtual DbSet<Transaction> Transactions => Set<Transaction>();
         public virtual DbSet<Trip> Trips => Set<Trip>();
         public virtual DbSet<User> Users => Set<User>();
-        public virtual DbSet<UserPromotion> UserPromotions => Set<UserPromotion>();
         public virtual DbSet<UserRole> UserRoles => Set<UserRole>();
         public virtual DbSet<UserSchoolShift> UserSchoolShifts => Set<UserSchoolShift>();
         public virtual DbSet<Ward> Wards => Set<Ward>();
@@ -105,6 +104,10 @@ namespace ShuttleMate.Repositories.Context
                     .WithMany(r => r.HistoryTickets)
                     .HasForeignKey(t => t.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(ht => ht.Promotion)
+                    .WithOne(p => p.HistoryTicket)
+                    .HasForeignKey<HistoryTicket>(ht => ht.PromotionId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Notification>(entity =>
@@ -137,6 +140,7 @@ namespace ShuttleMate.Repositories.Context
                     .WithMany(r => r.Promotions)
                     .HasForeignKey(t => t.TicketId)
                     .OnDelete(DeleteBehavior.Cascade);
+
             });
 
             modelBuilder.Entity<ResponseSupport>(entity =>
@@ -337,18 +341,6 @@ namespace ShuttleMate.Repositories.Context
                     .WithMany()
                     .HasForeignKey(t => t.ParentId)
                     .OnDelete(DeleteBehavior.NoAction);
-            });
-
-            modelBuilder.Entity<UserPromotion>(entity =>
-            {
-                entity.ToTable("UserPromotions");
-                entity.HasKey(up => new { up.UserId, up.PromotionId });
-                entity.HasOne(up => up.User)
-                    .WithMany(u => u.UserPromotions)
-                    .HasForeignKey(up => up.UserId);
-                entity.HasOne(up => up.Promotion)
-                    .WithMany(p => p.UserPromotions)
-                    .HasForeignKey(up => up.PromotionId);
             });
 
             modelBuilder.Entity<UserRole>(entity =>
