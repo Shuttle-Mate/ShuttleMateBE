@@ -1,6 +1,4 @@
-﻿using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
-
-namespace ShuttleMate.ModelViews.FeedbackModelViews
+﻿namespace ShuttleMate.ModelViews.FeedbackModelViews
 {
     public class CreateFeedbackModel
     {

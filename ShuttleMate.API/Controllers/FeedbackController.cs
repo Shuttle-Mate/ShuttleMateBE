@@ -64,7 +64,7 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// Tạo một đánh giá mới.
+        /// Tạo một đánh giá.
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateFeedback(CreateFeedbackModel model)

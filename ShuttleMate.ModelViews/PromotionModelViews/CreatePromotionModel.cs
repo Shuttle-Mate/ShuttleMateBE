@@ -11,6 +11,6 @@
         public decimal? DiscountPercent { get; set; }
         public decimal? LimitSalePrice { get; set; }
         public DateTime EndDate { get; set; }
-        public int UsingLimit { get; set; }
+        public int? UsingLimit { get; set; }
     }
 }
