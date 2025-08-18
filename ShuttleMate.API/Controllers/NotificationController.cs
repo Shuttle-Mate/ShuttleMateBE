@@ -5,6 +5,7 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.NotificationModelViews;
 using ShuttleMate.ModelViews.ShuttleModelViews;
 using ShuttleMate.Services.Services;
+using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.API.Controllers
 {
@@ -95,16 +96,16 @@ namespace ShuttleMate.API.Controllers
                 data: res
             ));
         }
-        //[HttpPatch]
-        //public async Task<IActionResult> UpdateShuttle(UpdateShuttleModel model)
-        //{
-        //    await _shuttleService.UpdateShuttle(model);
-        //    return Ok(new BaseResponseModel<string>(
-        //        statusCode: StatusCodes.Status200OK,
-        //        code: ResponseCodeConstants.SUCCESS,
-        //        data: "Cập nhật xe thành công"
-        //    ));
-        //}
+        [HttpPatch("{notiRecipientId}")]
+        public async Task<IActionResult> HandleNotiStatus([FromRoute]Guid notiRecipientId, [FromQuery] NotificationStatusEnum status)
+        {
+            await _notificationService.HandleNotiStatus(notiRecipientId, status);
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: "Cập nhật thông báo thành công!"
+            ));
+        }
         [HttpDelete("{notiId}")]
         public async Task<IActionResult> DeleteNotification([FromRoute]Guid notiId)
         {

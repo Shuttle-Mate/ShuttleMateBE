@@ -131,11 +131,12 @@ namespace ShuttleMate.Services.Services
                             var docRef = _firestoreService.GetCollection("notifications").Document(device.UserId.ToString());
                             await docRef.SetAsync(new
                             {
-                                Title = notification.Title.ToString(),
-                                Content = notification.Content.ToString(),
-                                Status = notification.Status.ToString(),
-                                NotificationCategory = notification.NotificationCategory.ToString(),
-                                RecipientId = device.UserId.ToString()
+                                title = notification.Title.ToString(),
+                                content = notification.Content.ToString(),
+                                status = notification.Status.ToString(),
+                                notificationCategory = notification.NotificationCategory.ToString(),
+                                recipientId = device.UserId.ToString(),
+                                createdTime = DateTime.UtcNow,
                             });
                             atLeastOneSuccess = true;
                             allFailed = false;
@@ -292,11 +293,12 @@ namespace ShuttleMate.Services.Services
                                 var docRef = _firestoreService.GetCollection("notifications").Document(device.UserId.ToString());
                                 await docRef.SetAsync(new
                                 {
-                                    Title = notification.Title.ToString(),
-                                    Content = notification.Content.ToString(),
-                                    Status = notification.Status.ToString(),
-                                    NotificationCategory = notification.NotificationCategory.ToString(),
-                                    RecipientId = device.UserId.ToString()
+                                    title = notification.Title.ToString(),
+                                    content = notification.Content.ToString(),
+                                    status = notification.Status.ToString(),
+                                    notificationCategory = notification.NotificationCategory.ToString(),
+                                    recipientId = device.UserId.ToString(),
+                                    createdTime = DateTime.UtcNow,
                                 });
                                 atLeastOneSuccess = true;
                                 allFailed = false;
@@ -393,6 +395,13 @@ namespace ShuttleMate.Services.Services
                     Status = NotificationStatusEnum.PENDING // sẽ cập nhật sau khi gửi FCM
                 };
 
+                var userNoti = await _unitOfWork.GetRepository<NotificationRecipient>()
+                    .Entities
+                    .Where(n => n.RecipientId == recipientId && n.Status.Equals(NotificationStatusEnum.SENT) && !n.DeletedTime.HasValue)
+                    .ToListAsync();
+
+                var userNotiCount = userNoti.Count() + 1;
+
                 try
                 {
                     var userDevices = await _unitOfWork.GetRepository<UserDevice>()
@@ -403,18 +412,12 @@ namespace ShuttleMate.Services.Services
 
                     if (userDevices.Count == 0)
                     {
-                        // Không có device, giữ nguyên status = SENT
                         recipients.Add(recipient);
                         continue;
                     }
 
                     bool atLeastOneSuccess = false;
                     bool allFailed = true;
-
-                    //var deviceTokens = userDevices.Select(d => d.PushToken).Where(t => !string.IsNullOrEmpty(t)).ToList();
-
-                    //var token = await _deviceTokenService.GetTokenByUserIdAsync(recipientId); // bạn cần triển khai service này
-                    //var token = "duyf6BD7RhOE66NtvuyQyL:APA91bGdMhNmmXaVI45wv-kSi6HubP0PyLgE52j-R_PT763N7v-xqUGnvZ0CX13fZREX41hg5rI722zKyNC1YmYy7FHjPKpWXEPlCj2oYJklvIyjeZppDto";
 
                     foreach (var device in userDevices)
                     {
@@ -430,15 +433,16 @@ namespace ShuttleMate.Services.Services
                                 var docRef = _firestoreService.GetCollection("notifications").Document(device.UserId.ToString());
                                 await docRef.SetAsync(new
                                 {
-                                    Title = notification.Title.ToString(),
-                                    Content = notification.Content.ToString(),
-                                    Status = notification.Status.ToString(),
-                                    NotificationCategory = notification.NotificationCategory.ToString(),
-                                    RecipientId = device.UserId.ToString()
+                                    title = notification.Title.ToString(),
+                                    content = notification.Content.ToString(),
+                                    status = notification.Status.ToString(),
+                                    notificationCategory = notification.NotificationCategory.ToString(),
+                                    recipientId = device.UserId.ToString(),
+                                    createdTime = DateTime.UtcNow,
+                                    unreadCount = userNotiCount,
                                 });
                                 atLeastOneSuccess = true;
                                 allFailed = false;
-                                //recipient.Status = NotificationStatusEnum.DELIVERED; // hoặc FAILED nếu có exception
                             }
                             catch
                             {
@@ -459,20 +463,6 @@ namespace ShuttleMate.Services.Services
 
             _unitOfWork.GetRepository<NotificationRecipient>().InsertRange(recipients);
 
-            //// 4. Tạo bản ghi NotificationRecipients
-            //var recipients = recipientIds.Select(recipientId => new NotificationRecipient
-            //{
-            //    Id = Guid.NewGuid(),
-            //    NotificationId = notification.Id,
-            //    RecipientId = recipientId,
-            //    RecipientType = "User",
-            //    Status = NotificationStatusEnum.PENDING,
-            //    CreatedBy = createdBy,
-            //    CreatedTime = DateTimeOffset.UtcNow
-            //}).ToList();
-
-            //_unitOfWork.GetRepository<NotificationRecipient>().InsertRange(recipients);
-
             await _unitOfWork.SaveAsync();
             return notification.Id;
         }
@@ -480,6 +470,22 @@ namespace ShuttleMate.Services.Services
         public Task UpdateNoti(UpdateNotiModel model)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task HandleNotiStatus(Guid notiReciId, NotificationStatusEnum status)
+        {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            var noti = await _unitOfWork.GetRepository<NotificationRecipient>()
+                .Entities
+                .FirstOrDefaultAsync(x => x.Id == notiReciId && !x.DeletedTime.HasValue && x.RecipientId == Guid.Parse(userId))
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy thông báo của người dùng!");
+
+            noti.LastUpdatedBy = userId;
+            noti.LastUpdatedTime = DateTime.Now;
+            noti.Status = status;
+            await _unitOfWork.GetRepository<NotificationRecipient>().UpdateAsync(noti);
+            await _unitOfWork.SaveAsync();
         }
     }
 }
