@@ -40,7 +40,6 @@ namespace ShuttleMate.Services.Services
             var query = _unitOfWork.GetRepository<Promotion>()
                 .GetQueryable()
                 .Include(p => p.Ticket)
-                .Include(p => p.UserPromotions)
                 .Where(p => !p.DeletedTime.HasValue);
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -58,10 +57,6 @@ namespace ShuttleMate.Services.Services
             if (isExpired.HasValue)
                 query = query.Where(p => p.IsExpiredOrReachLimit == isExpired.Value);
 
-            if (userId.HasValue)
-            {
-                query = query.Where(p => p.UserPromotions.Any(up => up.UserId == userId.Value));
-            }
 
             query = sortAsc
                 ? query.OrderBy(p => p.EndDate)
@@ -108,58 +103,6 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
 
             return _mapper.Map<IEnumerable<ResponsePromotionModel>>(applicablePromotions);
-        }
-
-        public async Task<IEnumerable<ResponsePromotionModel>> GetAllUnsavedAsync()
-        {
-            var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-            var guidUserId = Guid.Parse(userId);
-
-            var promotions = await _unitOfWork.GetRepository<Promotion>().FindAllAsync(p => !p.DeletedTime.HasValue && p.EndDate > DateTime.UtcNow);
-
-            var savedPromotionIds = (await _unitOfWork.GetRepository<UserPromotion>()
-                .FindAllAsync(up => up.UserId == guidUserId))
-                .Select(up => up.PromotionId)
-                .ToHashSet();
-
-            var unsavedPromotions = promotions
-                .Where(p => !savedPromotionIds.Contains(p.Id))
-                .ToList();
-
-            if (!unsavedPromotions.Any())
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có khuyến mãi nào.");
-
-            return _mapper.Map<IEnumerable<ResponsePromotionModel>>(unsavedPromotions);
-        }
-
-        public async Task<IEnumerable<ResponseUserPromotionModel>> GetAllUsersSavedAsync(Guid promotionId)
-        {
-            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(promotionId)
-                    ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi không tồn tại.");
-
-            if (promotion.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã bị xóa.");
-
-            var userPromotions = await _unitOfWork.GetRepository<UserPromotion>().FindAllAsync(up => up.PromotionId == promotionId);
-
-            if (!userPromotions.Any())
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có người dùng nào lưu khuyến mãi.");
-
-            var userIds = userPromotions.Select(up => up.UserId).Distinct().ToList();
-
-            var users = await _unitOfWork.GetRepository<User>().FindAllAsync(u => userIds.Contains(u.Id));
-
-            var result = from up in userPromotions
-                         join u in users on up.UserId equals u.Id
-                         select new ResponseUserPromotionModel
-                         {
-                             Id = u.Id,
-                             FullName = u.FullName,
-                             Email = u.Email,
-                             IsUsed = up.IsUsed
-                         };
-
-            return result.ToList();
         }
 
         public async Task<ResponsePromotionModel> GetByIdAsync(Guid promotionId)

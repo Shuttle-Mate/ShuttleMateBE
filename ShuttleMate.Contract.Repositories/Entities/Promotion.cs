@@ -19,6 +19,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public TicketTypeEnum? ApplicableTicketType { get; set; } // null => không giới hạn theo loại vé
         public Guid? TicketId { get; set; } // null => không giới hạn theo vé cụ thể
         public virtual Ticket Ticket { get; set; }
-        public virtual ICollection<UserPromotion> UserPromotions { get; set; } = new List<UserPromotion>();
+        public virtual HistoryTicket HistoryTicket { get; set; }
     }
 }

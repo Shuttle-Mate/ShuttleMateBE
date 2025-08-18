@@ -338,6 +338,16 @@ namespace ShuttleMate.Services.Services
             if (model.PromotionId != null)
             {
                 var promotion = await _unitOfWork.GetRepository<Promotion>().Entities.FirstOrDefaultAsync(x => x.Id == model.PromotionId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
+                var userCheck = await _unitOfWork.GetRepository<User>().Entities
+                    .FirstOrDefaultAsync(x => x.Id == cb &&
+                                             !x.DeletedTime.HasValue &&
+                                             x.HistoryTickets.Any(h => h.PromotionId == promotion.Id));
+
+                if (userCheck != null)
+                {
+                    throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Mã giảm giá này đã được bạn sử dụng!");
+                }
+
                 if (promotion.UsingLimit != 0 && promotion.UsedCount >= promotion.UsingLimit)
                 {
                     throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Mã giảm giá đã hết lượt dùng!");
@@ -371,6 +381,7 @@ namespace ShuttleMate.Services.Services
                     promotion.UsedCount++;
                     await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
                 }
+                historyTicket.PromotionId = promotion.Id;
             }
             switch (ticket.Type)
             {
@@ -684,8 +695,20 @@ namespace ShuttleMate.Services.Services
                 // Nếu quá 10 phút thời gian đã cài đặt
                 if (transaction != null && vietnamNow > transaction.CreatedTime.AddMinutes(9).AddSeconds(55))
                 {
+                    if (historyTicket.PromotionId != null)
+                    {
+                        var promotion = await _unitOfWork.GetRepository<Promotion>().Entities.FirstOrDefaultAsync(x => x.Id == historyTicket.PromotionId && !x.DeletedTime.HasValue);
+                        if (promotion != null)
+                        {
+                            promotion.UsedCount--;
+                            await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
+                        }
+                    }
+                    historyTicket.PromotionId = null;
+                    historyTicket.Price = historyTicket.Ticket.Price;
                     historyTicket.Status = HistoryTicketStatus.CANCELLED;
                     transaction.Status = PaymentStatus.CANCELLED;
+                    transaction.Amount = historyTicket.Ticket.Price;
 
                     await _unitOfWork.GetRepository<HistoryTicket>().UpdateAsync(historyTicket);
                     await _unitOfWork.GetRepository<Transaction>().UpdateAsync(transaction);
@@ -710,6 +733,17 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Không thể hủy ticket đã thanh toán!");
             }
+            if (historyTicket.PromotionId != null)
+            {
+                var promotion = await _unitOfWork.GetRepository<Promotion>().Entities.FirstOrDefaultAsync(x => x.Id == historyTicket.PromotionId && !x.DeletedTime.HasValue);
+                if (promotion != null)
+                {
+                    promotion.UsedCount--;
+                    await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
+                }
+            }
+            historyTicket.PromotionId = null;
+            historyTicket.Price = historyTicket.Ticket.Price;
 
             // Cập nhật trạng thái
             historyTicket.Status = HistoryTicketStatus.CANCELLED;
@@ -721,8 +755,10 @@ namespace ShuttleMate.Services.Services
             if (transaction != null)
             {
                 transaction.Status = PaymentStatus.CANCELLED;
+                transaction.Amount = historyTicket.Ticket.Price;
                 await _unitOfWork.GetRepository<Transaction>().UpdateAsync(transaction);
             }
+
 
             await _unitOfWork.GetRepository<HistoryTicket>().UpdateAsync(historyTicket);
             await _unitOfWork.SaveAsync();
