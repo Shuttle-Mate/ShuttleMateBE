@@ -83,19 +83,12 @@ namespace ShuttleMate.API.Controllers
         [HttpPatch("{tripId}")]
         public async Task<IActionResult> UpdateTripLocation(Guid tripId, UpdateTripModel model)
         {
-            
-            return Ok(new BaseResponseModel<ResponseTripLocationModel>(
+            await _tripService.UpdateAsync(tripId, model);
+            return Ok(new BaseResponseModel<string>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _tripService.UpdateAsync(tripId, model)
+                message: "Cập nhật vị trí chuyến đi thành công"
             ));
-        }
-
-        [HttpPost("simulate")]
-        public async Task<IActionResult> Simulate(Guid tripId, string token)
-        {
-            await _tripService.Simulate(tripId, token);
-            return Ok("Simulation complete. Check logs.");
         }
     }
 }

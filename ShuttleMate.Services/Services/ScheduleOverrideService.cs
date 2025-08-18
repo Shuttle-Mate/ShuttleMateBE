@@ -300,129 +300,141 @@ namespace ShuttleMate.Services.Services
             var originalSchedule = await _unitOfWork.GetRepository<Schedule>().GetByIdAsync(existingOverride.ScheduleId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình gốc không tồn tại.");
 
-            if (model.OverrideShuttleId == null && model.OverrideUserId == null)
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phải chỉ định ít nhất một thay đổi (xe hoặc tài xế).");
+            if (model.OverrideShuttleId == null && model.OverrideUserId == null &&
+                model.ShuttleReason == null && model.DriverReason == null)
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                    "Phải chỉ định ít nhất một thay đổi (xe, tài xế hoặc lý do).");
 
             var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().GetByIdAsync(originalSchedule.SchoolShiftId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại.");
 
-            if (model.OverrideShuttleId.HasValue && model.OverrideShuttleId != existingOverride.OverrideShuttleId)
-            {
-                var overrideShuttle = await _unitOfWork.GetRepository<Shuttle>().GetByIdAsync(model.OverrideShuttleId.Value)
-                    ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Xe thay thế không tồn tại.");
-
-                if (overrideShuttle.DeletedTime.HasValue)
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Xe {overrideShuttle.Name} đã bị xóa.");
-
-                if (!overrideShuttle.IsActive)
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Xe {overrideShuttle.Name} trong trạng thái không hoạt động.");
-
-                var existingShuttleSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(x =>
-                    x.ShuttleId == model.OverrideShuttleId.Value &&
-                    !x.DeletedTime.HasValue &&
-                    x.SchoolShiftId == originalSchedule.SchoolShiftId &&
-                    x.Direction == originalSchedule.Direction &&
-                    x.From <= existingOverride.Date &&
-                    x.To >= existingOverride.Date);
-
-                var dayOfWeek = existingOverride.Date.DayOfWeek.ToString().ToUpper();
-                var dayIndex = ConvertDayOfWeekToIndex(dayOfWeek);
-
-                foreach (var existingSchedule in existingShuttleSchedules)
-                {
-                    if (existingSchedule.DayOfWeek[dayIndex] == '1')
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                            $"Xe thay thế đã có ca {GetSchoolShiftDescription(schoolShift)} vào ngày {existingOverride.Date:dd/MM/yyyy} lúc {existingSchedule.DepartureTime}.");
-                    }
-                }
-
-                var existingShuttleOverrides = await _unitOfWork.GetRepository<ScheduleOverride>().FindAllAsync(x =>
-                    x.Id != scheduleOverrideId &&
-                    (x.OverrideShuttleId == model.OverrideShuttleId.Value ||
-                     (x.Schedule.ShuttleId == model.OverrideShuttleId.Value && x.OverrideShuttleId == null)) &&
-                    x.Date == existingOverride.Date &&
-                    !x.DeletedTime.HasValue &&
-                    x.Schedule.SchoolShiftId == originalSchedule.SchoolShiftId &&
-                    x.Schedule.Direction == originalSchedule.Direction);
-
-                foreach (var existingShuttleOverride in existingShuttleOverrides)
-                {
-                    var overrideDayIndex = ConvertDayOfWeekToIndex(existingOverride.Date.DayOfWeek.ToString().ToUpper());
-                    if (existingShuttleOverride.Schedule.DayOfWeek[overrideDayIndex] == '1')
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                            $"Xe thay thế đã có lịch thay thế vào ngày {existingOverride.Date:dd/MM/yyyy} lúc {existingShuttleOverride.Schedule.DepartureTime}.");
-                    }
-                }
-            }
-
-            if (model.OverrideUserId.HasValue && model.OverrideUserId != existingOverride.OverrideUserId)
-            {
-                var overrideDriver = await _unitOfWork.GetRepository<User>().GetByIdAsync(model.OverrideUserId.Value)
-                    ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tài xế override không tồn tại.");
-
-                if (overrideDriver.DeletedTime.HasValue)
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Tài xế {overrideDriver.FullName} đã bị xóa.");
-
-                if (overrideDriver.Violate == true)
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Tài xế {overrideDriver.FullName} đã bị khóa.");
-
-                var existingDriverSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(x =>
-                    x.DriverId == model.OverrideUserId.Value &&
-                    !x.DeletedTime.HasValue &&
-                    x.SchoolShiftId == originalSchedule.SchoolShiftId &&
-                    x.Direction == originalSchedule.Direction &&
-                    x.From <= existingOverride.Date &&
-                    x.To >= existingOverride.Date);
-
-                var dayOfWeek = existingOverride.Date.DayOfWeek.ToString().ToUpper();
-                var dayIndex = ConvertDayOfWeekToIndex(dayOfWeek);
-
-                foreach (var existingSchedule in existingDriverSchedules)
-                {
-                    if (existingSchedule.DayOfWeek[dayIndex] == '1')
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                            $"Tài xế thay thế đã có ca {GetSchoolShiftDescription(schoolShift)} vào ngày {existingOverride.Date:dd/MM/yyyy} lúc {existingSchedule.DepartureTime}.");
-                    }
-                }
-
-                var existingDriverOverrides = await _unitOfWork.GetRepository<ScheduleOverride>().FindAllAsync(x =>
-                    x.Id != scheduleOverrideId &&
-                    (x.OverrideUserId == model.OverrideUserId.Value ||
-                     (x.Schedule.DriverId == model.OverrideUserId.Value && x.OverrideUserId == null)) &&
-                    x.Date == existingOverride.Date &&
-                    !x.DeletedTime.HasValue &&
-                    x.Schedule.SchoolShiftId == originalSchedule.SchoolShiftId &&
-                    x.Schedule.Direction == originalSchedule.Direction);
-
-                foreach (var existingDriverOverride in existingDriverOverrides)
-                {
-                    var overrideDayIndex = ConvertDayOfWeekToIndex(existingOverride.Date.DayOfWeek.ToString().ToUpper());
-                    if (existingDriverOverride.Schedule.DayOfWeek[overrideDayIndex] == '1')
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                            $"Tài xế thay thế đã có lịch thay thế vào ngày {existingOverride.Date:dd/MM/yyyy} lúc {existingDriverOverride.Schedule.DepartureTime}.");
-                    }
-                }
-            }
-
             if (model.OverrideShuttleId.HasValue)
-                existingOverride.OverrideShuttleId = model.OverrideShuttleId;
-            else if (model.OverrideShuttleId == null && existingOverride.OverrideShuttleId != null)
-                existingOverride.OverrideShuttleId = null;
+            {
+                if (model.OverrideShuttleId != existingOverride.OverrideShuttleId)
+                {
+                    var overrideShuttle = await _unitOfWork.GetRepository<Shuttle>().GetByIdAsync(model.OverrideShuttleId.Value)
+                        ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Xe thay thế không tồn tại.");
+
+                    if (overrideShuttle.DeletedTime.HasValue)
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Xe {overrideShuttle.Name} đã bị xóa.");
+
+                    if (!overrideShuttle.IsActive)
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Xe {overrideShuttle.Name} trong trạng thái không hoạt động.");
+
+                    var existingShuttleSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(x =>
+                        x.ShuttleId == model.OverrideShuttleId.Value &&
+                        !x.DeletedTime.HasValue &&
+                        x.SchoolShiftId == originalSchedule.SchoolShiftId &&
+                        x.Direction == originalSchedule.Direction &&
+                        x.From <= existingOverride.Date &&
+                        x.To >= existingOverride.Date);
+
+                    var dayOfWeek = existingOverride.Date.DayOfWeek.ToString().ToUpper();
+                    var dayIndex = ConvertDayOfWeekToIndex(dayOfWeek);
+
+                    foreach (var existingSchedule in existingShuttleSchedules)
+                    {
+                        if (existingSchedule.DayOfWeek[dayIndex] == '1')
+                        {
+                            throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                                $"Xe thay thế đã có ca {GetSchoolShiftDescription(schoolShift)} vào ngày {existingOverride.Date:dd/MM/yyyy} lúc {existingSchedule.DepartureTime}.");
+                        }
+                    }
+
+                    var existingShuttleOverrides = await _unitOfWork.GetRepository<ScheduleOverride>().FindAllAsync(x =>
+                        x.Id != scheduleOverrideId &&
+                        (x.OverrideShuttleId == model.OverrideShuttleId.Value ||
+                         (x.Schedule.ShuttleId == model.OverrideShuttleId.Value && x.OverrideShuttleId == null)) &&
+                        x.Date == existingOverride.Date &&
+                        !x.DeletedTime.HasValue &&
+                        x.Schedule.SchoolShiftId == originalSchedule.SchoolShiftId &&
+                        x.Schedule.Direction == originalSchedule.Direction);
+
+                    foreach (var existingShuttleOverride in existingShuttleOverrides)
+                    {
+                        var overrideDayIndex = ConvertDayOfWeekToIndex(existingOverride.Date.DayOfWeek.ToString().ToUpper());
+                        if (existingShuttleOverride.Schedule.DayOfWeek[overrideDayIndex] == '1')
+                        {
+                            throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                                $"Xe thay thế đã có lịch override vào ngày {existingOverride.Date:dd/MM/yyyy} lúc {existingShuttleOverride.Schedule.DepartureTime}.");
+                        }
+                    }
+                }
+
+                if (existingOverride.OverrideShuttleId != model.OverrideShuttleId)
+                {
+                    existingOverride.OverrideShuttleId = model.OverrideShuttleId;
+                }
+            }
 
             if (model.OverrideUserId.HasValue)
-                existingOverride.OverrideUserId = model.OverrideUserId;
-            else if (model.OverrideUserId == null && existingOverride.OverrideUserId != null)
-                existingOverride.OverrideUserId = null;
+            {
+                if (model.OverrideUserId != existingOverride.OverrideUserId)
+                {
+                    var overrideDriver = await _unitOfWork.GetRepository<User>().GetByIdAsync(model.OverrideUserId.Value)
+                        ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tài xế override không tồn tại.");
+
+                    if (overrideDriver.DeletedTime.HasValue)
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Tài xế {overrideDriver.FullName} đã bị xóa.");
+
+                    if (overrideDriver.Violate == true)
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Tài xế {overrideDriver.FullName} đã bị khóa.");
+
+                    var existingDriverSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(x =>
+                        x.DriverId == model.OverrideUserId.Value &&
+                        !x.DeletedTime.HasValue &&
+                        x.SchoolShiftId == originalSchedule.SchoolShiftId &&
+                        x.Direction == originalSchedule.Direction &&
+                        x.From <= existingOverride.Date &&
+                        x.To >= existingOverride.Date);
+
+                    var dayOfWeek = existingOverride.Date.DayOfWeek.ToString().ToUpper();
+                    var dayIndex = ConvertDayOfWeekToIndex(dayOfWeek);
+
+                    foreach (var existingSchedule in existingDriverSchedules)
+                    {
+                        if (existingSchedule.DayOfWeek[dayIndex] == '1')
+                        {
+                            throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                                $"Tài xế thay thế đã có ca {GetSchoolShiftDescription(schoolShift)} vào ngày {existingOverride.Date:dd/MM/yyyy} lúc {existingSchedule.DepartureTime}.");
+                        }
+                    }
+
+                    var existingDriverOverrides = await _unitOfWork.GetRepository<ScheduleOverride>().FindAllAsync(x =>
+                        x.Id != scheduleOverrideId &&
+                        (x.OverrideUserId == model.OverrideUserId.Value ||
+                         (x.Schedule.DriverId == model.OverrideUserId.Value && x.OverrideUserId == null)) &&
+                        x.Date == existingOverride.Date &&
+                        !x.DeletedTime.HasValue &&
+                        x.Schedule.SchoolShiftId == originalSchedule.SchoolShiftId &&
+                        x.Schedule.Direction == originalSchedule.Direction);
+
+                    foreach (var existingDriverOverride in existingDriverOverrides)
+                    {
+                        var overrideDayIndex = ConvertDayOfWeekToIndex(existingOverride.Date.DayOfWeek.ToString().ToUpper());
+                        if (existingDriverOverride.Schedule.DayOfWeek[overrideDayIndex] == '1')
+                        {
+                            throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                                $"Tài xế thay thế đã có lịch override vào ngày {existingOverride.Date:dd/MM/yyyy} lúc {existingDriverOverride.Schedule.DepartureTime}.");
+                        }
+                    }
+                }
+
+                if (existingOverride.OverrideUserId != model.OverrideUserId)
+                {
+                    existingOverride.OverrideUserId = model.OverrideUserId;
+                }
+            }
 
             if (model.ShuttleReason != null)
+            {
                 existingOverride.ShuttleReason = model.ShuttleReason;
+            }
 
             if (model.DriverReason != null)
+            {
                 existingOverride.DriverReason = model.DriverReason;
+            }
 
             existingOverride.LastUpdatedBy = userId;
             existingOverride.LastUpdatedTime = CoreHelper.SystemTimeNow;
