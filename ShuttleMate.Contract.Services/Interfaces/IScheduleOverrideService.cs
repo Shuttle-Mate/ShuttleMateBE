@@ -6,6 +6,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
     {
         Task CreateAsync(CreateScheduleOverrideModel model);
         Task UpdateAsync(Guid scheduleOverrideId, UpdateScheduleOverrideModel model);
-        Task DeleteAsync(Guid scheduleOverrideId);
+        Task DeleteAsync(Guid scheduleOverrideId, DeleteScheduleOverrideModel model);
     }
 }
