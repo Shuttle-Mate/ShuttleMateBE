@@ -350,16 +350,66 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
         }
 
-        public async Task DeleteAsync(Guid scheduleOverrideId)
+        public async Task DeleteAsync(Guid scheduleOverrideId, DeleteScheduleOverrideModel model)
         {
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+            model.TrimAllStrings();
 
             var scheduleOverride = await _unitOfWork.GetRepository<ScheduleOverride>().GetByIdAsync(scheduleOverrideId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình thay thế không tồn tại.");
 
-            scheduleOverride.DeletedTime = CoreHelper.SystemTimeNow;
-            scheduleOverride.DeletedBy = userId;
-            
+            if (model.OverrideShuttleId == null && model.OverrideUserId == null)
+            {
+                scheduleOverride.LastUpdatedBy = userId;
+                scheduleOverride.LastUpdatedTime = CoreHelper.SystemTimeNow;
+                scheduleOverride.DeletedBy = userId;
+                scheduleOverride.DeletedTime = CoreHelper.SystemTimeNow;
+
+                _unitOfWork.GetRepository<ScheduleOverride>().Update(scheduleOverride);
+                await _unitOfWork.SaveAsync();
+                return;
+            }
+
+            if (model.OverrideShuttleId != null && scheduleOverride.OverrideShuttleId != model.OverrideShuttleId)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                    $"ID xe thay thế không khớp.");
+            }
+
+            if (model.OverrideUserId != null && scheduleOverride.OverrideUserId != model.OverrideUserId)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                    $"ID tài xế thay thế không khớp.");
+            }
+
+            if (model.OverrideShuttleId != null)
+            {
+                scheduleOverride.OverrideShuttleId = null;
+                scheduleOverride.ShuttleReason = null;
+            }
+
+            if (model.OverrideUserId != null)
+            {
+                scheduleOverride.OverrideUserId = null;
+                scheduleOverride.DriverReason = null;
+            }
+
+            bool shouldDeleteWholeRecord = scheduleOverride.OverrideShuttleId == null
+                               && scheduleOverride.OverrideUserId == null;
+
+            if (shouldDeleteWholeRecord)
+            {
+                scheduleOverride.LastUpdatedBy = userId;
+                scheduleOverride.LastUpdatedTime = CoreHelper.SystemTimeNow;
+                scheduleOverride.DeletedBy = userId;
+                scheduleOverride.DeletedTime = CoreHelper.SystemTimeNow;
+            }
+            else
+            {
+                scheduleOverride.LastUpdatedBy = userId;
+                scheduleOverride.LastUpdatedTime = CoreHelper.SystemTimeNow;
+            }
+
             _unitOfWork.GetRepository<ScheduleOverride>().Update(scheduleOverride);
             await _unitOfWork.SaveAsync();
         }
