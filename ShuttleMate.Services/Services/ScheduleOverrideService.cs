@@ -20,8 +20,9 @@ namespace ShuttleMate.Services.Services
         private readonly IGenericRepository<ScheduleOverride> _scheduleOverrideRepo;
         private readonly IGenericRepository<Schedule> _scheduleRepo;
         private readonly IGenericRepository<SchoolShift> _schoolShiftRepo;
+        private readonly INotificationService _notificationService;
 
-        public ScheduleOverrideService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
+        public ScheduleOverrideService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -29,6 +30,7 @@ namespace ShuttleMate.Services.Services
             _scheduleOverrideRepo = _unitOfWork.GetRepository<ScheduleOverride>();
             _scheduleRepo = _unitOfWork.GetRepository<Schedule>();
             _schoolShiftRepo = _unitOfWork.GetRepository<SchoolShift>();
+            _notificationService = notificationService;
         }
 
         public async Task CreateAsync(CreateScheduleOverrideModel model)
@@ -47,40 +49,92 @@ namespace ShuttleMate.Services.Services
                 x.Date == model.Date &&
                 !x.DeletedTime.HasValue);
 
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
+            DateTime dateTime = vietnamNow;
+
             if (existingOverride != null)
             {
+                //thay xe không thay tài xế
                 if (existingOverride.OverrideUserId != null &&
                     existingOverride.OverrideShuttleId == null &&
                     model.OverrideShuttleId != null &&
                     model.OverrideUserId == null)
                 {
+                    //gắn xe mới
                     existingOverride.OverrideShuttleId = model.OverrideShuttleId;
                     existingOverride.ShuttleReason = model.ShuttleReason ?? existingOverride.ShuttleReason;
                     existingOverride.LastUpdatedBy = userId;
 
                     await _unitOfWork.GetRepository<ScheduleOverride>().UpdateAsync(existingOverride);
                     await _unitOfWork.SaveAsync();
+
+                    //noti tài
+                    var metadata = new Dictionary<string, string>
+                    {
+                        { "DriverName", existingOverride.OriginalUser.FullName }
+                    };
+
+                    await _notificationService.SendNotificationFromTemplateAsync(
+                        templateType: "UpdateSchedule",
+                        recipientIds: new List<Guid> { existingOverride.OriginalUserId },
+                        metadata: metadata,
+                        createdBy: "system",
+                        notiCategory: "SCHEDULE"
+                    );
                     return;
                 }
 
+                //thay tài không thay xe
                 if (existingOverride.OverrideShuttleId != null &&
                     existingOverride.OverrideUserId == null &&
                     model.OverrideUserId != null &&
                     model.OverrideShuttleId == null)
                 {
+                    //gắn tài
                     existingOverride.OverrideUserId = model.OverrideUserId;
                     existingOverride.DriverReason = model.DriverReason ?? existingOverride.DriverReason;
                     existingOverride.LastUpdatedBy = userId;
 
                     await _unitOfWork.GetRepository<ScheduleOverride>().UpdateAsync(existingOverride);
                     await _unitOfWork.SaveAsync();
-                    return;
+                    //noti tài
+                    var metadata01 = new Dictionary<string, string>
+                    {
+                        { "DriverName", existingOverride.OriginalUser.FullName }
+                    };
+
+                    await _notificationService.SendNotificationFromTemplateAsync(
+                        templateType: "UpdateSchedule",
+                        recipientIds: new List<Guid> { existingOverride.OriginalUserId },
+                        metadata: metadata01,
+                        createdBy: "system",
+                        notiCategory: "SCHEDULE"
+                    );
+
+                    if (model.OverrideUserId != null || model.OverrideUserId != Guid.Empty || existingOverride.OverrideUserId != null)
+                    {
+                        var metadata02 = new Dictionary<string, string>
+                        {
+                            { "DriverName", existingOverride.OverrideUser.FullName }
+                        };
+
+                        await _notificationService.SendNotificationFromTemplateAsync(
+                            templateType: "UpdateSchedule",
+                            recipientIds: new List<Guid> { existingOverride.OverrideUser.Id },
+                            metadata: metadata02,
+                            createdBy: "system",
+                            notiCategory: "SCHEDULE"
+                        );
+                        return;
+                    }
                 }
 
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
                     $"Đã tồn tại lịch trình thay thế cho lịch này vào ngày {model.Date:dd/MM/yyyy}. Vui lòng cập nhật bản ghi hiện có thay vì tạo mới.");
             }
-
+            //validate
             if (model.OverrideShuttleId == null && model.OverrideUserId == null)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phải chỉ định ít nhất một thay đổi (xe hoặc tài xế).");
 
@@ -190,6 +244,7 @@ namespace ShuttleMate.Services.Services
                 }
             }
 
+            //insert
             var overrideSchedule = new ScheduleOverride
             {
                 ScheduleId = model.ScheduleId,
@@ -206,6 +261,32 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.GetRepository<ScheduleOverride>().InsertAsync(overrideSchedule);
             await _unitOfWork.SaveAsync();
+            //noti
+            var metadata1 = new Dictionary<string, string>
+            {
+                { "DriverName", overrideSchedule.OriginalUser.FullName }
+            };
+
+            await _notificationService.SendNotificationFromTemplateAsync(
+                templateType: "UpdateSchedule",
+                recipientIds: new List<Guid> { overrideSchedule.OriginalUser.Id },
+                metadata: metadata1,
+                createdBy: "system",
+                notiCategory: "SCHEDULE"
+            );
+
+            var metadata2 = new Dictionary<string, string>
+            {
+                { "DriverName", overrideSchedule.OverrideUser.FullName }
+            };
+
+            await _notificationService.SendNotificationFromTemplateAsync(
+                templateType: "UpdateSchedule",
+                recipientIds: new List<Guid> { overrideSchedule.OverrideUser.Id },
+                metadata: metadata2,
+                createdBy: "system",
+                notiCategory: "SCHEDULE"
+            );
         }
 
         public async Task UpdateAsync(Guid scheduleOverrideId, UpdateScheduleOverrideModel model)
@@ -348,6 +429,35 @@ namespace ShuttleMate.Services.Services
 
             _unitOfWork.GetRepository<ScheduleOverride>().Update(existingOverride);
             await _unitOfWork.SaveAsync();
+            ////noti 2 tài
+            //var metadata1 = new Dictionary<string, string>
+            //{
+            //    { "DriverName", existingOverride.OriginalUser.FullName }
+            //};
+
+            //await _notificationService.SendNotificationFromTemplateAsync(
+            //    templateType: "UpdateSchedule",
+            //    recipientIds: new List<Guid> { existingOverride.OriginalUser.Id },
+            //    metadata: metadata1,
+            //    createdBy: "system",
+            //    notiCategory: "SCHEDULE"
+            //);
+
+            //if (model.OverrideUserId != null || model.OverrideUserId != Guid.Empty || existingOverride.OverrideUserId != null)
+            //{
+            //    var metadata2 = new Dictionary<string, string>
+            //    {
+            //        { "DriverName", existingOverride.OverrideUser.FullName }
+            //    };
+
+            //    await _notificationService.SendNotificationFromTemplateAsync(
+            //        templateType: "UpdateSchedule",
+            //        recipientIds: new List<Guid> { existingOverride.OverrideUser.Id },
+            //        metadata: metadata2,
+            //        createdBy: "system",
+            //        notiCategory: "SCHEDULE"
+            //    );
+            //}
         }
 
         public async Task DeleteAsync(Guid scheduleOverrideId, DeleteScheduleOverrideModel model)
@@ -412,6 +522,7 @@ namespace ShuttleMate.Services.Services
 
             _unitOfWork.GetRepository<ScheduleOverride>().Update(scheduleOverride);
             await _unitOfWork.SaveAsync();
+            //noti 2 tài
         }
 
         #region Private Methods
