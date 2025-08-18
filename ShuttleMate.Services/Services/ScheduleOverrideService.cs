@@ -17,12 +17,18 @@ namespace ShuttleMate.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
+        private readonly IGenericRepository<ScheduleOverride> _scheduleOverrideRepo;
+        private readonly IGenericRepository<Schedule> _scheduleRepo;
+        private readonly IGenericRepository<SchoolShift> _schoolShiftRepo;
 
         public ScheduleOverrideService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
+            _scheduleOverrideRepo = _unitOfWork.GetRepository<ScheduleOverride>();
+            _scheduleRepo = _unitOfWork.GetRepository<Schedule>();
+            _schoolShiftRepo = _unitOfWork.GetRepository<SchoolShift>();
         }
 
         public async Task CreateAsync(CreateScheduleOverrideModel model)
@@ -30,14 +36,13 @@ namespace ShuttleMate.Services.Services
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             model.TrimAllStrings();
 
-            var originalSchedule = await _unitOfWork.GetRepository<Schedule>().GetByIdAsync(model.ScheduleId)
+            var originalSchedule = await _scheduleRepo.GetByIdAsync(model.ScheduleId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình gốc không tồn tại.");
 
             if (model.Date < originalSchedule.From || model.Date > originalSchedule.To)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày thay thế {model.Date:dd/MM/yyyy} phải nằm trong khoảng từ {originalSchedule.From:dd/MM/yyyy} đến {originalSchedule.To:dd/MM/yyyy}.");
 
-            var existingOverride = await _unitOfWork.GetRepository<ScheduleOverride>().FindAsync(x =>
-                x.ScheduleId == model.ScheduleId &&
+            var existingOverride = await _unitOfWork.GetRepository<ScheduleOverride>().FindAsync(x => x.ScheduleId == model.ScheduleId &&
                 x.Date == model.Date &&
                 !x.DeletedTime.HasValue);
 
@@ -47,7 +52,7 @@ namespace ShuttleMate.Services.Services
             if (model.OverrideShuttleId == null && model.OverrideUserId == null)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phải chỉ định ít nhất một thay đổi (xe hoặc tài xế).");
 
-            var schoolShift = await _unitOfWork.GetRepository<SchoolShift>().GetByIdAsync(originalSchedule.SchoolShiftId)
+            var schoolShift = await _schoolShiftRepo.GetByIdAsync(originalSchedule.SchoolShiftId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Ca học không tồn tại.");
 
             if (model.OverrideShuttleId.HasValue)

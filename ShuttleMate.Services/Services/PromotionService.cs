@@ -18,12 +18,18 @@ namespace ShuttleMate.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
+        private readonly IGenericRepository<Promotion> _promotionRepo;
+        private readonly IGenericRepository<Ticket> _ticketRepo;
+        private readonly IGenericRepository<UserPromotion> _userPromotionRepo;
 
         public PromotionService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
+            _promotionRepo = _unitOfWork.GetRepository<Promotion>();
+            _ticketRepo = _unitOfWork.GetRepository<Ticket>();
+            _userPromotionRepo = _unitOfWork.GetRepository<UserPromotion>();
         }
 
         public async Task<BasePaginatedList<ResponsePromotionModel>> GetAllAsync(
@@ -37,31 +43,30 @@ namespace ShuttleMate.Services.Services
             int page = 0,
             int pageSize = 10)
         {
-            var query = _unitOfWork.GetRepository<Promotion>()
+            var query = _promotionRepo
                 .GetQueryable()
                 .Include(p => p.Ticket)
                 .Include(p => p.UserPromotions)
-                .Where(p => !p.DeletedTime.HasValue);
+                .Where(p => !p.DeletedTime.HasValue)
+                .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(search))
-                query = query.Where(p => p.Name.ToLower().Contains(search.Trim().ToLower()));
+                query = query.Where(p => EF.Functions.Like(p.Name, $"%{search.Trim()}%"));
 
             if (!string.IsNullOrWhiteSpace(type) && Enum.TryParse<TypePromotionEnum>(type, true, out var parsedType))
                 query = query.Where(p => p.Type == parsedType);
 
             if (startEndDate.HasValue)
-                query = query.Where(p => p.EndDate >= startEndDate.Value);
+                query = query.Where(p => p.EndDate >= startEndDate.Value.ToUniversalTime());
 
             if (endEndDate.HasValue)
-                query = query.Where(p => p.EndDate <= endEndDate.Value);
+                query = query.Where(p => p.EndDate <= endEndDate.Value.ToUniversalTime());
 
             if (isExpired.HasValue)
                 query = query.Where(p => p.IsExpiredOrReachLimit == isExpired.Value);
 
             if (userId.HasValue)
-            {
                 query = query.Where(p => p.UserPromotions.Any(up => up.UserId == userId.Value));
-            }
 
             query = sortAsc
                 ? query.OrderBy(p => p.EndDate)
@@ -83,92 +88,48 @@ namespace ShuttleMate.Services.Services
         {
             var userId = Guid.Parse(Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor));
 
-            var ticket = await _unitOfWork.GetRepository<Ticket>()
-                .GetByIdAsync(ticketId)
+            var ticket = await _ticketRepo.GetQueryable()
+                .Where(f => f.Id == ticketId && !f.DeletedTime.HasValue)
+                .AsNoTracking()
+                .FirstOrDefaultAsync()
                 ?? throw new ErrorException(StatusCodes.Status404NotFound,
                     ResponseCodeConstants.NOT_FOUND, "Vé không tồn tại.");
 
-            if (ticket.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound,
-                    ResponseCodeConstants.NOT_FOUND, "Vé đã bị xóa.");
-
-            var applicablePromotions = await _unitOfWork.GetRepository<Promotion>().Entities
-                .Where(p =>
-                    !p.DeletedTime.HasValue &&
-                    p.EndDate >= DateTime.UtcNow &&
-                    !p.IsExpiredOrReachLimit &&
-                    (p.UsingLimit == 0 || p.UsedCount < p.UsingLimit) &&
-                    (
-                        p.IsGlobal ||
-                        (p.ApplicableTicketType != null && p.ApplicableTicketType == ticket.Type) ||
-                        (p.TicketId != null && p.TicketId == ticket.Id)
-                    )
-                )
-                .OrderBy(p => p.EndDate)
+            var usedPromotionIds = await _userPromotionRepo.GetQueryable()
+                .Where(up => up.UserId == userId && !up.DeletedTime.HasValue)
+                .Select(up => up.PromotionId)
                 .ToListAsync();
 
-            return _mapper.Map<IEnumerable<ResponsePromotionModel>>(applicablePromotions);
-        }
+            var currentTime = CoreHelper.SystemTimeNow;
 
-        public async Task<IEnumerable<ResponsePromotionModel>> GetAllUnsavedAsync()
-        {
-            var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-            var guidUserId = Guid.Parse(userId);
+            var applicablePromotions = await _promotionRepo.GetQueryable()
+                .Where(p => !p.DeletedTime.HasValue &&
+                            p.EndDate >= currentTime &&
+                            (p.UsingLimit == 0 || p.UsedCount < p.UsingLimit) &&
+                            !p.IsExpiredOrReachLimit &&
+                            (p.IsGlobal ||
+                             p.ApplicableTicketType == ticket.Type ||
+                             p.TicketId == ticket.Id))
+                .OrderBy(p => p.EndDate)
+                .AsNoTracking()
+                .ToListAsync();
 
-            var promotions = await _unitOfWork.GetRepository<Promotion>().FindAllAsync(p => !p.DeletedTime.HasValue && p.EndDate > DateTime.UtcNow);
+            var result = _mapper.Map<List<ResponsePromotionModel>>(applicablePromotions);
+            foreach (var promo in result)
+            {
+                promo.IsUsed = usedPromotionIds.Contains(promo.Id);
+            }
 
-            var savedPromotionIds = (await _unitOfWork.GetRepository<UserPromotion>()
-                .FindAllAsync(up => up.UserId == guidUserId))
-                .Select(up => up.PromotionId)
-                .ToHashSet();
-
-            var unsavedPromotions = promotions
-                .Where(p => !savedPromotionIds.Contains(p.Id))
-                .ToList();
-
-            if (!unsavedPromotions.Any())
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có khuyến mãi nào.");
-
-            return _mapper.Map<IEnumerable<ResponsePromotionModel>>(unsavedPromotions);
-        }
-
-        public async Task<IEnumerable<ResponseUserPromotionModel>> GetAllUsersSavedAsync(Guid promotionId)
-        {
-            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(promotionId)
-                    ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi không tồn tại.");
-
-            if (promotion.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã bị xóa.");
-
-            var userPromotions = await _unitOfWork.GetRepository<UserPromotion>().FindAllAsync(up => up.PromotionId == promotionId);
-
-            if (!userPromotions.Any())
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có người dùng nào lưu khuyến mãi.");
-
-            var userIds = userPromotions.Select(up => up.UserId).Distinct().ToList();
-
-            var users = await _unitOfWork.GetRepository<User>().FindAllAsync(u => userIds.Contains(u.Id));
-
-            var result = from up in userPromotions
-                         join u in users on up.UserId equals u.Id
-                         select new ResponseUserPromotionModel
-                         {
-                             Id = u.Id,
-                             FullName = u.FullName,
-                             Email = u.Email,
-                             IsUsed = up.IsUsed
-                         };
-
-            return result.ToList();
+            return result;
         }
 
         public async Task<ResponsePromotionModel> GetByIdAsync(Guid promotionId)
         {
-            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(promotionId)
+            var promotion = await _promotionRepo.GetQueryable()
+                .Where(f => f.Id == promotionId && !f.DeletedTime.HasValue)
+                .AsNoTracking()
+                .FirstOrDefaultAsync()
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi không tồn tại.");
-
-            if (promotion.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã bị xóa.");
 
             return _mapper.Map<ResponsePromotionModel>(promotion);
         }
@@ -178,8 +139,7 @@ namespace ShuttleMate.Services.Services
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             model.TrimAllStrings();
 
-            if (!Enum.TryParse<TypePromotionEnum>(model.PromotionType, true, out var typeEnum)
-                || !Enum.IsDefined(typeof(TypePromotionEnum), typeEnum))
+            if (!Enum.TryParse<TypePromotionEnum>(model.PromotionType, true, out var typeEnum) || !Enum.IsDefined(typeof(TypePromotionEnum), typeEnum))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phân loại khuyến mãi không hợp lệ.");
 
             if (string.IsNullOrWhiteSpace(model.Name))
@@ -201,23 +161,22 @@ namespace ShuttleMate.Services.Services
                     break;
             }
 
-            if (model.LimitSalePrice < 0)
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giá trị giới hạn bán không hợp lệ.");
-
             if (model.EndDate <= DateTime.Now)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Ngày kết thúc khuyến mãi không hợp lệ.");
 
-            if (model.UsingLimit < 0)
+            if (model.LimitSalePrice.HasValue && model.LimitSalePrice < 0)
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giá trị giới hạn bán không hợp lệ.");
+
+            if (model.UsingLimit.HasValue && model.UsingLimit < 0)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giới hạn sử dụng không hợp lệ.");
 
             bool isGlobal = false;
             TicketTypeEnum? applicableType = null;
-            Guid? applicableTicketId = null;
+            Guid? tickId = null;
 
             if (!string.IsNullOrWhiteSpace(model.TicketType))
             {
-                if (!Enum.TryParse<TicketTypeEnum>(model.TicketType, true, out var parsedType)
-                    || !Enum.IsDefined(typeof(TicketTypeEnum), parsedType))
+                if (!Enum.TryParse<TicketTypeEnum>(model.TicketType, true, out var parsedType) || !Enum.IsDefined(typeof(TicketTypeEnum), parsedType))
                     throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại vé không hợp lệ.");
 
                 applicableType = parsedType;
@@ -225,13 +184,13 @@ namespace ShuttleMate.Services.Services
             }
             else if (model.TicketId.HasValue)
             {
-                var ticket = await _unitOfWork.GetRepository<Ticket>().GetByIdAsync(model.TicketId)
+                var ticket = await _ticketRepo.GetQueryable()
+                    .Where(t => t.Id == model.TicketId && !t.DeletedTime.HasValue)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync()
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vé không tồn tại.");
 
-                if (ticket.DeletedTime.HasValue)
-                    throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vé đã bị xóa.");
-
-                applicableTicketId = ticket.Id;
+                tickId = ticket.Id;
                 isGlobal = false;
             }
             else
@@ -239,33 +198,19 @@ namespace ShuttleMate.Services.Services
                 isGlobal = true;
             }
 
-            var newPromotion = new Promotion
-            {
-                Type = typeEnum,
-                Name = model.Name,
-                Description = model.Description,
-                LimitSalePrice = model.LimitSalePrice,
-                EndDate = model.EndDate,
-                UsingLimit = model.UsingLimit,
-                CreatedBy = userId,
-                LastUpdatedBy = userId,
-                ApplicableTicketType = applicableType,
-                TicketId = applicableTicketId,
-                IsGlobal = isGlobal
-            };
+            var promotion = _mapper.Map<Promotion>(model);
+            promotion.Type = typeEnum;
+            promotion.ApplicableTicketType = applicableType;
+            promotion.IsGlobal = isGlobal;
+            promotion.TicketId = tickId;
 
-            if (typeEnum == TypePromotionEnum.PRICE_DISCOUNT)
-                newPromotion.DiscountPrice = model.DiscountPrice;
-            else if (typeEnum == TypePromotionEnum.PERCENTAGE_DISCOUNT)
-                newPromotion.DiscountPercent = model.DiscountPercent;
-
-            await _unitOfWork.GetRepository<Promotion>().InsertAsync(newPromotion);
+            await _promotionRepo.InsertAsync(promotion);
             await _unitOfWork.SaveAsync();
         }
 
         public async Task UpdateAsync(Guid promotionId, UpdatePromotionModel model)
         {
-            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(promotionId)
+            var promotion = await _promotionRepo.GetByIdAsync(promotionId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi không tồn tại.");
 
             if (promotion.DeletedTime.HasValue)
@@ -274,8 +219,7 @@ namespace ShuttleMate.Services.Services
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             model.TrimAllStrings();
 
-            if (!Enum.TryParse<TypePromotionEnum>(model.PromotionType, true, out var typeEnum) ||
-                !Enum.IsDefined(typeof(TypePromotionEnum), typeEnum))
+            if (!Enum.TryParse<TypePromotionEnum>(model.PromotionType, true, out var typeEnum) || !Enum.IsDefined(typeof(TypePromotionEnum), typeEnum))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phân loại khuyến mãi không hợp lệ.");
 
             if (string.IsNullOrWhiteSpace(model.Name))
@@ -296,13 +240,13 @@ namespace ShuttleMate.Services.Services
                     break;
             }
 
-            if (model.LimitSalePrice < 0)
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giá trị giới hạn bán không hợp lệ.");
-
             if (model.EndDate <= DateTime.Now)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Ngày kết thúc khuyến mãi không hợp lệ.");
 
-            if (model.UsingLimit < 0)
+            if (model.LimitSalePrice.HasValue && model.LimitSalePrice < 0)
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giá trị giới hạn bán không hợp lệ.");
+
+            if (model.UsingLimit.HasValue && model.UsingLimit < 0)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Giới hạn sử dụng không hợp lệ.");
 
             promotion.TicketId = null;
@@ -311,18 +255,16 @@ namespace ShuttleMate.Services.Services
 
             if (model.TicketId.HasValue)
             {
-                var ticket = await _unitOfWork.GetRepository<Ticket>().GetByIdAsync(model.TicketId.Value)
+                var ticket = await _ticketRepo.GetQueryable()
+                    .Where(t => t.Id == model.TicketId && !t.DeletedTime.HasValue)
+                    .FirstOrDefaultAsync()
                     ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vé không tồn tại.");
-
-                if (ticket.DeletedTime.HasValue)
-                    throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vé đã bị xóa.");
 
                 promotion.TicketId = ticket.Id;
             }
             else if (!string.IsNullOrWhiteSpace(model.TicketType))
             {
-                if (!Enum.TryParse<TicketTypeEnum>(model.TicketType, true, out var ticketTypeEnum) ||
-                    !Enum.IsDefined(typeof(TicketTypeEnum), ticketTypeEnum))
+                if (!Enum.TryParse<TicketTypeEnum>(model.TicketType, true, out var ticketTypeEnum) || !Enum.IsDefined(typeof(TicketTypeEnum), ticketTypeEnum))
                     throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Loại vé không hợp lệ.");
 
                 promotion.ApplicableTicketType = ticketTypeEnum;
@@ -332,25 +274,13 @@ namespace ShuttleMate.Services.Services
                 promotion.IsGlobal = true;
             }
 
+            _mapper.Map(model, promotion);
             promotion.Type = typeEnum;
-            promotion.Name = model.Name;
-            promotion.Description = model.Description;
-            promotion.UsingLimit = model.UsingLimit;
-            promotion.EndDate = model.EndDate;
-            promotion.LimitSalePrice = model.LimitSalePrice;
-            promotion.IsExpiredOrReachLimit = promotion.UsedCount >= model.UsingLimit;
+            promotion.IsExpiredOrReachLimit = model.UsingLimit.HasValue && promotion.UsedCount >= model.UsingLimit.Value;
             promotion.LastUpdatedBy = userId;
             promotion.LastUpdatedTime = CoreHelper.SystemTimeNow;
 
-            promotion.DiscountPrice = null;
-            promotion.DiscountPercent = null;
-
-            if (typeEnum == TypePromotionEnum.PRICE_DISCOUNT)
-                promotion.DiscountPrice = model.DiscountPrice;
-            else if (typeEnum == TypePromotionEnum.PERCENTAGE_DISCOUNT)
-                promotion.DiscountPercent = model.DiscountPercent;
-
-            await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
+            await _promotionRepo.UpdateAsync(promotion);
             await _unitOfWork.SaveAsync();
         }
 
@@ -358,18 +288,17 @@ namespace ShuttleMate.Services.Services
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            var promotion = await _unitOfWork.GetRepository<Promotion>().GetByIdAsync(promotionId)
+            var promotion = await _promotionRepo.GetQueryable()
+                .Where(p => p.Id == promotionId && !p.DeletedTime.HasValue)
+                .FirstOrDefaultAsync()
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi không tồn tại.");
-
-            if (promotion.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Khuyến mãi đã bị xóa.");
 
             promotion.LastUpdatedTime = CoreHelper.SystemTimeNow;
             promotion.LastUpdatedBy = userId;
             promotion.DeletedTime = CoreHelper.SystemTimeNow;
             promotion.DeletedBy = userId;
 
-            await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
+            await _promotionRepo.UpdateAsync(promotion);
             await _unitOfWork.SaveAsync();
         }
     }
