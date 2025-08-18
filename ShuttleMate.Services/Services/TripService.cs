@@ -70,10 +70,33 @@ namespace ShuttleMate.Services.Services
 
             if (overrideRecord != null)
             {
-                // Có bản ghi override, kiểm tra xem tài xế hiện tại có phải là tài xế được thay thế không
-                if (actualDriverId != overrideRecord.OverrideUserId)
+                // Nếu OverrideUserId null, cho phép tài xế chính start
+                if (overrideRecord.OverrideUserId == null)
                 {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn không phải là tài xế được phép cho chuyến này theo lịch thay thế.");
+                    // kiểm tra tài xế hiện tại có phải là tài xế chính không
+                    var scheduleRepository = _unitOfWork.GetRepository<Schedule>();
+                    var scheduleRecord = await scheduleRepository.FindAsync(
+                        predicate: s => s.Id == scheduleId &&
+                                        !s.DeletedTime.HasValue
+                    );
+
+                    if (scheduleRecord == null)
+                    {
+                        throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình không hợp lệ hoặc không tồn tại.");
+                    }
+
+                    if (actualDriverId != scheduleRecord.DriverId)
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn không phải là tài xế được chỉ định cho lịch trình này.");
+                    }
+                }
+                else
+                {
+                    // Có bản ghi override, kiểm tra xem tài xế hiện tại có phải là tài xế được thay thế không
+                    if (actualDriverId != overrideRecord.OverrideUserId)
+                    {
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn không phải là tài xế được phép cho chuyến này theo lịch thay thế.");
+                    }
                 }
             }
             else
