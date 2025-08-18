@@ -252,13 +252,12 @@ namespace ShuttleMate.Services.Services
                 var routeInfo = BuildRouteInfo(routeStops, s.Direction);
 
                 var expectedStudentIds = await _unitOfWork.GetRepository<User>().Entities
-                    .Where(st => st.UserSchoolShifts.Any(uss => 
-                        uss.SchoolShiftId == s.SchoolShiftId && 
-                        !uss.DeletedTime.HasValue))
                     .Where(st => st.HistoryTickets.Any(ht =>
                         ht.Ticket.RouteId == s.RouteId &&
                         ht.Ticket.Route.IsActive == true &&
-                        ht.ValidUntil >= DateOnly.FromDateTime(DateTime.Now) &&
+                        ht.ValidUntil >= todayVN &&
+                        ht.ValidFrom <= todayVN &&
+                        ht.HistoryTicketSchoolShifts.Any(hs => hs.SchoolShiftId == s.SchoolShiftId) &&
                         ht.Status == HistoryTicketStatus.PAID &&
                         !ht.DeletedTime.HasValue))
                     .Select(st => st.Id)
