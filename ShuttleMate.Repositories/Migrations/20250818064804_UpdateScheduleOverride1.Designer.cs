@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ShuttleMate.Repositories.Context;
 
@@ -11,9 +12,11 @@ using ShuttleMate.Repositories.Context;
 namespace ShuttleMate.Repositories.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20250818064804_UpdateScheduleOverride1")]
+    partial class UpdateScheduleOverride1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -863,14 +866,14 @@ namespace ShuttleMate.Repositories.Migrations
                     b.Property<Guid?>("OverrideUserId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Reason")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid?>("RouteId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ScheduleId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ShuttleReason")
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

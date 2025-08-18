@@ -55,7 +55,7 @@ namespace ShuttleMate.Services.Services
                     model.OverrideUserId == null)
                 {
                     existingOverride.OverrideShuttleId = model.OverrideShuttleId;
-                    existingOverride.Reason = model.Reason ?? existingOverride.Reason;
+                    existingOverride.ShuttleReason = model.ShuttleReason ?? existingOverride.ShuttleReason;
                     existingOverride.LastUpdatedBy = userId;
 
                     await _unitOfWork.GetRepository<ScheduleOverride>().UpdateAsync(existingOverride);
@@ -69,7 +69,7 @@ namespace ShuttleMate.Services.Services
                     model.OverrideShuttleId == null)
                 {
                     existingOverride.OverrideUserId = model.OverrideUserId;
-                    existingOverride.Reason = model.Reason ?? existingOverride.Reason;
+                    existingOverride.DriverReason = model.DriverReason ?? existingOverride.DriverReason;
                     existingOverride.LastUpdatedBy = userId;
 
                     await _unitOfWork.GetRepository<ScheduleOverride>().UpdateAsync(existingOverride);
@@ -194,7 +194,8 @@ namespace ShuttleMate.Services.Services
             {
                 ScheduleId = model.ScheduleId,
                 Date = model.Date,
-                Reason = model.Reason,
+                ShuttleReason = model.ShuttleReason,
+                DriverReason = model.DriverReason,
                 OriginalShuttleId = originalSchedule.ShuttleId,
                 OverrideShuttleId = model.OverrideShuttleId,
                 OriginalUserId = originalSchedule.DriverId,
@@ -336,8 +337,11 @@ namespace ShuttleMate.Services.Services
             else if (model.OverrideUserId == null && existingOverride.OverrideUserId != null)
                 existingOverride.OverrideUserId = null;
 
-            if (model.Reason != null)
-                existingOverride.Reason = model.Reason;
+            if (model.ShuttleReason != null)
+                existingOverride.ShuttleReason = model.ShuttleReason;
+
+            if (model.DriverReason != null)
+                existingOverride.DriverReason = model.DriverReason;
 
             existingOverride.LastUpdatedBy = userId;
             existingOverride.LastUpdatedTime = CoreHelper.SystemTimeNow;
