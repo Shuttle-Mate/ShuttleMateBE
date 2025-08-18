@@ -10,7 +10,7 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public Guid OriginalShuttleId { get; set; }
         public virtual Shuttle OriginalShuttle { get; set; }
         public Guid? OverrideShuttleId { get; set; }
-        public string? Reason { get; set; }
+        public string? ShuttleReason { get; set; }
         public virtual Shuttle? OverrideShuttle { get; set; }
         public Guid OriginalUserId { get; set; }
         public virtual User OriginalUser { get; set; }

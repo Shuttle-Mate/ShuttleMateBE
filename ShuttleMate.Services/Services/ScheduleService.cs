@@ -40,14 +40,14 @@ namespace ShuttleMate.Services.Services
         }
 
         public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByRouteIdAsync(
-    Guid routeId,
-    string from,
-    string to,
-    string? dayOfWeek,
-    string? direction,
-    bool sortAsc = true,
-    int page = 0,
-    int pageSize = 10)
+            Guid routeId,
+            string from,
+            string to,
+            string? dayOfWeek,
+            string? direction,
+            bool sortAsc = true,
+            int page = 0,
+            int pageSize = 10)
         {
             if (!DateOnly.TryParseExact(from, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var fromDate))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày {from} không hợp lệ.");
@@ -90,7 +90,6 @@ namespace ShuttleMate.Services.Services
                 .Take(pageSize)
                 .ToListAsync();
 
-            // Get all override schedules for these schedules and dates
             var scheduleIds = pagedItems.Select(x => x.Id).ToList();
             var overrideSchedules = await _unitOfWork.GetRepository<ScheduleOverride>()
                 .GetQueryable()
@@ -136,7 +135,8 @@ namespace ShuttleMate.Services.Services
                                     scheduleDetail.OverrideSchedule = new ResponseScheduleOverrideModel
                                     {
                                         Id = overrideForDate.Id,
-                                        Reason = overrideForDate.Reason,
+                                        ShuttleReason = overrideForDate.ShuttleReason,
+                                        DriverReason = overrideForDate.DriverReason,
                                         OverrideShuttle = overrideForDate.OverrideShuttleId.HasValue ?
                                             new ResponseShuttleScheduleModel
                                             {

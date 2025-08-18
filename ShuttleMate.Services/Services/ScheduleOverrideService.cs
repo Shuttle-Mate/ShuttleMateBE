@@ -49,26 +49,13 @@ namespace ShuttleMate.Services.Services
 
             if (existingOverride != null)
             {
-                var newReasonParts = new List<string>();
-                var currentReason = existingOverride.Reason ?? "";
-
                 if (existingOverride.OverrideUserId != null &&
                     existingOverride.OverrideShuttleId == null &&
                     model.OverrideShuttleId != null &&
                     model.OverrideUserId == null)
                 {
                     existingOverride.OverrideShuttleId = model.OverrideShuttleId;
-
-                    if (!string.IsNullOrEmpty(currentReason))
-                    {
-                        newReasonParts.Add(currentReason);
-                    }
-                    if (!string.IsNullOrEmpty(model.Reason))
-                    {
-                        newReasonParts.Add(model.Reason);
-                    }
-
-                    existingOverride.Reason = newReasonParts.Any() ? string.Join(", ", newReasonParts) : null;
+                    existingOverride.ShuttleReason = model.ShuttleReason ?? existingOverride.ShuttleReason;
                     existingOverride.LastUpdatedBy = userId;
 
                     await _unitOfWork.GetRepository<ScheduleOverride>().UpdateAsync(existingOverride);
@@ -82,17 +69,7 @@ namespace ShuttleMate.Services.Services
                     model.OverrideShuttleId == null)
                 {
                     existingOverride.OverrideUserId = model.OverrideUserId;
-
-                    if (!string.IsNullOrEmpty(currentReason))
-                    {
-                        newReasonParts.Add(currentReason);
-                    }
-                    if (!string.IsNullOrEmpty(model.Reason))
-                    {
-                        newReasonParts.Add(model.Reason);
-                    }
-
-                    existingOverride.Reason = newReasonParts.Any() ? string.Join(", ", newReasonParts) : null;
+                    existingOverride.DriverReason = model.DriverReason ?? existingOverride.DriverReason;
                     existingOverride.LastUpdatedBy = userId;
 
                     await _unitOfWork.GetRepository<ScheduleOverride>().UpdateAsync(existingOverride);
@@ -217,7 +194,8 @@ namespace ShuttleMate.Services.Services
             {
                 ScheduleId = model.ScheduleId,
                 Date = model.Date,
-                Reason = model.Reason,
+                ShuttleReason = model.ShuttleReason,
+                DriverReason = model.DriverReason,
                 OriginalShuttleId = originalSchedule.ShuttleId,
                 OverrideShuttleId = model.OverrideShuttleId,
                 OriginalUserId = originalSchedule.DriverId,
@@ -359,8 +337,11 @@ namespace ShuttleMate.Services.Services
             else if (model.OverrideUserId == null && existingOverride.OverrideUserId != null)
                 existingOverride.OverrideUserId = null;
 
-            if (model.Reason != null)
-                existingOverride.Reason = model.Reason;
+            if (model.ShuttleReason != null)
+                existingOverride.ShuttleReason = model.ShuttleReason;
+
+            if (model.DriverReason != null)
+                existingOverride.DriverReason = model.DriverReason;
 
             existingOverride.LastUpdatedBy = userId;
             existingOverride.LastUpdatedTime = CoreHelper.SystemTimeNow;
