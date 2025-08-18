@@ -18,5 +18,6 @@ namespace ShuttleMate.ModelViews.PromotionModelViews
         public bool IsGlobal { get; set; }
         public string? ApplicableTicketType { get; set; }
         public Guid? TicketId { get; set; }
+        public bool IsUsed { get; set; }
     }
 }
