@@ -342,23 +342,15 @@ namespace ShuttleMate.Services.Services
                 query = query.Where(u => u.FullName.Contains(search));
             }
 
-            // Điều kiện: học sinh trong cùng 1 ca học
-            query = query.Where(x => x.HistoryTickets.Any(x => x.HistoryTicketSchoolShifts.Any(x=>x.SchoolShiftId == schoolShiftId) && !x.DeletedTime.HasValue));
-
             // Điều kiện: học sinh có vé tuyến đường này còn hiệu lực
             query = query.Where(x => x.HistoryTickets.Any(y =>
                 y.Ticket.RouteId == routeId &&
                 y.Ticket.Route.IsActive == true &&
                 y.ValidUntil >= todayVN &&
+                y.ValidFrom <= todayVN &&
+                y.HistoryTicketSchoolShifts.Any(hs => hs.SchoolShiftId == schoolShiftId) &&
                 y.Status == HistoryTicketStatus.PAID &&
                 !y.DeletedTime.HasValue));
-
-            // Thêm điều kiện kiểm tra Schedule nếu cần
-            //query = query.Where(x => x.HistoryTickets.Any(y =>
-            //    y.Ticket.Route.Schedules.Any(s =>
-            //        s.SchoolShiftId == schoolShiftId &&
-            //        s.DayOfWeek.Contains(dayOfWeek) &&
-            //    y.Ticket.RouteId == routeId)));
 
             var totalCount = await query.CountAsync();
 
@@ -377,6 +369,7 @@ namespace ShuttleMate.Services.Services
                     HistoryTicketId = u.HistoryTickets
                         .Where(ht =>
                             ht.ValidUntil >= todayVN &&
+                            ht.ValidFrom <= todayVN &&
                             ht.Ticket.RouteId == routeId &&
                             ht.Ticket.Route.IsActive &&
                             ht.Status == HistoryTicketStatus.PAID &&
