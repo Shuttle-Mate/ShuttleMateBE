@@ -34,7 +34,7 @@ namespace ShuttleMate.API.Controllers
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
         [HttpGet]
-        [Authorize(Roles = "PARENT,STUDENT")]
+        //[Authorize(Roles = "PARENT,STUDENT")]
         public async Task<IActionResult> GetAllTickets(int page = 0, int pageSize = 10, string? type = null, string? search = null, bool? price = null, Decimal? lowerBound = null, Decimal? upperBound = null, Guid? routeId = null, Guid? schoolId = null)
         {
             var tickets = await _ticketService.GetAllAsync(page, pageSize, type, search, price, lowerBound, upperBound, routeId, schoolId);
