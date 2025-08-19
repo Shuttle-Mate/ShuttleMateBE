@@ -19,6 +19,8 @@ namespace ShuttleMate.ModelViews.TransactionModelView
         public string? PaymentMethod { get; set; }
         public string? Status { get; set; }
         public decimal? Amount { get; set; }
+        public DateTimeOffset CreatedTime { get; set; }
+
         public Guid? HistoryTicketId { get; set; }
     }
 }

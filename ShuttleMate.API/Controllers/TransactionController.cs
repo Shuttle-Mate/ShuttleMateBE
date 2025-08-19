@@ -38,7 +38,7 @@ namespace ShuttleMate.API.Controllers
         /// </summary>
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
-        /// <param name="paymentStatus">trạng thái lần lượt là UNPAID, PAID, REFUNDED, CANCELED</param>
+        /// <param name="paymentStatus">trạng thái lần lượt là UNPAID, PAID, REFUNDED, CANCELLED</param>
         /// <param name="orderCode">mã của giao dịch</param>
         /// <param name="createTime">true là tăng dần, false là giảm dần</param>
         /// <param name="description">mô tả</param>
@@ -60,7 +60,7 @@ namespace ShuttleMate.API.Controllers
         /// </summary>
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
-        /// <param name="paymentStatus">trạng thái lần lượt là UNPAID, PAID, REFUNDED, CANCELED</param>
+        /// <param name="paymentStatus">trạng thái lần lượt là UNPAID, PAID, REFUNDED, CANCELLED</param>
         /// <param name="orderCode">mã của giao dịch</param>
         /// <param name="createTime">true là tăng dần, false là giảm dần</param>
         /// <param name="description">mô tả</param>

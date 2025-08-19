@@ -233,6 +233,9 @@ namespace ShuttleMate.Services.Services
 
             var query = _unitOfWork.GetRepository<Attendance>().Entities
                 .Include(x => x.HistoryTicket)
+                .Include(x => x.Trip)
+                    .ThenInclude(t => t.Schedule)
+                        .ThenInclude(s => s.SchoolShift)
                 .Where(x => !x.DeletedTime.HasValue);
             //.OrderBy(x => x.Status);
 
@@ -277,7 +280,20 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có lượt điểm danh nào được ghi nhận!");
             }
 
-            var result = _mapper.Map<List<ResponseAttendanceModel>>(attendances);
+            var result = attendances.Select(a => new ResponseAttendanceModel
+            {
+                Id = a.Id,
+                HistoryTicketId = a.HistoryTicketId,
+                CheckInTime = a.CheckInTime,
+                CheckInLocation = a.CheckInLocation,
+                CheckOutTime = a.CheckOutTime,
+                CheckOutLocation = a.CheckOutLocation,
+                Status = a.Status,
+                Notes = a.Notes,
+                Time = a.Trip.Schedule.SchoolShift.Time,
+                ShiftType = a.Trip.Schedule.SchoolShift.ShiftType,
+                SessionType = a.Trip.Schedule.SchoolShift.SessionType
+            }).ToList();
 
             return new BasePaginatedList<ResponseAttendanceModel>(result, totalCount, page, pageSize);
         }
