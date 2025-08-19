@@ -524,7 +524,7 @@ namespace ShuttleMate.Services.Services
             {
                 orderCode = await GenerateUniqueOrderCodeAsync(),
                 amount = (long)historyTicket.Price, // Chuyển đổi TotalPrice sang long
-                description = $"Thanh toán!!!",
+                description = $"Thanh toán vé xe",
                 buyerName = user.FullName,
                 buyerEmail = user.Email,
                 buyerPhone = user.PhoneNumber,
