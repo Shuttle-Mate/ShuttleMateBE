@@ -16,7 +16,7 @@ namespace ShuttleMate.Services.Services
 
         public FirestoreService()
         {
-            var credential = GoogleCredential.FromFile("serviceaccountkey.json");
+            var credential = GoogleCredential.GetApplicationDefault();
 
             //string projectId = ((ServiceAccountCredential)credential.UnderlyingCredential).ProjectId;
 

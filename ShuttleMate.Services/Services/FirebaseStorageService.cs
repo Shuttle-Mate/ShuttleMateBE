@@ -18,7 +18,7 @@ namespace ShuttleMate.Services.Services
 
         public FirebaseStorageService(IConfiguration config)
         {
-            var credential = GoogleCredential.FromFile("serviceaccountkey.json");
+            var credential = GoogleCredential.GetApplicationDefault();
 
             _storageClient = StorageClient.Create(credential);
             _bucketName = config["Firebase:Bucket"];
