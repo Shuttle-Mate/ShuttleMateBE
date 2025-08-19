@@ -438,7 +438,9 @@ namespace ShuttleMate.Services.Services
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             var todayVN = DateOnly.FromDateTime(vietnamNow);
-            var nextWeekStart = todayVN.AddDays(7);
+
+            var daysUntilNextMonday = ((int)DayOfWeek.Monday - (int)todayVN.DayOfWeek + 7) % 7;
+            var nextWeekStart = todayVN.AddDays(daysUntilNextMonday == 0 ? 7 : daysUntilNextMonday);
             var nextWeekEnd = nextWeekStart.AddDays(6);
 
             if (model.From == nextWeekStart && model.To == nextWeekEnd)
