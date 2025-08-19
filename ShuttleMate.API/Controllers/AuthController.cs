@@ -5,6 +5,7 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.AuthModelViews;
 using ShuttleMate.ModelViews.RoleModelViews;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ShuttleMate.API.Controllers
 {

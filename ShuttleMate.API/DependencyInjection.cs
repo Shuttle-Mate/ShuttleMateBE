@@ -125,11 +125,13 @@ namespace ShuttleMate.API
         public static void AddAuthenJwt(this IServiceCollection services, IConfiguration configuration)
         {
             var jwtSettings1 = configuration.GetSection("JwtSettings");
+
             services.AddAuthentication(e =>
             {
                 e.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 e.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(e =>
+            })
+            .AddJwtBearer(e =>
             {
                 e.TokenValidationParameters = new TokenValidationParameters
                 {
@@ -140,12 +142,42 @@ namespace ShuttleMate.API
                     ValidIssuer = jwtSettings1["Issuer"],
                     ValidAudience = jwtSettings1["Audience"],
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings1["SecretKey"])),
-                    ClockSkew = TimeSpan.Zero  // Không cho phép gia hạn 5 phút
-
+                    ClockSkew = TimeSpan.Zero // Không cho phép gia hạn 5 phút
                 };
+
                 e.SaveToken = true;
                 e.RequireHttpsMetadata = true;
-                e.Events = new JwtBearerEvents();
+
+                e.Events = new JwtBearerEvents
+                {
+                    OnChallenge = context =>
+                    {
+                        context.HandleResponse();
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+
+                        var result = System.Text.Json.JsonSerializer.Serialize(new
+                        {
+                            errorCode = "Unauthorized",
+                            errorMessage = "Bạn chưa được xác thực. Vui lòng đăng nhập!"
+                        });
+
+                        return context.Response.WriteAsync(result);
+                    },
+                    OnForbidden = context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        context.Response.ContentType = "application/json";
+
+                        var result = System.Text.Json.JsonSerializer.Serialize(new
+                        {
+                            errorCode = "Forbidden",
+                            errorMessage = "Bạn không có quyền truy cập tài nguyên này!"
+                        });
+
+                        return context.Response.WriteAsync(result);
+                    }
+                };
             });
         }
 
