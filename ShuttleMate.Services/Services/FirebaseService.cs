@@ -1,6 +1,7 @@
 ﻿using FirebaseAdmin;
 using FirebaseAdmin.Messaging;
 using Google.Apis.Auth.OAuth2;
+using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 using ShuttleMate.Contract.Services.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -18,7 +19,7 @@ namespace ShuttleMate.Services.Services
             {
                 FirebaseApp.Create(new AppOptions()
                 {
-                    Credential = GoogleCredential.GetApplicationDefault()
+                    Credential = GoogleCredential.FromFile("serviceaccountkey.json")
                 });
             }
         }

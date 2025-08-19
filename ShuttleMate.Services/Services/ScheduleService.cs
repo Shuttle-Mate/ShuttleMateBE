@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.SqlServer.Design.Internal;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.Enum;
 using ShuttleMate.Contract.Repositories.IUOW;
@@ -421,13 +420,85 @@ namespace ShuttleMate.Services.Services
 
         public async Task<ResponseScheduleModel> GetByIdAsync(Guid scheduleId)
         {
-            var schedule = await _unitOfWork.GetRepository<Schedule>().GetByIdAsync(scheduleId)
+            var schedule = await _scheduleRepo.GetQueryable()
+                .Include(x => x.Shuttle)
+                .Include(x => x.Driver)
+                .Include(x => x.SchoolShift)
+                .Where(f => f.Id == scheduleId && !f.DeletedTime.HasValue)
+                .AsNoTracking()
+                .FirstOrDefaultAsync()
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình không tồn tại.");
 
-            if (schedule.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình đã bị xóa.");
+            var overrideSchedules = await _scheduleOverrideRepo.GetQueryable()
+                .Include(x => x.OverrideShuttle)
+                .Include(x => x.OverrideUser)
+                .Where(x => x.ScheduleId == scheduleId &&
+                            x.Date >= schedule.From &&
+                            x.Date <= schedule.To &&
+                            !x.DeletedTime.HasValue)
+                .AsNoTracking()
+                .ToListAsync();
 
-            return _mapper.Map<ResponseScheduleModel>(schedule);
+            var dayNamesFull = new[] { "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY" };
+
+            var scheduleDetails = schedule.DayOfWeek
+                .Select((c, idx) => new { c, idx })
+                .Where(d => d.c == '1')
+                .SelectMany(d =>
+                {
+                    var matchingDates = Enumerable.Range(0, schedule.To.DayNumber - schedule.From.DayNumber + 1)
+                        .Select(offset => schedule.From.AddDays(offset))
+                        .Where(date => ((int)date.DayOfWeek + 6) % 7 == d.idx)
+                        .Where(date => date >= schedule.From && date <= schedule.To)
+                        .ToList();
+
+            return matchingDates.Select(date =>
+            {
+                var scheduleDetail = _mapper.Map<ResponseScheduleDetailModel>(schedule);
+
+                var overrideForDate = overrideSchedules.FirstOrDefault(x => x.Date == date);
+                if (overrideForDate != null)
+                {
+                    scheduleDetail.OverrideSchedule = new ResponseScheduleOverrideModel
+                    {
+                        Id = overrideForDate.Id,
+                        ShuttleReason = overrideForDate.ShuttleReason,
+                        DriverReason = overrideForDate.DriverReason,
+                        OverrideShuttle = overrideForDate.OverrideShuttleId.HasValue ?
+                            new ResponseShuttleScheduleModel
+                            {
+                                Id = overrideForDate.OverrideShuttleId.Value,
+                                Name = overrideForDate.OverrideShuttle?.Name ?? string.Empty
+                            } : null,
+                        OverrideDriver = overrideForDate.OverrideUserId.HasValue ?
+                            new ResponseDriverScheduleModel
+                            {
+                                Id = overrideForDate.OverrideUserId.Value,
+                                FullName = overrideForDate.OverrideUser?.FullName ?? string.Empty
+                            } : null
+                    };
+                }
+
+                return new
+                {
+                    DayName = dayNamesFull[d.idx],
+                    DayIndex = d.idx,
+                    Date = date.ToString("dd-MM-yyyy"),
+                    ScheduleDetail = scheduleDetail
+                };
+            });
+        })
+        .GroupBy(x => new { x.DayName, x.Date })
+        .Select(g => new ResponseScheduleModel
+        {
+            DayOfWeek = g.Key.DayName,
+            Date = g.Key.Date,
+            Schedules = g.Select(x => x.ScheduleDetail).ToList()
+        })
+        .OrderBy(g => DateOnly.ParseExact(g.Date, "dd-MM-yyyy", CultureInfo.InvariantCulture))
+        .FirstOrDefault();
+
+            return scheduleDetails;
         }
 
         public async Task CreateAsync(CreateScheduleModel model)
