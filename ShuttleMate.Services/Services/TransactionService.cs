@@ -60,7 +60,7 @@ namespace ShuttleMate.Services.Services
 
             if (!string.IsNullOrWhiteSpace(paymentStatus))
             {
-                query = query.Where(u => u.Status.ToString().ToUpper() == paymentStatus.ToUpper());
+                query = query.Where(u => u.Status == Enum.Parse<PaymentStatus>(paymentStatus));
             }
             if (CreateTime == true)
             {
@@ -83,6 +83,8 @@ namespace ShuttleMate.Services.Services
                     OrderCode = u.OrderCode,
                     Description = u.Description,
                     HistoryTicketId = u.HistoryTicketId,
+                    CreatedTime = u.CreatedTime,
+                    
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)
@@ -108,7 +110,8 @@ namespace ShuttleMate.Services.Services
                 PaymentMethod = query.PaymentMethod.ToString().ToUpper(),
                 OrderCode = query.OrderCode,
                 Description = query.Description,
-                HistoryTicketId = query.HistoryTicketId,          
+                HistoryTicketId = query.HistoryTicketId,       
+                CreatedTime = query.CreatedTime,
             };
                 
             return transaction;
@@ -161,7 +164,8 @@ namespace ShuttleMate.Services.Services
                     BuyerAddress = u.BuyerAddress,
                     BuyerEmail = u.BuyerEmail,
                     BuyerName = u.BuyerName,
-                    BuyerPhone = u.BuyerPhone
+                    BuyerPhone = u.BuyerPhone,
+                    CreatedTime = u.CreatedTime,
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)

@@ -26,6 +26,10 @@ namespace ShuttleMate.Services.Services
         private readonly IFirebaseService _firebaseService;
         private readonly FirestoreService _firestoreService;
         private readonly INotificationService _notificationService;
+        private readonly IGenericRepository<Schedule> _scheduleRepo;
+        private readonly IGenericRepository<ScheduleOverride> _scheduleOverrideRepo;
+        private readonly IGenericRepository<StopEstimate> _stopEstimateRepo;
+        private readonly IGenericRepository<Route> _routeRepo;
 
         public ScheduleService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IStopEstimateService stopEstimateService,
             IFirebaseService firebaseService, FirestoreService firestoreService, INotificationService notificationService)
@@ -37,6 +41,10 @@ namespace ShuttleMate.Services.Services
             _firebaseService = firebaseService;
             _firestoreService = firestoreService;
             _notificationService = notificationService;
+            _scheduleRepo = _unitOfWork.GetRepository<Schedule>();
+            _scheduleOverrideRepo = _unitOfWork.GetRepository<ScheduleOverride>();
+            _stopEstimateRepo = _unitOfWork.GetRepository<StopEstimate>();
+            _routeRepo = _unitOfWork.GetRepository<Route>();
         }
 
         public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByRouteIdAsync(
@@ -201,10 +209,7 @@ namespace ShuttleMate.Services.Services
             var dayOfWeek = (int)DateTime.Today.DayOfWeek;
             dayOfWeek = dayOfWeek == 0 ? 6 : dayOfWeek - 1;
 
-            var scheduleRepo = _unitOfWork.GetRepository<Schedule>();
-            var overrideRepo = _unitOfWork.GetRepository<ScheduleOverride>();
-
-            var schedules = await scheduleRepo.Entities
+            var schedules = await _scheduleRepo.Entities
                 .Where(s => s.DriverId == driverIdGuid
                     && !s.DeletedTime.HasValue
                     && s.From <= todayVN
@@ -217,7 +222,7 @@ namespace ShuttleMate.Services.Services
                         .ThenInclude(rs => rs.Stop)
                 .ToListAsync();
 
-            var overrides = await overrideRepo.Entities
+            var overrides = await _scheduleOverrideRepo.Entities
                 .Where(o => o.Date == todayVN && o.OverrideUserId == driverIdGuid && !o.DeletedTime.HasValue)
                 .Include(x => x.Schedule)
                     .ThenInclude(s => s.SchoolShift)
@@ -430,7 +435,40 @@ namespace ShuttleMate.Services.Services
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             model.TrimAllStrings();
 
-            var route = await _unitOfWork.GetRepository<Route>().GetByIdAsync(model.RouteId)
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
+
+            var daysUntilNextMonday = ((int)DayOfWeek.Monday - (int)todayVN.DayOfWeek + 7) % 7;
+            var nextWeekStart = todayVN.AddDays(daysUntilNextMonday == 0 ? 7 : daysUntilNextMonday);
+            var nextWeekEnd = nextWeekStart.AddDays(6);
+
+            if (model.From == nextWeekStart && model.To == nextWeekEnd)
+            {
+                var existingSchedules = await _scheduleRepo
+                    .FindAllAsync(x => x.RouteId == model.RouteId &&
+                                     !x.DeletedTime.HasValue &&
+                                     x.From == model.From &&
+                                     x.To == model.To);
+
+                if (existingSchedules.Any())
+                {
+                    var scheduleIds = existingSchedules.Select(x => x.Id).ToList();
+                    var existingStopEstimates = await _stopEstimateRepo
+                        .FindAllAsync(x => scheduleIds.Contains(x.ScheduleId));
+
+                    if (existingStopEstimates.Any())
+                    {
+                        await _stopEstimateRepo.DeleteRangeAsync(existingStopEstimates);
+                    }
+
+                    await _scheduleRepo.DeleteRangeAsync(existingSchedules);
+
+                    await _unitOfWork.SaveAsync();
+                }
+            }
+
+            var route = await _routeRepo.GetByIdAsync(model.RouteId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến không tồn tại.");
 
             if (route.DeletedTime.HasValue)
@@ -641,9 +679,6 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
 
             var createdBy = "system";
-
-            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
 
             foreach (var user in users)
             {
