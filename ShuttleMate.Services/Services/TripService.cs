@@ -396,8 +396,10 @@ namespace ShuttleMate.Services.Services
                 : stops.FirstOrDefault(s => s.StopOrder < currentIndex);
 
             //if (nextStop == null)
-                // noti xe đã đến trạm cuối
+                // noti xe đã đến trạm cuối {{StopName}}
 
+
+            //sửa lại duration = 5p thì noti
             if (model.Distance >= 50)
                 // noti xe còn cách trạm bn model.Duration (cái này tính bằng giây nên nhớ chuyển sang phút)
 
