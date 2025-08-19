@@ -8,6 +8,7 @@ namespace ShuttleMate.Services.MapperProfile
     {
         public ScheduleProfile()
         {
+
             CreateMap<Schedule, ResponseOldScheduleModel>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Direction, opt => opt.MapFrom(src => src.Direction.ToString()))
