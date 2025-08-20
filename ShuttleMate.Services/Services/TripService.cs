@@ -243,7 +243,7 @@ namespace ShuttleMate.Services.Services
             if (listAttendance.Any())
             {
                 var names = string.Join(", ", listAttendance.Select(a => a.HistoryTicket.User.FullName));
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Không thể kết thúc chuyến đi. Các học sinh sau chưa checkout: {names}");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Không thể kết thúc chuyến đi. Các học sinh sau chưa check out: {names}");
             }
 
             tripToEnd.EndTime = TimeOnly.FromDateTime(DateTime.Now);
