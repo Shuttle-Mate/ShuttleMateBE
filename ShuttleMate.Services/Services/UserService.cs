@@ -488,26 +488,26 @@ namespace ShuttleMate.Services.Services
             User admin = await _unitOfWork.GetRepository<User>()
                 .Entities.FirstOrDefaultAsync(x => x.Id == cb && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tài khoản không tồn tại!");
 
-            bool isAllowedTime = false;
+            //bool isAllowedTime = false;
 
-            // Saturday case
-            if (dayOfWeek == DayOfWeek.Saturday && currentTime >= new TimeSpan(19, 0, 0))
-            {
-                isAllowedTime = true;
-            }
-            // Sunday case
-            else if (dayOfWeek == DayOfWeek.Sunday && currentTime <= new TimeSpan(17, 0, 0))
-            {
-                isAllowedTime = true;
-            }
-            if (!admin.UserRoles.Any(x => x.Role.Name.ToUpper() == "ADMIN" || x.Role.Name.ToUpper() == "OPERATOR"))
-            {
-                if (!isAllowedTime)
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest,
-                        "Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần");
-                }
-            }
+            //// Saturday case
+            //if (dayOfWeek == DayOfWeek.Saturday && currentTime >= new TimeSpan(19, 0, 0))
+            //{
+            //    isAllowedTime = true;
+            //}
+            //// Sunday case
+            //else if (dayOfWeek == DayOfWeek.Sunday && currentTime <= new TimeSpan(17, 0, 0))
+            //{
+            //    isAllowedTime = true;
+            //}
+            //if (!admin.UserRoles.Any(x => x.Role.Name.ToUpper() == "ADMIN" || x.Role.Name.ToUpper() == "OPERATOR"))
+            //{
+            //    if (!isAllowedTime)
+            //    {
+            //        throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest,
+            //            "Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần");
+            //    }
+            //}
 
             if (id != null)
             {
