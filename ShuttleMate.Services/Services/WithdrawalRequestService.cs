@@ -29,6 +29,7 @@ namespace ShuttleMate.Services.Services
         public async Task<BasePaginatedList<ResponseWithdrawalRequestModel>> GetAllAsync(
             string? status,
             Guid? userId,
+            Guid? transactionId,
             bool sortAsc = false,
             int page = 0,
             int pageSize = 10)
@@ -36,6 +37,7 @@ namespace ShuttleMate.Services.Services
             var query = _unitOfWork.GetRepository<WithdrawalRequest>()
                 .GetQueryable()
                 .Include(x => x.User)
+                .Include(x => x.Transaction)
                 .Where(x => !x.DeletedTime.HasValue);
 
             if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<WithdrawalRequestStatusEnum>(status, true, out var parsedStatus))
@@ -45,6 +47,9 @@ namespace ShuttleMate.Services.Services
 
             if (userId.HasValue)
                 query = query.Where(f => f.UserId == userId.Value);
+
+            if (transactionId.HasValue)
+                query = query.Where(f => f.TransactionId == transactionId.Value);
 
             query = sortAsc
                 ? query.OrderBy(x => x.CreatedTime)
