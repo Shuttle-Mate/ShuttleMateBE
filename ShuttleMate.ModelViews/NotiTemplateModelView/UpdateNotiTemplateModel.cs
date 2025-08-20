@@ -11,5 +11,6 @@ namespace ShuttleMate.ModelViews.NotiTemplateModelView
         public Guid Id { get; set; }
         public string? Type { get; set; }
         public string? Template { get; set; }
+        public bool? IsDefault { get; set; }
     }
 }
