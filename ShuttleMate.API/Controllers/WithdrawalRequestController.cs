@@ -21,6 +21,8 @@ namespace ShuttleMate.API.Controllers
         /// Lấy danh sách yêu cầu hoàn tiền.
         /// </summary>
         /// <param name="status">Trạng thái: IN_PROGRESS, COMPLETED, REJECTED (tùy chọn).</param>
+        /// <param name="userId">Id người dùng (tùy chọn)</param>
+        /// <param name="transactionId">Id giao dịch (tùy chọn)</param>
         /// <param name="sortAsc">Sắp xếp tăng dần theo ngày tạo (true) hoặc giảm dần (false, mặc định).</param>
         /// <param name="page">Trang (mặc định 0).</param>
         /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
@@ -29,6 +31,7 @@ namespace ShuttleMate.API.Controllers
         public async Task<IActionResult> GetAllWithdrawalRequests(
         [FromQuery] string? status,
         [FromQuery] Guid? userId,
+        [FromQuery] Guid? transactionId,
         [FromQuery] bool sortAsc = false,
         [FromQuery] int page = 0,
         [FromQuery] int pageSize = 10)
@@ -36,7 +39,7 @@ namespace ShuttleMate.API.Controllers
             return Ok(new BaseResponseModel<BasePaginatedList<ResponseWithdrawalRequestModel>>(
                 statusCode: StatusCodes.Status200OK,
                 code: ResponseCodeConstants.SUCCESS,
-                data: await _withdrawalRequestService.GetAllAsync(status, userId, sortAsc, page, pageSize)));
+                data: await _withdrawalRequestService.GetAllAsync(status, userId, transactionId, sortAsc, page, pageSize)));
         }
 
         /// <summary>
