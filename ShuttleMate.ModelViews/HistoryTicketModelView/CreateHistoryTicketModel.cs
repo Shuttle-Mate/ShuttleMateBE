@@ -13,6 +13,5 @@ namespace ShuttleMate.ModelViews.HistoryTicketModelView
         public List<Guid> ListSchoolShiftId { get; set; }
         public Guid? StudentId { get; set; }
         public Guid? PromotionId { get; set; }
-        //public DateOnly ValidUntil { get; set; }
     }
 }
