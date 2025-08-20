@@ -1034,7 +1034,6 @@ namespace ShuttleMate.Services.Services
         </html>"
             );
         }
-
         private async Task SendUnBlockUserEmail(User guide)
         {
             await _emailService.SendEmailAsync(
