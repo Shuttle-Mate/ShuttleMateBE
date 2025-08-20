@@ -231,7 +231,7 @@ namespace ShuttleMate.Services.Services
             var notification = new Notification
             {
                 Id = Guid.NewGuid(),
-                Title = $"Thông báo: {template.Type}", // modify
+                Title = $"Thông báo: {template.Name}", // modify
                 Content = content,
                 TemplateType = template.Type,
                 Status = NotificationStatusEnum.SENT, // đã gửi
@@ -366,7 +366,7 @@ namespace ShuttleMate.Services.Services
             var notification = new Notification
             {
                 Id = Guid.NewGuid(),
-                Title = $"Thông báo: {template.Type}", // modify
+                Title = $"Thông báo: {template.Name}", // modify
                 Content = content,
                 TemplateType = template.Type,
                 Status = NotificationStatusEnum.SENT, // đã gửi

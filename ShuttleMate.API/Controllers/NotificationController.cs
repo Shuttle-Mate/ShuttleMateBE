@@ -96,6 +96,9 @@ namespace ShuttleMate.API.Controllers
                 data: res
             ));
         }
+        /// <summary>
+        /// Handle status thông báo
+        /// </summary>
         [HttpPatch("{notiRecipientId}")]
         public async Task<IActionResult> HandleNotiStatus([FromRoute]Guid notiRecipientId, [FromQuery] NotificationStatusEnum status)
         {
