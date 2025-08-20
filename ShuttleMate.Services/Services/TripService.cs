@@ -459,17 +459,80 @@ namespace ShuttleMate.Services.Services
 
             var duration = model.Duration / 60;
             //sửa lại duration = 5p thì noti
-            if (model.Duration >= 50)
-                // noti xe còn cách trạm bn model.Duration (cái này tính bằng giây nên nhớ chuyển sang phút)
-
-                if (model.Distance < 50)
+            if (duration == 5)
+            {
+                foreach (var user in users)
                 {
-                    trip.CurrentStopIndex = nextStop.StopOrder;
-                    await _unitOfWork.GetRepository<Trip>().UpdateAsync(trip);
-                    await _unitOfWork.SaveAsync();
 
-                    //noti xe đã đến trạm
+                    var metadata = new Dictionary<string, string>
+                    {
+                        { "StopName", nextStop.Stop.Name },
+                    };
+
+                    // Gửi cho học sinh
+                    await _notificationService.SendNotificationFromTemplateAsync(
+                        templateType: "PrepareArrivedStop",
+                        recipientIds: new List<Guid> { user.Id },
+                        metadata: metadata,
+                        createdBy: "system",
+                        notiCategory: "TRIP_STATUS"
+                    );
+
+                    // Nếu có phụ huynh thì gửi cho phụ huynh
+                    if (user.ParentId != null && user.ParentId != Guid.Empty)
+                    {
+                        await _notificationService.SendNotificationFromTemplateAsync(
+                            templateType: "PrepareArrivedStop",
+                            recipientIds: new List<Guid> { user.ParentId.Value },
+                            metadata: metadata,
+                            createdBy: "system",
+                            notiCategory: "TRIP_STATUS"
+                        );
+                    }
+
                 }
+            }
+            // noti xe còn cách trạm bn model.Duration (cái này tính bằng giây nên nhớ chuyển sang phút)
+
+            if (model.Distance < 50)
+            {
+                foreach (var user in users)
+                {
+
+                    var metadata = new Dictionary<string, string>
+                    {
+                        { "StopName", nextStop.Stop.Name },
+                    };
+
+                    // Gửi cho học sinh
+                    await _notificationService.SendNotificationFromTemplateAsync(
+                        templateType: "ArrivedStop",
+                        recipientIds: new List<Guid> { user.Id },
+                        metadata: metadata,
+                        createdBy: "system",
+                        notiCategory: "TRIP_STATUS"
+                    );
+
+                    // Nếu có phụ huynh thì gửi cho phụ huynh
+                    if (user.ParentId != null && user.ParentId != Guid.Empty)
+                    {
+                        await _notificationService.SendNotificationFromTemplateAsync(
+                            templateType: "ArrivedStop",
+                            recipientIds: new List<Guid> { user.ParentId.Value },
+                            metadata: metadata,
+                            createdBy: "system",
+                            notiCategory: "TRIP_STATUS"
+                        );
+                    }
+                }
+
+                trip.CurrentStopIndex = nextStop.StopOrder;
+                await _unitOfWork.GetRepository<Trip>().UpdateAsync(trip);
+                await _unitOfWork.SaveAsync();
+
+                //noti xe đã đến trạm
+
+            }
         }
     }
 }
