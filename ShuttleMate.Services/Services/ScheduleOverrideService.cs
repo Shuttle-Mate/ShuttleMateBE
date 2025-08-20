@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using FirebaseAdmin.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using ShuttleMate.Contract.Repositories.Entities;
@@ -492,7 +491,7 @@ namespace ShuttleMate.Services.Services
             var userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             model.TrimAllStrings();
 
-            var scheduleOverride = await _unitOfWork.GetRepository<ScheduleOverride>().Entities
+            var scheduleOverride = await _scheduleOverrideRepo.Entities
                 .Include(x => x.OriginalUser)
                 .Include(x => x.OverrideUser)
                 .FirstOrDefaultAsync(x => x.Id == scheduleOverrideId)
@@ -513,7 +512,7 @@ namespace ShuttleMate.Services.Services
                 scheduleOverride.DeletedBy = userId;
                 scheduleOverride.DeletedTime = CoreHelper.SystemTimeNow;
 
-                _unitOfWork.GetRepository<ScheduleOverride>().Update(scheduleOverride);
+                _scheduleOverrideRepo.Update(scheduleOverride);
                 await _unitOfWork.SaveAsync();
 
                 notifyBothDrivers = true;
@@ -564,7 +563,7 @@ namespace ShuttleMate.Services.Services
                     scheduleOverride.LastUpdatedTime = CoreHelper.SystemTimeNow;
                 }
 
-                _unitOfWork.GetRepository<ScheduleOverride>().Update(scheduleOverride);
+                _scheduleOverrideRepo.Update(scheduleOverride);
                 await _unitOfWork.SaveAsync();
             }
 
