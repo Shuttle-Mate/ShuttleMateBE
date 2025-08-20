@@ -510,31 +510,29 @@ namespace ShuttleMate.Services.Services
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             var todayVN = DateOnly.FromDateTime(vietnamNow);
 
+            // Xác định ngày bắt đầu và kết thúc của tuần tiếp theo dựa vào ngày hiện tại
             var daysUntilNextMonday = ((int)DayOfWeek.Monday - (int)todayVN.DayOfWeek + 7) % 7;
             var nextWeekStart = todayVN.AddDays(daysUntilNextMonday == 0 ? 7 : daysUntilNextMonday);
             var nextWeekEnd = nextWeekStart.AddDays(6);
 
+            // Nếu tạo cho tuần tiếp theo, kiểm tra và xóa lịch trình cũ nếu tồn tại
             if (model.From == nextWeekStart && model.To == nextWeekEnd)
             {
-                var existingSchedules = await _scheduleRepo
-                    .FindAllAsync(x => x.RouteId == model.RouteId &&
-                                     !x.DeletedTime.HasValue &&
-                                     x.From == model.From &&
-                                     x.To == model.To);
+                var existingSchedules = await _scheduleRepo.FindAllAsync(x =>
+                    x.RouteId == model.RouteId &&
+                    !x.DeletedTime.HasValue &&
+                    x.From == model.From &&
+                    x.To == model.To);
 
                 if (existingSchedules.Any())
                 {
                     var scheduleIds = existingSchedules.Select(x => x.Id).ToList();
-                    var existingStopEstimates = await _stopEstimateRepo
-                        .FindAllAsync(x => scheduleIds.Contains(x.ScheduleId));
+                    var existingStopEstimates = await _stopEstimateRepo.FindAllAsync(x => scheduleIds.Contains(x.ScheduleId));
 
                     if (existingStopEstimates.Any())
-                    {
                         await _stopEstimateRepo.DeleteRangeAsync(existingStopEstimates);
-                    }
 
                     await _scheduleRepo.DeleteRangeAsync(existingSchedules);
-
                     await _unitOfWork.SaveAsync();
                 }
             }
@@ -588,7 +586,7 @@ namespace ShuttleMate.Services.Services
                 if (scheduleDetail.DayOfWeeks == null || !scheduleDetail.DayOfWeeks.Any())
                     throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Danh sách ngày trong tuần không được để trống.");
 
-                var existingSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(x =>
+                var existingSchedules = await _scheduleRepo.FindAllAsync(x =>
                     (x.ShuttleId == scheduleDetail.ShuttleId ||
                     x.DriverId == scheduleDetail.DriverId) &&
                     !x.DeletedTime.HasValue &&
@@ -614,24 +612,15 @@ namespace ShuttleMate.Services.Services
                 if (schoolShift.ShiftType == ShiftTypeEnum.START)
                 {
                     if (time > schoolShift.Time)
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                            $"Giờ khởi hành {timeStr} phải nhỏ hơn hoặc bằng giờ bắt đầu của ca ({GetSchoolShiftDescription(schoolShift)} lúc {schoolShift.Time}).");
-                    }
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Giờ khởi hành {timeStr} phải nhỏ hơn hoặc bằng giờ bắt đầu của ca ({GetSchoolShiftDescription(schoolShift)} lúc {schoolShift.Time}).");
 
                     var timeDiffInSeconds = (schoolShift.Time.ToTimeSpan() - time.ToTimeSpan()).TotalSeconds;
                     if (timeDiffInSeconds < totalDuration)
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                            $"Giờ khởi hành {timeStr} phải cách giờ bắt đầu ca ít nhất {totalDuration / 60} phút để kịp di chuyển.");
-                    }
+                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Giờ khởi hành {timeStr} phải cách giờ bắt đầu ca ít nhất {totalDuration / 60} phút để kịp di chuyển.");
                 }
 
                 else if (schoolShift.ShiftType == ShiftTypeEnum.END && time < schoolShift.Time)
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                        $"Giờ khởi hành {timeStr} phải lớn hơn hoặc bằng giờ kết thúc ca ({GetSchoolShiftDescription(schoolShift)} lúc {schoolShift.Time}).");
-                }
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Giờ khởi hành {timeStr} phải lớn hơn hoặc bằng giờ kết thúc ca ({GetSchoolShiftDescription(schoolShift)} lúc {schoolShift.Time}).");
 
                 var direction = schoolShift.ShiftType == ShiftTypeEnum.START
                     ? GeneralEnum.RouteDirectionEnum.IN_BOUND
@@ -651,10 +640,8 @@ namespace ShuttleMate.Services.Services
                             existing.DayOfWeek[dayIndex] == '1' &&
                             model.From <= existing.To &&
                             model.To >= existing.From)
-                        {
                             throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
                                 $"Tài xế {driver.FullName} đã được phân công ca {GetSchoolShiftDescription(schoolShift)} vào {ConvertDayOfWeekToVietnamese(day)} lúc {existing.DepartureTime} (từ {existing.From:dd/MM/yyyy} đến {existing.To:dd/MM/yyyy}).");
-                        }
 
                         if (existing.ShuttleId == scheduleDetail.ShuttleId &&
                             existing.SchoolShiftId == schoolShift.Id &&
@@ -662,10 +649,8 @@ namespace ShuttleMate.Services.Services
                             existing.DayOfWeek[dayIndex] == '1' &&
                             model.From <= existing.To &&
                             model.To >= existing.From)
-                        {
                             throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
                                 $"Xe {existing.Shuttle.Name} đã được phân công ca {GetSchoolShiftDescription(schoolShift)} vào {ConvertDayOfWeekToVietnamese(day)} lúc {existing.DepartureTime} (từ {existing.From:dd/MM/yyyy} đến {existing.To:dd/MM/yyyy}).");
-                        }
                     }
 
                     foreach (var newItem in newSchedules)
@@ -674,19 +659,15 @@ namespace ShuttleMate.Services.Services
                             newItem.SchoolShiftId == schoolShift.Id &&
                             newItem.Direction == direction &&
                             newItem.DayOfWeek[dayIndex] == '1')
-                        {
                             throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
                                 $"Tài xế {driver.FullName} đang được tạo mới ca {GetSchoolShiftDescription(schoolShift)} vào {ConvertDayOfWeekToVietnamese(day)} bị trùng với một ca khác trong cùng đợt tạo.");
-                        }
 
                         if (newItem.ShuttleId == scheduleDetail.ShuttleId &&
                             newItem.SchoolShiftId == schoolShift.Id &&
                             newItem.Direction == direction &&
                             newItem.DayOfWeek[dayIndex] == '1')
-                        {
                             throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
                                 $"Xe {shuttle.Name} đang được tạo mới ca {GetSchoolShiftDescription(schoolShift)} vào {ConvertDayOfWeekToVietnamese(day)} bị trùng với một ca khác trong cùng đợt tạo.");
-                        }
                     }
                 }
 
@@ -700,8 +681,7 @@ namespace ShuttleMate.Services.Services
                         {
                             var timeDiff = Math.Abs((time.ToTimeSpan() - existing.DepartureTime.ToTimeSpan()).TotalMinutes);
                             if (timeDiff < 10)
-                                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                                    $"Giờ khởi hành {timeStr} đã tồn tại trong cùng một thứ với khoảng cách nhỏ hơn 10 phút.");
+                                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Giờ khởi hành {timeStr} đã tồn tại trong cùng một thứ với khoảng cách nhỏ hơn 10 phút.");
                         }
                     }
                 }
@@ -714,8 +694,7 @@ namespace ShuttleMate.Services.Services
                         {
                             var timeDiff = Math.Abs((time.ToTimeSpan() - newItem.DepartureTime.ToTimeSpan()).TotalMinutes);
                             if (timeDiff < 10)
-                                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                                    $"Trong dữ liệu tạo mới có giờ khởi hành {timeStr} trùng nhau trong cùng một thứ (<10 phút).");
+                                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Trong dữ liệu tạo mới có giờ khởi hành {timeStr} trùng nhau trong cùng một thứ (<10 phút).");
                         }
                     }
                 }
@@ -739,7 +718,6 @@ namespace ShuttleMate.Services.Services
             if (newSchedules.Any())
                 await _unitOfWork.GetRepository<Schedule>().InsertRangeAsync(newSchedules);
 
-            //var newSchedules = new List<Schedule>();
             var userIds = newSchedules.Select(x => x.Driver.Id).ToList();
 
             var users = await _unitOfWork.GetRepository<User>()
@@ -760,7 +738,7 @@ namespace ShuttleMate.Services.Services
                     { "DriverName", user.FullName }
                 };
 
-                // đẩy thông báo
+                // Đẩy thông báo
                 await _notificationService.SendNotificationFromTemplateAsync(
                     templateType: "UpdateSchedule",
                     recipientIds: new List<Guid> { user.Id },
@@ -772,7 +750,8 @@ namespace ShuttleMate.Services.Services
 
             await _stopEstimateService.CreateAsync(newSchedules, model.RouteId);
 
-            var allSchedules = await _unitOfWork.GetRepository<Schedule>().FindAllAsync(s => s.RouteId == model.RouteId && !s.DeletedTime.HasValue);
+            // Cập nhật thời gian hoạt động và thời gian chạy của tuyến
+            var allSchedules = await _scheduleRepo.FindAllAsync(s => s.RouteId == model.RouteId && !s.DeletedTime.HasValue);
 
             if (allSchedules != null && allSchedules.Any())
             {
@@ -784,7 +763,7 @@ namespace ShuttleMate.Services.Services
                 var earliestSchedule = allSchedules.OrderBy(s => s.DepartureTime).FirstOrDefault();
                 if (earliestSchedule != null)
                 {
-                    var stopEstimates = await _unitOfWork.GetRepository<StopEstimate>().FindAllAsync(se =>
+                    var stopEstimates = await _stopEstimateRepo.FindAllAsync(se =>
                         se.ScheduleId == earliestSchedule.Id);
 
                     if (stopEstimates != null && stopEstimates.Any())
@@ -796,9 +775,9 @@ namespace ShuttleMate.Services.Services
                 }
 
                 route.LastUpdatedBy = userId;
-                route.LastUpdatedTime = DateTime.UtcNow;
+                route.LastUpdatedTime = CoreHelper.SystemTimeNow;
 
-                await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
+                await _routeRepo.UpdateAsync(route);
             }
 
             await _unitOfWork.SaveAsync();
