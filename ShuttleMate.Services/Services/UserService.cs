@@ -637,7 +637,7 @@ namespace ShuttleMate.Services.Services
                     Address = school.Address,
                     PhoneNumber = school.PhoneNumber,
                     Email = school.Email,
-                    schoolShiftResponses = school.SchoolShifts?.Where(x => !x.DeletedTime.HasValue).Select(x => new SchoolShiftResponse
+                    schoolShiftResponses = school.SchoolShifts?.Where(x =>x.UserSchoolShifts.Any(us=>us.StudentId == cb) && !x.DeletedTime.HasValue).Select(x => new SchoolShiftResponse
                     {
                         Id = x.Id,
                         Time = x.Time,
