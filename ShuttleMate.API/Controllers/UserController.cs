@@ -143,7 +143,7 @@ namespace ShuttleMate.API.Controllers
                 message: "Gán trường với quản lí trường thành công!"
             ));
         }
-        [HttpPatch("{userId}/assign-school")]
+        [HttpPatch("{userId}/assign-role")]
         public async Task<IActionResult> AssignRole(Guid userId, AssignUserRoleModel model)
         {
             await _userService.AssignUserToRoleAsync(userId, model.RoleId);
