@@ -275,10 +275,10 @@ namespace ShuttleMate.Services.Services
                 .Take(req.pageSize)
                 .ToListAsync();
 
-            if (!attendances.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có lượt điểm danh nào được ghi nhận!");
-            }
+            //if (!attendances.Any())
+            //{
+            //    throw new ErrorException(StatusCodes.Status200OK, ErrorCode.NotFound, "Không có lượt điểm danh nào được ghi nhận!");
+            //}
 
             var result = attendances.Select(a => new ResponseAttendanceModel
             {
