@@ -6,7 +6,6 @@ using ShuttleMate.ModelViews.AuthModelViews;
 using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.UserDeviceModelView;
 using ShuttleMate.ModelViews.UserModelViews;
-using ShuttleMate.Services.Services;
 
 namespace ShuttleMate.API.Controllers
 {
@@ -16,11 +15,13 @@ namespace ShuttleMate.API.Controllers
     {
         private readonly IUserService _userService;
         private readonly IUserDeviceService _userDeviceService;
+
         public UserController(IUserService userService, IUserDeviceService userDeviceService)
         {
             _userService = userService;
             _userDeviceService = userDeviceService;
         }
+
         /// <summary>
         ///Rolename: STUDENT, PARENT, OPERATOR, DRIVER, SCHOOL
         /// </summary>
@@ -76,6 +77,7 @@ namespace ShuttleMate.API.Controllers
                 data: users
             ));
         }
+
         /// <summary>
         /// Lấy tất cả con của phụ huynh(Parent)
         /// </summary>
@@ -91,6 +93,7 @@ namespace ShuttleMate.API.Controllers
                 data: users
             ));
         }
+
         /// <summary>
         /// Admin khóa tài khoản của người dùng
         /// </summary>
@@ -104,6 +107,7 @@ namespace ShuttleMate.API.Controllers
                  data: res
              ));
         }
+
         /// <summary>
         /// Admin mở khóa tài khoản của người dùng
         /// </summary>
@@ -117,8 +121,9 @@ namespace ShuttleMate.API.Controllers
                  data: res
              ));
         }
+
         /// <summary>
-        /// HS/PH cập cập ca học(Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần)
+        /// HS/PH cập cập ca học (Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần)
         /// </summary>
         [HttpPatch("{studentId}/school")]
         public async Task<IActionResult> UpdateSchoolForUser(Guid? studentId = null, UpdateSchoolForUserModel? model = null)
@@ -130,6 +135,7 @@ namespace ShuttleMate.API.Controllers
                  message: "Cập nhật ca học thành công!"
              ));
         }
+
         /// <summary>
         /// Gán quản lí cho trường.(ADMIN)
         /// </summary>
@@ -143,6 +149,7 @@ namespace ShuttleMate.API.Controllers
                 message: "Gán trường với quản lí trường thành công!"
             ));
         }
+
         [HttpPatch("{userId}/assign-school")]
         public async Task<IActionResult> AssignRole(Guid userId, AssignUserRoleModel model)
         {
@@ -154,6 +161,7 @@ namespace ShuttleMate.API.Controllers
                 message: "Gán vai trò cho người dùng thành công!"
             ));
         }
+
         /// <summary>
         /// Admin/student gán parent
         /// </summary>
@@ -168,6 +176,7 @@ namespace ShuttleMate.API.Controllers
                 message: "Gán vai trò cho phụ huynh thành công!"
             ));
         }
+
         /// <summary>
         /// Parent gán student
         /// </summary>
@@ -182,6 +191,7 @@ namespace ShuttleMate.API.Controllers
                 message: "Gán vai trò cho học sinh thành công!"
             ));
         }
+
         [HttpDelete("remove-role")]
         public async Task<IActionResult> RemoveRole([FromBody] RemoveUserRoleModel model)
         {
@@ -193,6 +203,7 @@ namespace ShuttleMate.API.Controllers
                 message: "Xóa vai trò cho người dùng thành công!"
             ));
         }
+
         [HttpGet("me")]
         public async Task<IActionResult> GetInfor()
         {
@@ -203,6 +214,7 @@ namespace ShuttleMate.API.Controllers
                  data: res
              ));
         }
+
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetById(Guid userId)
         {
@@ -213,6 +225,7 @@ namespace ShuttleMate.API.Controllers
                  data: res
              ));
         }
+
         [HttpPatch("{userId}")]
         public async Task<IActionResult> UpdateProfile(Guid? userId = null, UpdateProfileModel? model = null)
         {
@@ -223,6 +236,7 @@ namespace ShuttleMate.API.Controllers
                  message: "Cập nhật tài khoản thành công!"
              ));
         }
+
         /// <summary>
         /// Xóa phụ huynh(Student)
         /// </summary>
@@ -236,6 +250,7 @@ namespace ShuttleMate.API.Controllers
                  message: "Xóa phụ huynh thành công!"
              ));
         }
+
         /// <summary>
         /// Xóa học sinh(Parent)
         /// </summary>
@@ -249,6 +264,7 @@ namespace ShuttleMate.API.Controllers
                  message: "Xóa học sinh thành công!"
              ));
         }
+
         /// <summary>
         /// Đăng ký thiết bị mobile
         /// </summary>
