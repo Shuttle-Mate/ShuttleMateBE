@@ -271,6 +271,10 @@ namespace ShuttleMate.Services.Services
             tripRepository.Update(tripToEnd);
             await _unitOfWork.SaveAsync();
 
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
+
             var query = await _unitOfWork.GetRepository<Trip>().Entities
                 .Include(x => x.Schedule)
                 .Where(x => !x.DeletedTime.HasValue)
@@ -279,18 +283,27 @@ namespace ShuttleMate.Services.Services
 
             var userRepo = _unitOfWork.GetRepository<User>();
             var userQuery = userRepo.Entities
-            .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role)
-            .Include(u => u.UserSchoolShifts)
-            .ThenInclude(u => u.SchoolShift)
-            .AsQueryable();
+                .Include(u => u.UserSchoolShifts)
+                    .ThenInclude(uss => uss.SchoolShift)
+                .Include(u => u.HistoryTickets)
+                    .ThenInclude(ht => ht.Attendances)
+                        .ThenInclude(a => a.Trip)
+                .Include(u => u.HistoryTickets)
+                    .ThenInclude(ht => ht.Ticket)
+                        .ThenInclude(t => t.Route)
+                .Include(u => u.Parent)
+                .Include(u => u.School)
+                .Where(u => !u.DeletedTime.HasValue)
+                .AsQueryable();
 
-            userQuery = userQuery.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId && !x.DeletedTime.HasValue));
-            userQuery = userQuery.Where(x => x.HistoryTickets.Any(x => x.Ticket.Route.Id == routeId
-            && x.Ticket.Route.IsActive == true
-            && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
-            && x.Status == HistoryTicketStatus.PAID
-            && !x.DeletedTime.HasValue));
+            userQuery = userQuery.Where(x => x.HistoryTickets.Any(y =>
+                y.Ticket.RouteId == routeId &&
+                y.Ticket.Route.IsActive == true &&
+                y.ValidUntil >= todayVN &&
+                y.ValidFrom <= todayVN &&
+                y.HistoryTicketSchoolShifts.Any(hs => hs.SchoolShiftId == schoolShiftId) &&
+                y.Status == HistoryTicketStatus.PAID &&
+                !y.DeletedTime.HasValue));
 
             var listStudent = await userQuery
                 .Select(u => new ResponseStudentInRouteAndShiftModel
