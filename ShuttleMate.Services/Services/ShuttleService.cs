@@ -36,7 +36,7 @@ namespace ShuttleMate.Services.Services
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            Shuttle shuttle = await _unitOfWork.GetRepository<Shuttle>().Entities.FirstOrDefaultAsync(x => x.LicensePlate == model.LicensePlate);
+            Shuttle shuttle = await _unitOfWork.GetRepository<Shuttle>().Entities.FirstOrDefaultAsync(x => x.LicensePlate == model.LicensePlate && !x.DeletedTime.HasValue);
             if (shuttle != null)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Biển số xe này đã tồn tại!");
@@ -155,7 +155,7 @@ namespace ShuttleMate.Services.Services
 
         public async Task<ResponseShuttleModel> GetById(Guid shuttleId)
         {
-            var shuttle = await _unitOfWork.GetRepository<Shuttle>().Entities.FirstOrDefaultAsync(x => x.Id == shuttleId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
+            var shuttle = await _unitOfWork.GetRepository<Shuttle>().Entities.FirstOrDefaultAsync(x => x.Id == shuttleId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy xe!");
 
             return _mapper.Map<ResponseShuttleModel>(shuttle);
         }
@@ -168,8 +168,12 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Biển số xe không được để trống!");
             }
-            var shutle = await _unitOfWork.GetRepository<Shuttle>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
+            var shutle = await _unitOfWork.GetRepository<Shuttle>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy xe!");
 
+            if (model.LicensePlate == shutle.LicensePlate)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Biển số xe này đã được sử dụng!");
+            }
             //route = _mapper.Map<Route>(model);
             _mapper.Map(model, shutle);
             shutle.LastUpdatedBy = userId;

@@ -59,6 +59,7 @@ namespace ShuttleMate.Services.Services
             .ToListAsync();
             return users;
         }
+
         public async Task RemoveParent()
         {
             // Lấy userId từ HttpContext
@@ -98,6 +99,7 @@ namespace ShuttleMate.Services.Services
                 );
             }
         }
+
         public async Task RemoveStudent(RemoveStudentModel model)
         {
             //// Lấy userId từ HttpContext
@@ -116,6 +118,7 @@ namespace ShuttleMate.Services.Services
                 await _emailService.SendEmailAsync(user.Email, "Thông báo từ ShuttleMate", $"Phụ huynh đã xóa bạn khỏi khỏi danh sách học sinh!</div>");
             }
         }
+
         public async Task CreateUserAdmin(CreateUserAdminModel model)
         {
             // Kiểm tra user co tồn tại
@@ -253,6 +256,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
 
         }
+
         public async Task AssignParent(Guid studentId, AssignParentModel model)
         {
             var user = await _unitOfWork.GetRepository<User>()
@@ -269,6 +273,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
         }
+
         public async Task AssignStudent(Guid parentId, AssignStudentModel model)
         {
             var parent = await _unitOfWork.GetRepository<User>()
@@ -285,6 +290,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<User>().UpdateAsync(student);
             await _unitOfWork.SaveAsync();
         }
+
         private async Task<string> GenerateUniqueAssignCodeAsync()
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -304,6 +310,7 @@ namespace ShuttleMate.Services.Services
 
             return assignCode;
         }
+
         public async Task<BasePaginatedList<ResponseStudentInRouteAndShiftModel>> GetStudentInRouteAndShift(int page = 0, int pageSize = 10, Guid? routeId = null, Guid? schoolShiftId = null, string? search = null)
         {
             if (routeId == null)
@@ -405,6 +412,7 @@ namespace ShuttleMate.Services.Services
 
             return new BasePaginatedList<ResponseStudentInRouteAndShiftModel>(pagedItems, totalCount, page, pageSize);
         }
+
         public async Task<BasePaginatedList<AdminResponseUserModel>> GetAllAsync(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
         {
             var userRepo = _unitOfWork.GetRepository<User>();
@@ -472,6 +480,7 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
             return new BasePaginatedList<AdminResponseUserModel>(pagedItems, totalCount, page, pageSize);
         }
+
         public async Task UpdateSchoolForUser(Guid? id = null, UpdateSchoolForUserModel? model = null)
         {
             // Lấy userId từ HttpContext
@@ -595,6 +604,7 @@ namespace ShuttleMate.Services.Services
             }
             await _unitOfWork.SaveAsync();
         }
+
         public async Task AssignSchoolForManager(AssignSchoolForManagerModel model)
         {
             var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
@@ -610,6 +620,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
 
         }
+
         public async Task<UserInforModel> GetInfor()
         {
             // Lấy userId từ HttpContext
@@ -738,6 +749,7 @@ namespace ShuttleMate.Services.Services
             };
             return inforModel;
         }
+
         public async Task<UserInforModel> GetById(Guid userId)
         {
 
@@ -863,6 +875,7 @@ namespace ShuttleMate.Services.Services
             };
             return inforModel;
         }
+
         public async Task AssignUserToRoleAsync(Guid userId, Guid roleId)
         {
             var user = await _unitOfWork.GetRepository<User>()
@@ -905,6 +918,7 @@ namespace ShuttleMate.Services.Services
             await userRoleRepo.InsertAsync(newUserRole);
             await _unitOfWork.SaveAsync();
         }
+
         public async Task RemoveUserToRoleAsync(Guid userId)
         {
             var user = await _unitOfWork.GetRepository<User>()
@@ -935,6 +949,7 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.SaveAsync();
         }
+
         public async Task UpdateProfiel(Guid? id = null, UpdateProfileModel? model = null)
         {
             // Lấy userId từ HttpContext
@@ -987,6 +1002,7 @@ namespace ShuttleMate.Services.Services
             //    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Địa chỉ không được để trống!!");
             //}
         }
+
         public async Task<string> BlockUserForAdmin(Guid userId)
         {
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == userId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng!");
@@ -997,6 +1013,7 @@ namespace ShuttleMate.Services.Services
             await SendBlockUserEmail(user);
             return "Khóa người dùng thành công!";
         }
+
         public async Task<string> UnBlockUserForAdmin(Guid userId)
         {
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == userId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng!");
@@ -1007,6 +1024,7 @@ namespace ShuttleMate.Services.Services
             await SendUnBlockUserEmail(user);
             return "Mở khóa người dùng thành công!";
         }
+
         private async Task SendBlockUserEmail(User guide)
         {
             await _emailService.SendEmailAsync(
@@ -1034,6 +1052,7 @@ namespace ShuttleMate.Services.Services
         </html>"
             );
         }
+
         private async Task SendUnBlockUserEmail(User guide)
         {
             await _emailService.SendEmailAsync(

@@ -1,26 +1,20 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Ocsp;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using ShuttleMate.Contract.Repositories.Base;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
-using ShuttleMate.ModelViews.RoleModelViews;
 using ShuttleMate.ModelViews.RouteModelViews;
 using ShuttleMate.ModelViews.RouteStopModelViews;
+using ShuttleMate.ModelViews.StopEstimateModelViews;
 using ShuttleMate.ModelViews.StopModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
 {
@@ -29,20 +23,25 @@ namespace ShuttleMate.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
+        private readonly VietMapSettings _vietMapSettings;
+        private readonly HttpClient _httpClient;
 
-
-        public RouteService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
+        public RouteService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IOptions<VietMapSettings> vietMapSettings, HttpClient httpClient)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
+            _vietMapSettings = vietMapSettings.Value;
+            _httpClient = httpClient;
         }
+
+        private const string VietMapMatrixApiUrl = "https://maps.vietmap.vn/api/matrix?api-version=1.1";
 
         public async Task CreateRoute(RouteModel model)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            Route route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.RouteName == model.RouteName || x.RouteCode == model.RouteCode);
+            Route route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => (x.RouteName == model.RouteName || x.RouteCode == model.RouteCode) && !x.DeletedTime.HasValue);
 
             School school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && x.IsActive == true && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường học!");
 
@@ -234,12 +233,114 @@ namespace ShuttleMate.Services.Services
             }
             var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
 
+            if (model.RouteCode == route.RouteCode || model.RouteName == route.RouteName)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Mã tuyến hoặc tên tuyến đã tồn tại!");
+            }
+
             //route = _mapper.Map<Route>(model);
             _mapper.Map(model, route);
             route.LastUpdatedBy = userId;
             route.LastUpdatedTime = DateTime.Now;
             await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
             await _unitOfWork.SaveAsync();
+        }
+
+        public async Task UpdateRouteInformationAsync(Guid routeId)
+        {
+            string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
+
+            var route = await _unitOfWork.GetRepository<Route>()
+                .GetQueryable()
+                .Include(r => r.RouteStops)
+                .ThenInclude(rs => rs.Stop)
+                .FirstOrDefaultAsync(r => r.Id == routeId && !r.DeletedTime.HasValue)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến không tồn tại.");
+
+            var validRouteStops = route.RouteStops
+                .Where(rs => !rs.DeletedTime.HasValue)
+                .OrderBy(rs => rs.StopOrder)
+                .ToList();
+
+            if (validRouteStops.Count == 0)
+            {
+                route.InBound = string.Empty;
+                route.OutBound = string.Empty;
+                route.TotalDistance = 0;
+                route.RunningTime = "0";
+                route.LastUpdatedTime = CoreHelper.SystemTimeNow;
+                route.LastUpdatedBy = userId;
+
+                await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
+                return;
+            }
+
+            var waypoints = validRouteStops
+                .Select(rs => $"{rs.Stop.Lat},{rs.Stop.Lng}")
+                .ToList();
+
+            var pointParams = string.Join("&", waypoints.Select(p => $"point={p}"));
+
+            var matrixUrl = $"{VietMapMatrixApiUrl}"
+                          + $"&apikey={_vietMapSettings.ApiKey}"
+                          + $"&{pointParams}"
+                          + $"&vehicle=car"
+                          + $"&points_encoded=false"
+                          + $"&annotations=duration,distance";
+
+            var response = await _httpClient.GetAsync(matrixUrl);
+            if (!response.IsSuccessStatusCode)
+                throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Lỗi khi gọi API VietMap Matrix.");
+
+            var content = await response.Content.ReadAsStringAsync();
+            var matrixResult = JsonConvert.DeserializeObject<ResponseVietMapMatrixModel>(content);
+
+            if (matrixResult?.Durations == null || matrixResult.Durations.Count == 0 ||
+                matrixResult?.Distances == null || matrixResult.Distances.Count == 0)
+                throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Không có dữ liệu từ Matrix API.");
+
+            var durationsMatrix = matrixResult.Durations;
+            var distancesMatrix = matrixResult.Distances;
+
+            for (int i = 0; i < validRouteStops.Count; i++)
+            {
+                int duration = 0;
+                if (i > 0)
+                {
+                    duration = (int)Math.Round(durationsMatrix[i - 1][i]);
+                }
+
+                validRouteStops[i].Duration = duration;
+                validRouteStops[i].LastUpdatedTime = DateTime.UtcNow;
+                validRouteStops[i].LastUpdatedBy = userId;
+            }
+
+            double totalDistance = 0;
+            for (int i = 1; i < validRouteStops.Count; i++)
+            {
+                totalDistance += distancesMatrix[i - 1][i];
+            }
+
+            if (validRouteStops.Count > 1)
+            {
+                var travelDurations = validRouteStops.Skip(1).Sum(rs => rs.Duration);
+                var stopTimeBuffer = 300 * (validRouteStops.Count - 1);
+                route.RunningTime = (travelDurations + stopTimeBuffer).ToString();
+            }
+            else
+            {
+                route.RunningTime = "0";
+            }
+
+            var stopNames = validRouteStops.Select(rs => rs.Stop.Name).ToList();
+            route.InBound = string.Join(" - ", stopNames);
+            route.OutBound = string.Join(" - ", stopNames.AsEnumerable().Reverse());
+            route.TotalDistance = (decimal?)Math.Round(totalDistance, 2);
+            route.LastUpdatedTime = DateTime.UtcNow;
+            route.LastUpdatedBy = userId;
+
+            await _unitOfWork.GetRepository<RouteStop>().UpdateRangeAsync(validRouteStops);
+            await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
         }
     }
 }
