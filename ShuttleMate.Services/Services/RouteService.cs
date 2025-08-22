@@ -48,11 +48,11 @@ namespace ShuttleMate.Services.Services
 
             if (route != null)
             {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trùng tên hoặc tuyến này đã tồn tại!!");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trùng tên hoặc tuyến này đã tồn tại!");
             }
             else if (model.SchoolId == null || model.SchoolId == Guid.Empty)
             {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trường không được để trống!!");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Trường không được để trống!");
             }
 
             var newRoute = _mapper.Map<Route>(model);

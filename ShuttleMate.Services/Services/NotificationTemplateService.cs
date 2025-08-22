@@ -38,7 +38,7 @@ namespace ShuttleMate.Services.Services
             NotificationTemplate notiTemplate = await _unitOfWork.GetRepository<NotificationTemplate>().Entities.FirstOrDefaultAsync(x => x.Type == model.Type || x.Template == model.Template);
             if (notiTemplate != null)
             {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Mẫu thông báo này đã tồn tại!!");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Mẫu thông báo này đã tồn tại!");
             }
 
             var newNotiTemplate = _mapper.Map<NotificationTemplate>(model);

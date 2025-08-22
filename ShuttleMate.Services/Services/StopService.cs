@@ -130,7 +130,7 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Trạm dừng đã bị xóa.");
 
             if (string.IsNullOrWhiteSpace(model.Name))
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng tên trạm.");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng ghi tên trạm.");
 
             stop.Name = model.Name;
             stop.LastUpdatedBy = userId;
