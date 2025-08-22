@@ -1,11 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Contract.Services.Interfaces;
-using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.ModelViews.AuthModelViews;
-using ShuttleMate.ModelViews.RoleModelViews;
-using Microsoft.AspNetCore.Authorization;
 
 namespace ShuttleMate.API.Controllers
 {
@@ -18,6 +15,7 @@ namespace ShuttleMate.API.Controllers
         {
             _authService = authService;
         }
+
         /// <summary>
         /// True la Student, false la Parent
         /// </summary>
@@ -31,7 +29,6 @@ namespace ShuttleMate.API.Controllers
                 message: "Đăng kí thành công!"
             ));
         }
-        
 
         [HttpPatch("confirmation/email")]
         public async Task<IActionResult> ConfirmOTPEmailVerification(ConfirmEmailModel model)
@@ -54,7 +51,6 @@ namespace ShuttleMate.API.Controllers
                 message: "Gửi lại email thành công!"
             ));
         }
-
 
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginRequestModel request)
@@ -121,6 +117,5 @@ namespace ShuttleMate.API.Controllers
                 message: "Đăng xuất thành công!"
             ));
         }
-
     }
 }
