@@ -25,14 +25,16 @@ namespace ShuttleMate.Services.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IAttendanceService _attendanceService;
         private readonly INotificationService _notificationService;
+        private readonly FirestoreService _firestoreService;
 
-        public TripService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IAttendanceService attendanceService, INotificationService notificationService)
+        public TripService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IAttendanceService attendanceService, INotificationService notificationService, FirestoreService firestoreService )
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
             _attendanceService = attendanceService;
             _notificationService = notificationService;
+            _firestoreService = firestoreService;
         }
 
         public async Task<Guid> StartTrip(Guid scheduleId)
@@ -130,11 +132,45 @@ namespace ShuttleMate.Services.Services
             newTrip.StartTime = TimeOnly.FromDateTime(now);
             newTrip.EndTime = null; // Assuming EndTime is nullable and not provided in the model
             newTrip.Status = TripStatusEnum.IN_PROGESS;
+            newTrip.CurrentStopIndex = 1;
 
             await _unitOfWork.GetRepository<Trip>().InsertAsync(newTrip);
             await _unitOfWork.SaveAsync();
 
+            // Sau khi InsertAsync và SaveAsync trip mới
+            var trip = await _unitOfWork.GetRepository<Trip>()
+                .Entities
+                .Include(t => t.Schedule)
+                    .ThenInclude(s => s.Route)
+                .Include(t => t.Schedule)
+                    .ThenInclude(s => s.Shuttle)
+                .Include(t => t.Schedule)
+                    .ThenInclude(s => s.Driver)
+                .FirstOrDefaultAsync(t => t.Id == newTrip.Id);
+
+            var stops = trip.Schedule.Route.RouteStops
+                .OrderBy(rs => trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND ? rs.StopOrder : -rs.StopOrder)
+                .ToList();
+
+            var nextStop = trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND
+                ? stops.FirstOrDefault(s => s.StopOrder > trip.CurrentStopIndex)
+                : stops.FirstOrDefault(s => s.StopOrder < trip.CurrentStopIndex);
+
+            var docRef = _firestoreService.GetCollection("active_trips").Document(trip.Id.ToString());
+            await docRef.SetAsync(new
+            {
+                tripId = trip.Id.ToString(),
+                routeId = trip.Schedule.RouteId.ToString(),
+                shuttleName = trip.Schedule.Shuttle.Name,
+                driverName = trip.Schedule.Driver.FullName,
+                currentStopIndex = trip.CurrentStopIndex,
+                nextStop = (object?)null, // Chưa có nextStop khi vừa start
+                status = trip.Status.ToString(),
+                updatedTime = DateTime.UtcNow
+            });
+
             return newTrip.Id;
+
         }
 
         public async Task<BasePaginatedList<ResponseTripModel>> GetAllPaging(GetTripQuery req)
@@ -530,8 +566,18 @@ namespace ShuttleMate.Services.Services
                 await _unitOfWork.GetRepository<Trip>().UpdateAsync(trip);
                 await _unitOfWork.SaveAsync();
 
-                //noti xe đã đến trạm
-
+                var docRef = _firestoreService.GetCollection("active_trips").Document(trip.Id.ToString());
+                await docRef.SetAsync(new
+                {
+                    tripId = trip.Id.ToString(),
+                    routeId = trip.Schedule.RouteId.ToString(),
+                    shuttleName = trip.Schedule.Shuttle.Name,
+                    driverName = trip.Schedule.Driver.FullName,
+                    currentStopIndex = trip.CurrentStopIndex,
+                    nextStop = new { stopId = nextStop.Stop.Id, stopName = nextStop.Stop.Name, duration = model.Duration, distance = model.Distance},
+                    status = trip.Status.ToString(),
+                    updatedTime = DateTime.UtcNow
+                });
             }
         }
     }
