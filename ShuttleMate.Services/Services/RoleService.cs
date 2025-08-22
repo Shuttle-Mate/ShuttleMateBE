@@ -62,10 +62,18 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Tên không được để trống!");
             }
             var role = await _unitOfWork.GetRepository<Role>().Entities.FirstOrDefaultAsync(x =>x.Id ==roleId &&  !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy vai trò!");
+            if (role.Name != model.Name) 
+            {
+                Role roleCheck = await _unitOfWork.GetRepository<Role>().Entities.FirstOrDefaultAsync(x => x.Name == model.Name);
+                if (roleCheck != null)
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vai trò đã tồn tại!");
+                }
+                role.Name = model.Name;
+                await _unitOfWork.GetRepository<Role>().UpdateAsync(role);
+                await _unitOfWork.SaveAsync();
+            }
 
-            role.Name = model.Name;
-            await _unitOfWork.GetRepository<Role>().UpdateAsync(role);
-            await _unitOfWork.SaveAsync();
         }
         public async Task DeleteRole(Guid roleId)
         {
