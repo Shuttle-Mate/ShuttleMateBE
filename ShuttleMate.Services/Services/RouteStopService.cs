@@ -36,7 +36,6 @@ namespace ShuttleMate.Services.Services
         public async Task AssignStopsToRouteAsync(AssignStopsToRouteModel model)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-            //_unitOfWork.BeginTransaction();
 
             try
             {
@@ -54,16 +53,9 @@ namespace ShuttleMate.Services.Services
 
                 foreach (var old in oldStops)
                 {
-                    //old.DeletedTime = DateTime.UtcNow;
-                    //old.DeletedBy = userId;
-                    //_unitOfWork.DbContext.Entry(old).State = EntityState.Detached; // Ngắt tracking
                     await routeStopRepo.DeleteAsync(old.RouteId, old.StopId);
                     await _unitOfWork.SaveAsync();
-                    //_unitOfWork.Detach(old);
                 }
-
-                //await routeStopRepo.UpdateRangeAsync(oldStops);
-                await _unitOfWork.SaveAsync();
 
                 foreach (var old in oldStops)
                 {
@@ -76,6 +68,31 @@ namespace ShuttleMate.Services.Services
 
                 if (stops.Count != model.StopIds.Count)
                     throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Một số StopId không tồn tại!");
+
+                var orderedStops = model.StopIds
+                    .Select((id, index) => new { Id = id, Order = index + 1, Stop = stops.First(s => s.Id == id) })
+                    .ToList();
+
+                // Thêm các RouteStop mới
+                foreach (var orderedStop in orderedStops)
+                {
+                    var newRouteStop = new RouteStop
+                    {
+                        Id = Guid.NewGuid(),
+                        RouteId = model.RouteId,
+                        StopId = orderedStop.Stop.Id,
+                        StopOrder = orderedStop.Order,
+                        Duration = 0, // Sẽ được cập nhật trong UpdateRouteInformationAsync
+                        CreatedBy = userId,
+                        LastUpdatedBy = userId,
+                        CreatedTime = DateTime.UtcNow,
+                        LastUpdatedTime = DateTime.UtcNow
+                    };
+
+                    await routeStopRepo.InsertAsync(newRouteStop);
+                }
+
+                await _unitOfWork.SaveAsync();
 
                 await _routeService.UpdateRouteInformationAsync(model.RouteId);
 
