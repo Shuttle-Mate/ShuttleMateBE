@@ -420,13 +420,6 @@ namespace ShuttleMate.Services.Services
                 nextStop = stops.FirstOrDefault(s => s.StopOrder < currentIndex);
             }
 
-            //if (nextStop == null)
-            // noti xe đã đến trạm cuối {{StopName}}
-
-            //var userAttendances = await _unitOfWork.GetRepository<Attendance>()
-            //    .Entities
-            //    .Where(a => !a.DeletedTime.HasValue && a.TripId.Equals(tripId)) // thêm list student available
-            //    .ToListAsync();
 
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
@@ -464,41 +457,42 @@ namespace ShuttleMate.Services.Services
                 .Select(u => new { u.Id, u.FullName, u.ParentId })
                 .ToListAsync();
 
-            // 4. Gửi thông báo
-            var createdBy = "system";
-
-            foreach (var user in users)
+            if (nextStop == null)
             {
+                // noti xe đã đến trạm cuối {{StopName}}
 
-                var metadata = new Dictionary<string, string>
+                foreach (var user in users)
+                {
+
+                    var metadata = new Dictionary<string, string>
                 {
                     { "RouteName", trip.Schedule.Route.RouteName },
                     { "ArrivedTime", vietnamNow.ToString() }
                 };
 
-                // Gửi cho học sinh
-                await _notificationService.SendNotificationFromTemplateAsync(
-                    templateType: "ArrivedLastStop",
-                    recipientIds: new List<Guid> { user.Id },
-                    metadata: metadata,
-                    createdBy: "system",
-                    notiCategory: "TRIP_STATUS"
-                );
-
-                // Nếu có phụ huynh thì gửi cho phụ huynh
-                if (user.ParentId != null && user.ParentId != Guid.Empty)
-                {
+                    // Gửi cho học sinh
                     await _notificationService.SendNotificationFromTemplateAsync(
                         templateType: "ArrivedLastStop",
-                        recipientIds: new List<Guid> { user.ParentId.Value },
+                        recipientIds: new List<Guid> { user.Id },
                         metadata: metadata,
                         createdBy: "system",
                         notiCategory: "TRIP_STATUS"
                     );
+
+                    // Nếu có phụ huynh thì gửi cho phụ huynh
+                    if (user.ParentId != null && user.ParentId != Guid.Empty)
+                    {
+                        await _notificationService.SendNotificationFromTemplateAsync(
+                            templateType: "ArrivedLastStop",
+                            recipientIds: new List<Guid> { user.ParentId.Value },
+                            metadata: metadata,
+                            createdBy: "system",
+                            notiCategory: "TRIP_STATUS"
+                        );
+                    }
+
                 }
-
             }
-
             var duration = model.Duration / 60;
             //sửa lại duration = 5p thì noti
             if (duration == 5)
