@@ -22,21 +22,20 @@ namespace ShuttleMate.Services.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly VietMapSettings _vietMapSettings;
         private readonly HttpClient _httpClient;
+        private readonly IRouteService _routeService;
 
-        public RouteStopService(IUnitOfWork unitOfWork, IHttpContextAccessor contextAccessor, IOptions<VietMapSettings> vietMapSettings, HttpClient httpClient)
+        public RouteStopService(IUnitOfWork unitOfWork, IHttpContextAccessor contextAccessor, IOptions<VietMapSettings> vietMapSettings, HttpClient httpClient, IRouteService routeService)
         {
             _unitOfWork = unitOfWork;
             _contextAccessor = contextAccessor;
             _vietMapSettings = vietMapSettings.Value;
             _httpClient = httpClient;
+            _routeService = routeService;
         }
-
-        private const string VietMapMatrixApiUrl = "https://maps.vietmap.vn/api/matrix?api-version=1.1";
 
         public async Task AssignStopsToRouteAsync(AssignStopsToRouteModel model)
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-            //_unitOfWork.BeginTransaction();
 
             try
             {
@@ -54,16 +53,9 @@ namespace ShuttleMate.Services.Services
 
                 foreach (var old in oldStops)
                 {
-                    //old.DeletedTime = DateTime.UtcNow;
-                    //old.DeletedBy = userId;
-                    //_unitOfWork.DbContext.Entry(old).State = EntityState.Detached; // Ngắt tracking
                     await routeStopRepo.DeleteAsync(old.RouteId, old.StopId);
                     await _unitOfWork.SaveAsync();
-                    //_unitOfWork.Detach(old);
                 }
-
-                //await routeStopRepo.UpdateRangeAsync(oldStops);
-                await _unitOfWork.SaveAsync();
 
                 foreach (var old in oldStops)
                 {
@@ -81,43 +73,16 @@ namespace ShuttleMate.Services.Services
                     .Select((id, index) => new { Id = id, Order = index + 1, Stop = stops.First(s => s.Id == id) })
                     .ToList();
 
-                var waypoints = orderedStops.Select(s => $"{s.Stop.Lat},{s.Stop.Lng}").ToList();
-                var pointParams = string.Join("&", waypoints.Select(p => $"point={p}"));
-
-                var matrixUrl = $"{VietMapMatrixApiUrl}"
-                              + $"&apikey={_vietMapSettings.ApiKey}"
-                              + $"&{pointParams}"
-                              + $"&vehicle=car"
-                              + $"&points_encoded=false"
-                              + $"&annotations=duration,distance";
-
-                var response = await _httpClient.GetAsync(matrixUrl);
-                if (!response.IsSuccessStatusCode)
-                    throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Lỗi khi gọi API VietMap Matrix.");
-
-                var content = await response.Content.ReadAsStringAsync();
-                var matrixResult = JsonConvert.DeserializeObject<ResponseVietMapMatrixModel>(content);
-
-                if (matrixResult?.Durations == null || matrixResult.Durations.Count == 0)
-                    throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Không có dữ liệu duration từ Matrix API.");
-
-                var durationsMatrix = matrixResult.Durations;
-
-                for (int i = 0; i < orderedStops.Count; i++)
+                // Thêm các RouteStop mới
+                foreach (var orderedStop in orderedStops)
                 {
-                    int duration = 0;
-                    if (i > 0)
-                    {
-                        duration = (int)Math.Round(durationsMatrix[i - 1][i]);
-                    }
-
                     var newRouteStop = new RouteStop
                     {
                         Id = Guid.NewGuid(),
                         RouteId = model.RouteId,
-                        StopId = orderedStops[i].Stop.Id,
-                        StopOrder = orderedStops[i].Order,
-                        Duration = duration,
+                        StopId = orderedStop.Stop.Id,
+                        StopOrder = orderedStop.Order,
+                        Duration = 0, // Sẽ được cập nhật trong UpdateRouteInformationAsync
                         CreatedBy = userId,
                         LastUpdatedBy = userId,
                         CreatedTime = DateTime.UtcNow,
@@ -129,41 +94,7 @@ namespace ShuttleMate.Services.Services
 
                 await _unitOfWork.SaveAsync();
 
-                if (matrixResult?.Distances == null || matrixResult.Distances.Count == 0)
-                    throw new ErrorException(StatusCodes.Status500InternalServerError, ResponseCodeConstants.INTERNAL_SERVER_ERROR, "Không có dữ liệu distance từ Matrix API.");
-
-                var distancesMatrix = matrixResult.Distances;
-
-                double totalDistance = 0;
-                for (int i = 1; i < orderedStops.Count; i++)
-                {
-                    totalDistance += distancesMatrix[i - 1][i];
-                }
-
-                var validStops = await _unitOfWork.GetRepository<RouteStop>().Entities
-                    .Where(rs => rs.RouteId == model.RouteId && !rs.DeletedTime.HasValue)
-                    .OrderBy(rs => rs.StopOrder)
-                    .ToListAsync();
-
-                if (validStops != null && validStops.Count > 1)
-                {
-                    var travelDurations = validStops.Skip(1).Sum(rs => rs.Duration);
-                    var stopTimeBuffer = 300 * (validStops.Count - 1);
-                    route.RunningTime = (travelDurations + stopTimeBuffer).ToString();
-                }
-                else
-                {
-                    route.RunningTime = "0";
-                }
-
-                var stopNames = orderedStops.Select(x => x.Stop.Name).ToList();
-                route.InBound = string.Join(" - ", stopNames);
-                route.OutBound = string.Join(" - ", stopNames.AsEnumerable().Reverse());
-                route.TotalDistance = (decimal?)Math.Round(totalDistance, 2);
-                route.LastUpdatedTime = DateTime.UtcNow;
-                route.LastUpdatedBy = userId;
-
-                _unitOfWork.GetRepository<Route>().Update(route);
+                await _routeService.UpdateRouteInformationAsync(model.RouteId);
 
                 await _unitOfWork.SaveAsync();
             }
@@ -258,7 +189,7 @@ namespace ShuttleMate.Services.Services
                 Distance = distanceList[i],
                 Duration = durationList[i]
             })
-            .Where(x => x.Stop.RouteStops.Any(rs => !rs.Route.DeletedTime.HasValue && rs.Route.SchoolId == schoolId))
+            .Where(x => x.Duration <= 900 && x.Stop.RouteStops.Any(rs => !rs.Route.DeletedTime.HasValue && rs.Route.SchoolId == schoolId))
             .OrderBy(x => x.Distance);
 
             var totalCount = stopsWithDistance.Count();

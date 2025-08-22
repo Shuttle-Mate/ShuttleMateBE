@@ -9,8 +9,6 @@ using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.AuthModelViews;
-using ShuttleMate.ModelViews.RoleModelViews;
-using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
 {
@@ -26,12 +24,14 @@ namespace ShuttleMate.Services.Services
             _emailService = emailService;
             _tokenService = tokenService;
         }
+
         private string GenerateOtp()
         {
             Random random = new Random();
             string otp = random.Next(100000, 999999).ToString();
             return otp;
         }
+
         public async Task ForgotPassword(EmailModelView model)
         {
             User? user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Email == model.Email && !x.DeletedTime.HasValue)
@@ -51,6 +51,7 @@ namespace ShuttleMate.Services.Services
 
             await _emailService.SendEmailAsync(model.Email, "Đặt lại mật khẩu", $"Vui lòng xác nhận tài khoản của bạn, OTP của bạn là: <div class='otp'>{OTP}</div>");
         }
+
         public async Task Register(RegisterModel model)
         {
             // Kiểm tra user co tồn tại
@@ -171,6 +172,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
 
         }
+
         private async Task<string> GenerateUniqueAssignCodeAsync()
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -190,6 +192,7 @@ namespace ShuttleMate.Services.Services
 
             return assignCode;
         }
+
         public async Task ResendConfirmationEmail(EmailModelView emailModelView)
         {
             if (string.IsNullOrWhiteSpace(emailModelView.Email))
@@ -251,6 +254,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
 
         }
+
         public async Task<Guid> ConfirmEmail(ConfirmEmailModel model)
         {
             if (string.IsNullOrWhiteSpace(model.Email))
@@ -271,6 +275,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
             return user.Id;
         }
+
         public async Task<LoginResponse> LoginAsync(LoginRequestModel request)
         {
             var user = _unitOfWork.GetRepository<User>().Entities
@@ -313,6 +318,7 @@ namespace ShuttleMate.Services.Services
             return loginResponse;
 
         }
+
         public async Task ResetPassword(ResetPasswordModelView model)
         {
             User? user = await _unitOfWork.GetRepository<User>().Entities
@@ -333,6 +339,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
         }
+
         public async Task<Guid> VerifyOtp(ConfirmOTPModelView model)
         {
             User? user = await _unitOfWork.GetRepository<User>().Entities
@@ -358,6 +365,7 @@ namespace ShuttleMate.Services.Services
             //đưa id để đổi mk
             return user.Id;
         }
+
         public async Task<string> ChangePasswordFromForgetPassword(ChangePasswordFromForgetPasswordModel model)
         {
             User? user = await _unitOfWork.GetRepository<User>().Entities
@@ -372,6 +380,7 @@ namespace ShuttleMate.Services.Services
             user.PasswordHash = passwordHasher.HashPassword(null, model.Password); // Băm mật khẩu tại đây
             return "Đổi mật khẩu thành công!";
         }
+
         public async Task<LoginResponse> RefreshToken(RefreshTokenModel refreshTokenModel)
         {
             User? user = await CheckRefreshToken(refreshTokenModel.RefreshToken);
@@ -393,6 +402,7 @@ namespace ShuttleMate.Services.Services
                 //Role = roleName
             };
         }
+
         private async Task<User> CheckRefreshToken(string refreshToken)
         {
 
@@ -401,6 +411,7 @@ namespace ShuttleMate.Services.Services
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tài khoản");
             return users;
         }
+
         public async Task LogoutAsync(RefreshTokenModel model)
         {
             // Tải toàn bộ user (hoặc tối ưu hơn nếu bạn có userId từ JWT)
@@ -409,6 +420,5 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<User>().UpdateAsync(users);
             await _unitOfWork.SaveAsync();
         }
-
     }
 }

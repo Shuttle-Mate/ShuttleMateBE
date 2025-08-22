@@ -91,11 +91,6 @@ namespace ShuttleMate.Services.Services
                 .OrderByDescending(rs => rs.CreatedTime)
                 .ToListAsync();
 
-            if (!responseSupports.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có phản hồi yêu cầu nào.");
-            }
-
             return _mapper.Map<IEnumerable<ResponseResponseSupportModel>>(responseSupports);
         }
 

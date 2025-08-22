@@ -59,6 +59,35 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
+        /// Lấy danh sách lịch trình theo tài xế.
+        /// </summary>
+        /// <param name="driverId">Id của tài xế (bắt buộc).</param>
+        /// <param name="from">Lọc từ ngày (bắt buộc).</param>
+        /// <param name="to">Lọc đến ngày (bắt buộc).</param>
+        /// <param name="dayOfWeek">Thứ trong tuần (tùy chọn).</param>
+        /// <param name="direction">Hướng của tuyến: IN_BOUND, OUT_BOUND (tùy chọn).</param>
+        /// <param name="sortAsc">Sắp xếp giảm dần theo giờ khởi hành (true, mặc định) hoặc giảm dần (false).</param>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
+        //[Authorize(Roles = "Admin, Operator")]
+        [HttpGet("driver/{driverId}")]
+        public async Task<IActionResult> GetSchedulesByDriverId(
+        [FromRoute] Guid driverId,
+        [FromQuery] string from,
+        [FromQuery] string to,
+        [FromQuery] string? dayOfWeek,
+        [FromQuery] string? direction,
+        [FromQuery] bool sortAsc = true,
+        [FromQuery] int page = 0,
+        [FromQuery] int pageSize = 10)
+        {
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseScheduleModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: await _scheduleService.GetAllByDriverIdAsync(driverId, from, to, dayOfWeek, direction, sortAsc, page, pageSize)));
+        }
+
+        /// <summary>
         /// Lấy chi tiết lịch trình.
         /// </summary>
         [HttpGet("{scheduleId}")]

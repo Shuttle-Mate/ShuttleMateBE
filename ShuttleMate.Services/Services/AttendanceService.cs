@@ -141,7 +141,7 @@ namespace ShuttleMate.Services.Services
 
             if (checkout.Status == AttendanceStatusEnum.CHECKED_OUT)
             {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vé này đã được CheckOut!!");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vé này đã được CheckOut!");
             }
 
             _mapper.Map(model, checkout);

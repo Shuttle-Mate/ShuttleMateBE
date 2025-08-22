@@ -19,5 +19,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<ResponseRouteModel> GetById(Guid routeId);
         Task UpdateRoute(UpdateRouteModel model);
         Task DeleteRoute(Guid routeId);
+        Task UpdateRouteInformationAsync(Guid routeId);
     }
 }

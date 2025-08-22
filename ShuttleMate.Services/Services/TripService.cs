@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Api.Gax;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
@@ -62,77 +63,45 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Tài xế hiện đang có một chuyến đi khác đang hoạt động. Vui lòng kết thúc chuyến đi đó trước khi bắt đầu chuyến mới.");
             }
 
-            // kiểm tra trong ScheduleOverrides
-            var scheduleOverrideRepository = _unitOfWork.GetRepository<ScheduleOverride>();
-            var overrideRecord = await scheduleOverrideRepository.FindAsync(
-                predicate: so => so.ScheduleId == scheduleId &&
-                                 so.Date == tripDate &&
-                                 so.DeletedTime == null
-            );
+            //// Lấy thông tin schedule
+            var schedule = await _unitOfWork.GetRepository<Schedule>().Entities
+                .Where(s => s.Id == scheduleId && s.DeletedTime == null)
+                .Include(s => s.Route)
+                    .ThenInclude(r => r.RouteStops)
+                    .ThenInclude(rs => rs.Stop)
+                .FirstOrDefaultAsync()
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND,
+                    "Lịch trình không hợp lệ hoặc không tồn tại.");
 
-            if (overrideRecord != null)
+            // Kiểm tra quyền tài xế
+            var overrideRecord = await _unitOfWork.GetRepository<ScheduleOverride>().FindAsync(
+                so => so.ScheduleId == scheduleId &&
+                      so.Date == tripDate &&
+                      so.DeletedTime == null);
+
+            bool hasPermission = overrideRecord != null
+                ? (overrideRecord.OverrideUserId == null ? actualDriverId == schedule.DriverId
+                : actualDriverId == overrideRecord.OverrideUserId)
+                : actualDriverId == schedule.DriverId;
+
+            if (!hasPermission)
             {
-                // Nếu OverrideUserId null, cho phép tài xế chính start
-                if (overrideRecord.OverrideUserId == null)
-                {
-                    // kiểm tra tài xế hiện tại có phải là tài xế chính không
-                    var scheduleRepository = _unitOfWork.GetRepository<Schedule>();
-                    var scheduleRecord = await scheduleRepository.FindAsync(
-                        predicate: s => s.Id == scheduleId &&
-                                        !s.DeletedTime.HasValue
-                    );
-
-                    if (scheduleRecord == null)
-                    {
-                        throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình không hợp lệ hoặc không tồn tại.");
-                    }
-
-                    if (actualDriverId != scheduleRecord.DriverId)
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn không phải là tài xế được chỉ định cho lịch trình này.");
-                    }
-                }
-                else
-                {
-                    // Có bản ghi override, kiểm tra xem tài xế hiện tại có phải là tài xế được thay thế không
-                    if (actualDriverId != overrideRecord.OverrideUserId)
-                    {
-                        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn không phải là tài xế được phép cho chuyến này theo lịch thay thế.");
-                    }
-                }
-            }
-            else
-            {
-                // không có bản ghi override, kiểm tra trong Schedules gốc
-                var scheduleRepository = _unitOfWork.GetRepository<Schedule>();
-                var scheduleRecord = await scheduleRepository.FindAsync(
-                    predicate: s => s.Id == scheduleId &&
-                                    s.DeletedTime == null
-                );
-
-                if (scheduleRecord == null)
-                {
-                    throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Lịch trình không hợp lệ hoặc không tồn tại.");
-                }
-
-                // kiểm tra xem tài xế hiện tại có phải là tài xế được chỉ định trong lịch trình gốc không
-                if (actualDriverId != scheduleRecord.DriverId)
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn không phải là tài xế được chỉ định cho lịch trình này.");
-                }
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn không phải là tài xế được phép cho chuyến này.");
             }
 
-            var newTrip = new Trip();
+            int currentStopIndex = DetermineCurrentStopIndex(schedule);
 
-            newTrip.ScheduleId = scheduleId;
-            newTrip.CreatedBy = currentUserIdString;
-            newTrip.LastUpdatedBy = currentUserIdString;
-
-            newTrip.TripDate = DateOnly.FromDateTime(now);
-            newTrip.StartTime = TimeOnly.FromDateTime(now);
-            newTrip.EndTime = null; // Assuming EndTime is nullable and not provided in the model
-            newTrip.Status = TripStatusEnum.IN_PROGESS;
-            newTrip.CurrentStopIndex = 1;
+            var newTrip = new Trip
+            {
+                ScheduleId = scheduleId,
+                CreatedBy = currentUserIdString,
+                LastUpdatedBy = currentUserIdString,
+                CurrentStopIndex = currentStopIndex,
+                TripDate = DateOnly.FromDateTime(now),
+                StartTime = TimeOnly.FromDateTime(now),
+                EndTime = null,
+                Status = TripStatusEnum.IN_PROGESS
+            };
 
             await _unitOfWork.GetRepository<Trip>().InsertAsync(newTrip);
             await _unitOfWork.SaveAsync();
@@ -164,13 +133,25 @@ namespace ShuttleMate.Services.Services
                 shuttleName = trip.Schedule.Shuttle.Name,
                 driverName = trip.Schedule.Driver.FullName,
                 currentStopIndex = trip.CurrentStopIndex,
-                nextStop = (object?)null, // Chưa có nextStop khi vừa start
+                nextStop = new { stopId = nextStop.Stop.Id, stopName = nextStop.Stop.Name },
                 status = trip.Status.ToString(),
                 updatedTime = DateTime.UtcNow
             });
 
-            return newTrip.Id;
 
+            return newTrip.Id;
+        }
+
+        private int DetermineCurrentStopIndex(Schedule schedule)
+        {
+            if (schedule.Route?.RouteStops == null || !schedule.Route.RouteStops.Any())
+                return 1;
+
+            var orderedStops = schedule.Route.RouteStops.OrderBy(rs => rs.StopOrder).ToList();
+
+            return schedule.Direction == RouteDirectionEnum.IN_BOUND
+                ? orderedStops.First().StopOrder
+                : orderedStops.Last().StopOrder;
         }
 
         public async Task<BasePaginatedList<ResponseTripModel>> GetAllPaging(GetTripQuery req)
@@ -405,14 +386,26 @@ namespace ShuttleMate.Services.Services
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi không tồn tại.");
 
             var stops = trip.Schedule.Route.RouteStops
-                .OrderBy(rs => trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND ? rs.StopOrder : -rs.StopOrder)
+                .OrderBy(rs => trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND
+                    ? rs.StopOrder
+                    : -rs.StopOrder) // Sắp xếp giảm dần cho OUT_BOUND
                 .ToList();
 
             var currentIndex = trip.CurrentStopIndex;
 
-            var nextStop = trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND
-                ? stops.FirstOrDefault(s => s.StopOrder > currentIndex)
-                : stops.FirstOrDefault(s => s.StopOrder < currentIndex);
+            // Tìm next stop theo hướng
+            RouteStop nextStop = null;
+
+            if (trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND)
+            {
+                // IN_BOUND: đi từ stop nhỏ đến lớn, next là stop có order lớn hơn current
+                nextStop = stops.FirstOrDefault(s => s.StopOrder > currentIndex);
+            }
+            else
+            {
+                // OUT_BOUND: đi từ stop lớn đến nhỏ, next là stop có order nhỏ hơn current
+                nextStop = stops.FirstOrDefault(s => s.StopOrder < currentIndex);
+            }
 
             //if (nextStop == null)
             // noti xe đã đến trạm cuối {{StopName}}
@@ -530,7 +523,7 @@ namespace ShuttleMate.Services.Services
             }
             // noti xe còn cách trạm bn model.Duration (cái này tính bằng giây nên nhớ chuyển sang phút)
 
-            if (model.Distance < 50)
+            if (model.Distance < 100)
             {
                 foreach (var user in users)
                 {
