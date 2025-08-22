@@ -26,14 +26,16 @@ namespace ShuttleMate.Services.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IAttendanceService _attendanceService;
         private readonly INotificationService _notificationService;
+        private readonly FirestoreService _firestoreService;
 
-        public TripService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IAttendanceService attendanceService, INotificationService notificationService)
+        public TripService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IAttendanceService attendanceService, INotificationService notificationService, FirestoreService firestoreService )
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
             _attendanceService = attendanceService;
             _notificationService = notificationService;
+            _firestoreService = firestoreService;
         }
 
         public async Task<Guid> StartTrip(Guid scheduleId)
@@ -103,6 +105,39 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.GetRepository<Trip>().InsertAsync(newTrip);
             await _unitOfWork.SaveAsync();
+
+            // Sau khi InsertAsync và SaveAsync trip mới
+            var trip = await _unitOfWork.GetRepository<Trip>()
+                .Entities
+                .Include(t => t.Schedule)
+                    .ThenInclude(s => s.Route)
+                .Include(t => t.Schedule)
+                    .ThenInclude(s => s.Shuttle)
+                .Include(t => t.Schedule)
+                    .ThenInclude(s => s.Driver)
+                .FirstOrDefaultAsync(t => t.Id == newTrip.Id);
+
+            var stops = trip.Schedule.Route.RouteStops
+                .OrderBy(rs => trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND ? rs.StopOrder : -rs.StopOrder)
+                .ToList();
+
+            var nextStop = trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND
+                ? stops.FirstOrDefault(s => s.StopOrder > trip.CurrentStopIndex)
+                : stops.FirstOrDefault(s => s.StopOrder < trip.CurrentStopIndex);
+
+            var docRef = _firestoreService.GetCollection("active_trips").Document(trip.Id.ToString());
+            await docRef.SetAsync(new
+            {
+                tripId = trip.Id.ToString(),
+                routeId = trip.Schedule.RouteId.ToString(),
+                shuttleName = trip.Schedule.Shuttle.Name,
+                driverName = trip.Schedule.Driver.FullName,
+                currentStopIndex = trip.CurrentStopIndex,
+                nextStop = new { stopId = nextStop.Stop.Id, stopName = nextStop.Stop.Name },
+                status = trip.Status.ToString(),
+                updatedTime = DateTime.UtcNow
+            });
+
 
             return newTrip.Id;
         }
@@ -236,6 +271,10 @@ namespace ShuttleMate.Services.Services
             tripRepository.Update(tripToEnd);
             await _unitOfWork.SaveAsync();
 
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
+
             var query = await _unitOfWork.GetRepository<Trip>().Entities
                 .Include(x => x.Schedule)
                 .Where(x => !x.DeletedTime.HasValue)
@@ -244,18 +283,27 @@ namespace ShuttleMate.Services.Services
 
             var userRepo = _unitOfWork.GetRepository<User>();
             var userQuery = userRepo.Entities
-            .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role)
-            .Include(u => u.UserSchoolShifts)
-            .ThenInclude(u => u.SchoolShift)
-            .AsQueryable();
+                .Include(u => u.UserSchoolShifts)
+                    .ThenInclude(uss => uss.SchoolShift)
+                .Include(u => u.HistoryTickets)
+                    .ThenInclude(ht => ht.Attendances)
+                        .ThenInclude(a => a.Trip)
+                .Include(u => u.HistoryTickets)
+                    .ThenInclude(ht => ht.Ticket)
+                        .ThenInclude(t => t.Route)
+                .Include(u => u.Parent)
+                .Include(u => u.School)
+                .Where(u => !u.DeletedTime.HasValue)
+                .AsQueryable();
 
-            userQuery = userQuery.Where(x => x.UserSchoolShifts.Any(x => x.SchoolShiftId == schoolShiftId && !x.DeletedTime.HasValue));
-            userQuery = userQuery.Where(x => x.HistoryTickets.Any(x => x.Ticket.Route.Id == routeId
-            && x.Ticket.Route.IsActive == true
-            && x.ValidUntil >= DateOnly.FromDateTime(DateTime.Now)
-            && x.Status == HistoryTicketStatus.PAID
-            && !x.DeletedTime.HasValue));
+            userQuery = userQuery.Where(x => x.HistoryTickets.Any(y =>
+                y.Ticket.RouteId == routeId &&
+                y.Ticket.Route.IsActive == true &&
+                y.ValidUntil >= todayVN &&
+                y.ValidFrom <= todayVN &&
+                y.HistoryTicketSchoolShifts.Any(hs => hs.SchoolShiftId == schoolShiftId) &&
+                y.Status == HistoryTicketStatus.PAID &&
+                !y.DeletedTime.HasValue));
 
             var listStudent = await userQuery
                 .Select(u => new ResponseStudentInRouteAndShiftModel
@@ -372,13 +420,6 @@ namespace ShuttleMate.Services.Services
                 nextStop = stops.FirstOrDefault(s => s.StopOrder < currentIndex);
             }
 
-            //if (nextStop == null)
-            // noti xe đã đến trạm cuối {{StopName}}
-
-            //var userAttendances = await _unitOfWork.GetRepository<Attendance>()
-            //    .Entities
-            //    .Where(a => !a.DeletedTime.HasValue && a.TripId.Equals(tripId)) // thêm list student available
-            //    .ToListAsync();
 
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
@@ -416,41 +457,42 @@ namespace ShuttleMate.Services.Services
                 .Select(u => new { u.Id, u.FullName, u.ParentId })
                 .ToListAsync();
 
-            // 4. Gửi thông báo
-            var createdBy = "system";
-
-            foreach (var user in users)
+            if (nextStop == null)
             {
+                // noti xe đã đến trạm cuối {{StopName}}
 
-                var metadata = new Dictionary<string, string>
+                foreach (var user in users)
+                {
+
+                    var metadata = new Dictionary<string, string>
                 {
                     { "RouteName", trip.Schedule.Route.RouteName },
                     { "ArrivedTime", vietnamNow.ToString() }
                 };
 
-                // Gửi cho học sinh
-                await _notificationService.SendNotificationFromTemplateAsync(
-                    templateType: "ArrivedLastStop",
-                    recipientIds: new List<Guid> { user.Id },
-                    metadata: metadata,
-                    createdBy: "system",
-                    notiCategory: "TRIP_STATUS"
-                );
-
-                // Nếu có phụ huynh thì gửi cho phụ huynh
-                if (user.ParentId != null && user.ParentId != Guid.Empty)
-                {
+                    // Gửi cho học sinh
                     await _notificationService.SendNotificationFromTemplateAsync(
                         templateType: "ArrivedLastStop",
-                        recipientIds: new List<Guid> { user.ParentId.Value },
+                        recipientIds: new List<Guid> { user.Id },
                         metadata: metadata,
                         createdBy: "system",
                         notiCategory: "TRIP_STATUS"
                     );
+
+                    // Nếu có phụ huynh thì gửi cho phụ huynh
+                    if (user.ParentId != null && user.ParentId != Guid.Empty)
+                    {
+                        await _notificationService.SendNotificationFromTemplateAsync(
+                            templateType: "ArrivedLastStop",
+                            recipientIds: new List<Guid> { user.ParentId.Value },
+                            metadata: metadata,
+                            createdBy: "system",
+                            notiCategory: "TRIP_STATUS"
+                        );
+                    }
+
                 }
-
             }
-
             var duration = model.Duration / 60;
             //sửa lại duration = 5p thì noti
             if (duration == 5)
@@ -524,8 +566,18 @@ namespace ShuttleMate.Services.Services
                 await _unitOfWork.GetRepository<Trip>().UpdateAsync(trip);
                 await _unitOfWork.SaveAsync();
 
-                //noti xe đã đến trạm
-
+                var docRef = _firestoreService.GetCollection("active_trips").Document(trip.Id.ToString());
+                await docRef.SetAsync(new
+                {
+                    tripId = trip.Id.ToString(),
+                    routeId = trip.Schedule.RouteId.ToString(),
+                    shuttleName = trip.Schedule.Shuttle.Name,
+                    driverName = trip.Schedule.Driver.FullName,
+                    currentStopIndex = trip.CurrentStopIndex,
+                    nextStop = new { stopId = nextStop.Stop.Id, stopName = nextStop.Stop.Name, duration = model.Duration, distance = model.Distance},
+                    status = trip.Status.ToString(),
+                    updatedTime = DateTime.UtcNow
+                });
             }
         }
     }

@@ -41,7 +41,7 @@ namespace ShuttleMate.Services.Services
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            Route route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.RouteName == model.RouteName || x.RouteCode == model.RouteCode);
+            Route route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => (x.RouteName == model.RouteName || x.RouteCode == model.RouteCode) && !x.DeletedTime.HasValue);
 
             School school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId && x.IsActive == true && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy trường học!");
 
@@ -232,6 +232,11 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Mã tuyến và tên tuyến không được để trống!");
             }
             var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
+
+            if (model.RouteCode == route.RouteCode || model.RouteName == route.RouteName)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Mã tuyến hoặc tên tuyến đã tồn tại!");
+            }
 
             //route = _mapper.Map<Route>(model);
             _mapper.Map(model, route);
