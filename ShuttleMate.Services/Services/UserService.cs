@@ -249,7 +249,7 @@ namespace ShuttleMate.Services.Services
 
                     break;
                 default:
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vui lòng chọn đúng vai trò!!");
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vui lòng chọn đúng vai trò!");
 
             }
 

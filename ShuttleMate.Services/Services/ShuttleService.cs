@@ -39,7 +39,7 @@ namespace ShuttleMate.Services.Services
             Shuttle shuttle = await _unitOfWork.GetRepository<Shuttle>().Entities.FirstOrDefaultAsync(x => x.LicensePlate == model.LicensePlate && !x.DeletedTime.HasValue);
             if (shuttle != null)
             {
-                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Biển số xe này đã tồn tại!!");
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Biển số xe này đã tồn tại!");
             }
             var newShuttle = _mapper.Map<Shuttle>(model);
             newShuttle.CreatedBy = userId;

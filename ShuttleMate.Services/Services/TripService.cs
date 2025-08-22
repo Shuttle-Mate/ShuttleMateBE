@@ -118,12 +118,30 @@ namespace ShuttleMate.Services.Services
                 .FirstOrDefaultAsync(t => t.Id == newTrip.Id);
 
             var stops = trip.Schedule.Route.RouteStops
-                .OrderBy(rs => trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND ? rs.StopOrder : -rs.StopOrder)
+                .OrderBy(rs => trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND
+                    ? rs.StopOrder
+                    : -rs.StopOrder) // Sắp xếp giảm dần cho OUT_BOUND
                 .ToList();
 
-            var nextStop = trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND
-                ? stops.FirstOrDefault(s => s.StopOrder > trip.CurrentStopIndex)
-                : stops.FirstOrDefault(s => s.StopOrder < trip.CurrentStopIndex);
+            var currentIndex = trip.CurrentStopIndex;
+
+            // Tìm next stop theo hướng
+            RouteStop nextStop = null;
+
+            if (trip.Schedule.Direction == RouteDirectionEnum.IN_BOUND)
+            {
+                // IN_BOUND: đi từ stop nhỏ đến lớn, next là stop có order lớn hơn current
+                nextStop = stops.FirstOrDefault(s => s.StopOrder > currentIndex);
+            }
+            else
+            {
+                // OUT_BOUND: đi từ stop lớn đến nhỏ, next là stop có order nhỏ hơn current
+                nextStop = stops.FirstOrDefault(s => s.StopOrder < currentIndex);
+            }
+
+            var nextStopObj = nextStop != null
+                ? new { stopId = nextStop.Stop.Id.ToString(), stopName = nextStop.Stop.Name }
+                : null;
 
             var docRef = _firestoreService.GetCollection("active_trips").Document(trip.Id.ToString());
             await docRef.SetAsync(new
@@ -133,11 +151,10 @@ namespace ShuttleMate.Services.Services
                 shuttleName = trip.Schedule.Shuttle.Name,
                 driverName = trip.Schedule.Driver.FullName,
                 currentStopIndex = trip.CurrentStopIndex,
-                nextStop = new { stopId = nextStop.Stop.Id, stopName = nextStop.Stop.Name },
+                nextStop = nextStopObj,
                 status = trip.Status.ToString(),
                 updatedTime = DateTime.UtcNow
             });
-
 
             return newTrip.Id;
         }
@@ -574,7 +591,7 @@ namespace ShuttleMate.Services.Services
                     shuttleName = trip.Schedule.Shuttle.Name,
                     driverName = trip.Schedule.Driver.FullName,
                     currentStopIndex = trip.CurrentStopIndex,
-                    nextStop = new { stopId = nextStop.Stop.Id, stopName = nextStop.Stop.Name, duration = model.Duration, distance = model.Distance},
+                    nextStop = new { stopId = nextStop.Stop.Id.ToString(), stopName = nextStop.Stop.Name, duration = model.Duration, distance = model.Distance},
                     status = trip.Status.ToString(),
                     updatedTime = DateTime.UtcNow
                 });
