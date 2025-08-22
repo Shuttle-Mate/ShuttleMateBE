@@ -17,12 +17,14 @@ namespace ShuttleMate.Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
+        private readonly IRouteService _routeService;
 
-        public StopService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
+        public StopService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IRouteService routeService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
+            _routeService = routeService;
         }
 
         public async Task<BasePaginatedList<ResponseStopModel>> GetAllAsync(
@@ -123,7 +125,11 @@ namespace ShuttleMate.Services.Services
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
             model.TrimAllStrings();
 
-            var stop = await _unitOfWork.GetRepository<Stop>().GetByIdAsync(stopId)
+            var stop = await _unitOfWork.GetRepository<Stop>()
+                .GetQueryable()
+                .Include(s => s.RouteStops)
+                .ThenInclude(rs => rs.Route)
+                .FirstOrDefaultAsync(s => s.Id == stopId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Trạm dừng không tồn tại.");
 
             if (stop.DeletedTime.HasValue)
@@ -137,6 +143,22 @@ namespace ShuttleMate.Services.Services
             stop.LastUpdatedTime = CoreHelper.SystemTimeNow;
 
             await _unitOfWork.GetRepository<Stop>().UpdateAsync(stop);
+
+            // Cập nhật các route có liên quan
+            if (stop.RouteStops != null && stop.RouteStops.Any(rs => !rs.DeletedTime.HasValue))
+            {
+                var routeIds = stop.RouteStops
+                    .Where(rs => !rs.DeletedTime.HasValue)
+                    .Select(rs => rs.RouteId)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var routeId in routeIds)
+                {
+                    await _routeService.UpdateRouteInformationAsync(routeId);
+                }
+            }
+
             await _unitOfWork.SaveAsync();
         }
 
@@ -147,13 +169,14 @@ namespace ShuttleMate.Services.Services
             var stop = await _unitOfWork.GetRepository<Stop>()
                 .GetQueryable()
                 .Include(x => x.RouteStops)
+                .ThenInclude(rs => rs.Route)
                 .FirstOrDefaultAsync(x => x.Id == stopId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Trạm dừng không tồn tại.");
 
             if (stop.DeletedTime.HasValue)
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Trạm dừng đã bị xóa.");
 
-            if (stop.RouteStops != null && stop.RouteStops.Any())
+            if (stop.RouteStops != null && stop.RouteStops.Any(rs => !rs.DeletedTime.HasValue))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không thể xóa trạm dừng đang được sử dụng trong tuyến.");
 
             stop.LastUpdatedTime = CoreHelper.SystemTimeNow;
@@ -162,7 +185,19 @@ namespace ShuttleMate.Services.Services
             stop.DeletedBy = userId;
 
             await _unitOfWork.GetRepository<Stop>().UpdateAsync(stop);
+
+            var routeIds = stop.RouteStops
+                .Where(rs => !rs.DeletedTime.HasValue)
+                .Select(rs => rs.RouteId)
+                .Distinct()
+                .ToList();
+
             await _unitOfWork.SaveAsync();
+
+            foreach (var routeId in routeIds)
+            {
+                await _routeService.UpdateRouteInformationAsync(routeId);
+            }
         }
     }
 }
