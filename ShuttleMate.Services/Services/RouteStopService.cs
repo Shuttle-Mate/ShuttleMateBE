@@ -67,7 +67,7 @@ namespace ShuttleMate.Services.Services
                     .ToListAsync();
 
                 if (stops.Count != model.StopIds.Count)
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Một số StopId không tồn tại!");
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Một số trạm dừng không tồn tại!");
 
                 var orderedStops = model.StopIds
                     .Select((id, index) => new { Id = id, Order = index + 1, Stop = stops.First(s => s.Id == id) })
