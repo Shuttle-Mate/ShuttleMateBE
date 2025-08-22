@@ -494,7 +494,7 @@ namespace ShuttleMate.Services.Services
             }
             // noti xe còn cách trạm bn model.Duration (cái này tính bằng giây nên nhớ chuyển sang phút)
 
-            if (model.Distance < 50)
+            if (model.Distance < 100)
             {
                 foreach (var user in users)
                 {
