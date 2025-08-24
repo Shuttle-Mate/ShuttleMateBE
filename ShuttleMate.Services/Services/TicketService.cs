@@ -160,32 +160,6 @@ namespace ShuttleMate.Services.Services
             && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
             switch (model.Type)
             {
-                //case "SINGLE_RIDE":
-                //    var newTicketSINGLE_RIDE = new Ticket
-                //    {
-                //        Id = Guid.NewGuid(),
-                //        CreatedTime = DateTime.Now,
-                //        Price = model.Price,
-                //        RouteId = model.RouteId,
-                //        //Type = TicketTypeEnum.SINGLE_RIDE,
-                //        LastUpdatedTime = DateTime.Now,
-                //    };
-                //    await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketSINGLE_RIDE);
-                //    await _unitOfWork.SaveAsync();
-                //    break;
-                //case "DAY_PASS":
-                //    var newTicketDAY_PASS = new Ticket
-                //    {
-                //        Id = Guid.NewGuid(),
-                //        CreatedTime = DateTime.Now,
-                //        Price = model.Price,
-                //        RouteId = model.RouteId,
-                //        //Type = TicketTypeEnum.DAY_PASS,
-                //        LastUpdatedTime = DateTime.Now,
-                //    };
-                //    await _unitOfWork.GetRepository<Ticket>().InsertAsync(newTicketDAY_PASS);
-                //    await _unitOfWork.SaveAsync();
-                //    break;
                 case "WEEKLY":
                     var newTicketWEEKLY = new Ticket
                     {

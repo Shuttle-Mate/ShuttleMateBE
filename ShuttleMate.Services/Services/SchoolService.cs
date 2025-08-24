@@ -337,7 +337,7 @@ namespace ShuttleMate.Services.Services
             {
                 query = query.Where(x => x.HistoryTickets
                     .Any(ht => ht.Attendances
-                        .Any(a => a.Trip.Schedule.Direction.ToString() == directionOfTravel)));
+                        .Any(a => a.Trip.Schedule.Direction == Enum.Parse<RouteDirectionEnum>(directionOfTravel))));
             }
 
             // Apply sorting
