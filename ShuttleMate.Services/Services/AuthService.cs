@@ -300,9 +300,6 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Tài khoản hoặc mật khẩu không chính xác!");
             }
 
-            //// Get the user's role
-            //var roles = await _userManager.GetRolesAsync(user);
-            //var role = roles.FirstOrDefault(); // Assuming a single role for simplicity
             UserRole roleUser = _unitOfWork.GetRepository<UserRole>().Entities.Where(x => x.UserId == user.Id).FirstOrDefault()
                                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tài khoản");
             string roleName = _unitOfWork.GetRepository<Role>().Entities.Where(x => x.Id == roleUser.RoleId).Select(x => x.Name).FirstOrDefault()
