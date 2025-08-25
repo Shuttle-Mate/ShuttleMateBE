@@ -587,6 +587,9 @@ namespace ShuttleMate.Services.Services
                 service => service.ResponseHistoryTicketStatus(historyTicket.Id),
                 TimeSpan.FromMinutes(10) // Delay 10 phút
                 );
+                transaction.Status = PaymentStatus.PAID;
+                await _unitOfWork.SaveAsync();
+
                 return response;
             }
             else {
