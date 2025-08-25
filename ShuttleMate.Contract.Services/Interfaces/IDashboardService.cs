@@ -9,7 +9,7 @@ namespace ShuttleMate.Contract.Services.Interfaces
 {
     public interface IDashboardService
     {
-        Task<TripStatisticModel> GetTripStatisticsAsync();
+        Task<TripStatisticModel> GetTripStatisticsAsync(DateOnly? fromDate, DateOnly? toDate);
         Task<AttendanceStatisticsModel> GetAttendanceStatisticsAsync();
         Task<TransactionStatisticsModel> GetTransactionStatisticsAsync(DateOnly? fromDate, DateOnly? toDate);
         Task<DashboardOverviewModel> GetOverviewAsync();
