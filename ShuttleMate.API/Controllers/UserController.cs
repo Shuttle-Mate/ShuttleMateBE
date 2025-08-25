@@ -123,7 +123,7 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
-        /// HS/PH cập cập ca học (Chỉ có thể cập nhật ca học từ 19h tối thứ 7 đến 17h chiều Chủ nhật hàng tuần)
+        /// HS/PH cập cập ca học 
         /// </summary>
         [HttpPatch("{studentId}/school")]
         public async Task<IActionResult> UpdateSchoolForUser(Guid? studentId = null, UpdateSchoolForUserModel? model = null)

@@ -952,9 +952,19 @@ namespace ShuttleMate.Services.Services
 
         public async Task UpdateProfiel(Guid? id = null, UpdateProfileModel? model = null)
         {
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var todayVN = DateOnly.FromDateTime(vietnamNow);
             // Lấy userId từ HttpContext
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
-
+            if (model.DateOfBirth >= vietnamNow)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Ngày sinh phải sớm hơn ngày hiện tại!");
+            }
+            if (!string.IsNullOrWhiteSpace(model.PhoneNumber) && !System.Text.RegularExpressions.Regex.IsMatch(model.PhoneNumber, @"^\d{10}$"))
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Số điện thoại phải gồm đúng 10 chữ số!");
+            }
             Guid.TryParse(userId, out Guid cb);
             if (id != null)
             {
