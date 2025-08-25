@@ -317,7 +317,7 @@ namespace ShuttleMate.Services.Services
             var todayVN = DateOnly.FromDateTime(vietnamNow);
             var ticket = await _unitOfWork.GetRepository<Ticket>().Entities.FirstOrDefaultAsync(x => x.Id == model.TicketId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Loại vé không tồn tại!");
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == targetUserId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy người dùng!");
-            if(user.SchoolId == null)
+            if (user.SchoolId == null)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Vui lòng cập nhật trường trước khi đặt vé!");
             }
@@ -386,6 +386,11 @@ namespace ShuttleMate.Services.Services
                     await _unitOfWork.GetRepository<Promotion>().UpdateAsync(promotion);
                 }
                 historyTicket.PromotionId = promotion.Id;
+                if (historyTicket.Price < 1000 && historyTicket.Price >= 0)
+                {
+                    historyTicket.Price = 0;
+                    historyTicket.Status = HistoryTicketStatus.PAID;
+                }
             }
             switch (ticket.Type)
             {
@@ -569,19 +574,36 @@ namespace ShuttleMate.Services.Services
 
             await _unitOfWork.SaveAsync();
             // 4. Gọi API PayOS
-            PayOSResponseData checkoutUrl = await CallPayOSApi(payOSRequest);
-            CreateHistoryTicketResponse response = new CreateHistoryTicketResponse
+            if (historyTicket.Price == 0 && historyTicket.Status == HistoryTicketStatus.PAID)
             {
-                HistoryTicketId = historyTicket.Id,
-                checkoutUrl = checkoutUrl.checkoutUrl,
-                qrCode = checkoutUrl.qrCode,
-                status = historyTicket.Status.ToString().ToUpper(),
-            };
-            _backgroundJobClient.Schedule<HistoryTicketService>(
-            service => service.ResponseHistoryTicketStatus(historyTicket.Id),
-            TimeSpan.FromMinutes(10) // Delay 10 phút
-        );
-            return response;
+                CreateHistoryTicketResponse response = new CreateHistoryTicketResponse
+                {
+                    HistoryTicketId = historyTicket.Id,
+                    checkoutUrl = null,
+                    qrCode = null,
+                    status = historyTicket.Status.ToString().ToUpper(),
+                };
+                _backgroundJobClient.Schedule<HistoryTicketService>(
+                service => service.ResponseHistoryTicketStatus(historyTicket.Id),
+                TimeSpan.FromMinutes(10) // Delay 10 phút
+                );
+                return response;
+            }
+            else {
+                PayOSResponseData checkoutUrl = await CallPayOSApi(payOSRequest);
+                CreateHistoryTicketResponse response = new CreateHistoryTicketResponse
+                {
+                    HistoryTicketId = historyTicket.Id,
+                    checkoutUrl = checkoutUrl.checkoutUrl,
+                    qrCode = checkoutUrl.qrCode,
+                    status = historyTicket.Status.ToString().ToUpper(),
+                };
+                _backgroundJobClient.Schedule<HistoryTicketService>(
+                service => service.ResponseHistoryTicketStatus(historyTicket.Id),
+                TimeSpan.FromMinutes(10) // Delay 10 phút
+                );
+                return response;
+            }         
         }
         public async Task UpdateSchoolShiftByHistoryId(Guid historyTicketId, UpdateSchoolShiftByHistoryIdModel model)
         {
