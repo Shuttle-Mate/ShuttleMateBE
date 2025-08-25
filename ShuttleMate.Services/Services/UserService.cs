@@ -368,7 +368,7 @@ namespace ShuttleMate.Services.Services
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
-                    ProfileImageUrl = u.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(u.ProfileImageUrl) : null,
+                    ProfileImageUrl = u.ProfileImageUrl ,
                     Email = u.Email,
                     ParentName = u.Parent.FullName,
                     PhoneNumber = u.PhoneNumber,
@@ -465,7 +465,7 @@ namespace ShuttleMate.Services.Services
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
-                    ProfileImageUrl = u.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(u.ProfileImageUrl) : null,
+                    ProfileImageUrl = u.ProfileImageUrl ,
                     Address = u.Address,
                     EmailVerified = u.EmailVerified,
                     Violate = u.Violate,
@@ -676,7 +676,7 @@ namespace ShuttleMate.Services.Services
                         Gender = parent.Gender,
                         AssignCode = parent.AssignCode,
                         PhoneNumber = parent.PhoneNumber,
-                        ProfileImageUrl = parent.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(parent.ProfileImageUrl) : null,
+                        ProfileImageUrl = parent.ProfileImageUrl ,
                     };
                 }
             }
@@ -725,7 +725,7 @@ namespace ShuttleMate.Services.Services
                         Gender = child.Gender,
                         AssignCode = child.AssignCode,
                         PhoneNumber = child.PhoneNumber,
-                        ProfileImageUrl = child.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(child.ProfileImageUrl) : null,
+                        ProfileImageUrl = child.ProfileImageUrl,
                         School = childSchoolResponse
                     });
                 }
@@ -741,7 +741,7 @@ namespace ShuttleMate.Services.Services
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
                 AssignCode = user.AssignCode,
-                ProfileImageUrl = user.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(user.ProfileImageUrl) : null,
+                ProfileImageUrl = user.ProfileImageUrl,
                 Parent = parentResponse,
                 Childs = children,
                 School = schoolResponse!,
@@ -801,7 +801,7 @@ namespace ShuttleMate.Services.Services
                         AssignCode = parent.AssignCode,
                         Gender = parent.Gender,
                         PhoneNumber = parent.PhoneNumber,
-                        ProfileImageUrl = parent.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(parent.ProfileImageUrl) : null,
+                        ProfileImageUrl = parent.ProfileImageUrl,
                     };
                 }
             }
@@ -850,7 +850,7 @@ namespace ShuttleMate.Services.Services
                         Gender = child.Gender,
                         AssignCode = child.AssignCode,
                         PhoneNumber = child.PhoneNumber,
-                        ProfileImageUrl = child.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(child.ProfileImageUrl) : null,
+                        ProfileImageUrl = child.ProfileImageUrl,
                         School = childSchoolResponse
                     });
                 }
@@ -867,7 +867,7 @@ namespace ShuttleMate.Services.Services
                 Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
                 AssignCode = user.AssignCode,
-                ProfileImageUrl = user.ProfileImageUrl != null ? _supabaseService.GetPublicUrl(user.ProfileImageUrl) : null,
+                ProfileImageUrl = user.ProfileImageUrl,
                 Parent = parentResponse,
                 Childs = children,
                 School = schoolResponse!,
