@@ -106,10 +106,10 @@ namespace ShuttleMate.Services.Services
                 .Take(req.pageSize)
                 .ToListAsync();
 
-            if (!notiRecipients.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có thông báo nào tồn tại!");
-            }
+            //if (!notiRecipients.Any())
+            //{
+            //    throw new ErrorException(StatusCodes.Status200OK, ErrorCode.NotFound, "Không có thông báo nào tồn tại!");
+            //}
 
             var result = _mapper.Map<List<ResponseNotiRecipientModel>>(notiRecipients);
             // Gán thêm NotiModel cho từng item
