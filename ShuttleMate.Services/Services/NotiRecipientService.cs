@@ -96,7 +96,7 @@ namespace ShuttleMate.Services.Services
                 query = query.Where (x => x.NotificationCategory == req.notificationCategory);
             }
 
-            query = query.OrderBy(x => x.CreatedTime);
+            query = query.OrderByDescending(x => x.CreatedTime);
 
             var totalCount = query.Count();
 
@@ -104,7 +104,6 @@ namespace ShuttleMate.Services.Services
             var notiRecipients = await query
                 .Skip(req.page * req.pageSize)
                 .Take(req.pageSize)
-                .OrderByDescending(qu=> qu.CreatedTime)
                 .ToListAsync();
 
             if (!notiRecipients.Any())
