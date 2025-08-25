@@ -1,6 +1,4 @@
-﻿using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
-
-namespace ShuttleMate.ModelViews.PromotionModelViews
+﻿namespace ShuttleMate.ModelViews.PromotionModelViews
 {
     public class ResponsePromotionModel
     {

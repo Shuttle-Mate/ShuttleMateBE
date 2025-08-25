@@ -198,8 +198,6 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ResponseScheduleModel>(grouped, totalCount, page, pageSize);
         }
 
-
-
         public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByDriverIdAsync(Guid driverId, string from, string to, string? dayOfWeek, string? direction, bool sortAsc, int page = 0, int pageSize = 10)
         {
             if (!DateOnly.TryParseExact(from, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var fromDate))
