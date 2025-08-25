@@ -16,5 +16,8 @@ namespace ShuttleMate.ModelViews.DashboardModelViews
         public int TotalSchool { get; set; }
         public decimal TotalRevenue { get; set; }
         public int TotalTransaction { get; set; }
+        public int TotalRoute { get; set; }
+        public int TotalParent { get; set; }
+        public int PromotionCount { get; set; }
     }
 }

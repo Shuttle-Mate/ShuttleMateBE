@@ -11,6 +11,7 @@ namespace ShuttleMate.ModelViews.DashboardModelViews
         public int TotalTripToday { get; set; }
         public int TotalTripThisWeek { get; set; }
         public int TotalTripThisMonth { get; set; }
+        public int? TotalFilter {  get; set; } = null;
         public List<TripChartData> TripChart { get; set; } = new();
     }
 

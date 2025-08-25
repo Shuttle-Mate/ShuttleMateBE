@@ -28,32 +28,40 @@ namespace ShuttleMate.Services.Services
             var shuttleRepo = _unitOfWork.GetRepository<Shuttle>();
             var schoolRepo = _unitOfWork.GetRepository<School>();
             var transactionRepo = _unitOfWork.GetRepository<Transaction>();
+            var routeRepo = _unitOfWork.GetRepository<Route>();
+            var promotionRepo = _unitOfWork.GetRepository<Promotion>();
 
             var userCount = await userRepo.Entities.CountAsync(x => !x.DeletedTime.HasValue);
             var studentCount = await userRepo.Entities.CountAsync(x => x.UserRoles.Any(r => r.Role.Name == "STUDENT") && !x.DeletedTime.HasValue);
+            var parentCount = await userRepo.Entities.CountAsync(x => x.UserRoles.Any(r => r.Role.Name == "PARENT") && !x.DeletedTime.HasValue);
             var driverCount = await userRepo.Entities.CountAsync(x => x.UserRoles.Any(r => r.Role.Name == "DRIVER") && !x.DeletedTime.HasValue);
             var tripCount = await tripRepo.Entities.CountAsync(x => !x.DeletedTime.HasValue);
             var shuttleCount = await shuttleRepo.Entities.CountAsync(x => !x.DeletedTime.HasValue);
             var schoolCount = await schoolRepo.Entities.CountAsync(x => !x.DeletedTime.HasValue);
+            var routeCount = await routeRepo.Entities.CountAsync(x => !x.DeletedTime.HasValue);
             var totalTransaction = await transactionRepo.Entities.CountAsync(x => !x.DeletedTime.HasValue);
             var revenue = await transactionRepo.Entities
                 .Where(x => x.Status == GeneralEnum.PaymentStatus.PAID && !x.DeletedTime.HasValue)
                 .SumAsync(x => (decimal?)x.Amount) ?? 0m;
+            var promotionCount = await promotionRepo.Entities.CountAsync(x => !x.DeletedTime.HasValue);
 
             return new DashboardOverviewModel
             {
                 TotalUser = userCount,
                 TotalStudent = studentCount,
+                TotalParent = parentCount,
                 TotalDriver = driverCount,
                 TotalTrip = tripCount,
                 TotalShuttle = shuttleCount,
                 TotalSchool = schoolCount,
+                TotalRoute = routeCount,
                 TotalRevenue = revenue,
-                TotalTransaction = totalTransaction
+                TotalTransaction = totalTransaction,
+                PromotionCount = promotionCount,
             };
         }
 
-        public async Task<TripStatisticModel> GetTripStatisticsAsync()
+        public async Task<TripStatisticModel> GetTripStatisticsAsync(DateOnly? fromDate, DateOnly? toDate)
         {
             var tripRepo = _unitOfWork.GetRepository<Trip>();
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
@@ -62,20 +70,53 @@ namespace ShuttleMate.Services.Services
             var firstDayOfWeek = today.AddDays(-(int)today.DayOfWeek);
             var firstDayOfMonth = new DateOnly(today.Year, today.Month, 1);
 
+            // Xác định khoảng ngày
+            var chartToDate = toDate ?? today;
+            var chartFromDate = fromDate ?? chartToDate.AddDays(-6);
+
             var totalTripToday = await tripRepo.Entities.CountAsync(x => x.TripDate == today && !x.DeletedTime.HasValue);
             var totalTripThisWeek = await tripRepo.Entities.CountAsync(x => x.TripDate >= firstDayOfWeek && x.TripDate < firstDayOfWeek.AddDays(7) && !x.DeletedTime.HasValue);
             var totalTripThisMonth = await tripRepo.Entities.CountAsync(x => x.TripDate >= firstDayOfMonth && x.TripDate < firstDayOfMonth.AddMonths(1) && !x.DeletedTime.HasValue);
+            var totalTripFilter = await tripRepo.Entities.CountAsync(x => x.TripDate >= chartFromDate && x.TripDate <= chartToDate && !x.DeletedTime.HasValue);
 
-            // Chart: số chuyến mỗi ngày trong 7 ngày gần nhất
-            var fromDate = today.AddDays(-6);
-            
+            // Lấy toàn bộ transaction trong khoảng thời gian về bộ nhớ
+            //var transactionList = await transactionRepo.Entities
+            //    .Where(x => !x.DeletedTime.HasValue)
+            //    .ToListAsync();
+
+            //// Chuyển đổi và filter trên bộ nhớ
+            //var filteredTransactions = transactionList
+            //    .Where(x =>
+            //        (DateOnly.FromDateTime(x.CreatedTime.Date) >= chartFromDate) &&
+            //        (DateOnly.FromDateTime(x.CreatedTime.Date) <= chartToDate))
+            //    .ToList();
+
+            //var transactionChart = filteredTransactions
+            //    .GroupBy(x => DateOnly.FromDateTime(x.CreatedTime.Date))
+            //    .Select(g => new TransactionChartData
+            //    {
+            //        Date = g.Key.ToDateTime(TimeOnly.MinValue),
+            //        TransactionCount = g.Count(),
+            //        Revenue = g.Where(x => x.Status == GeneralEnum.PaymentStatus.PAID)
+            //                   .Sum(x => (decimal?)x.Amount ?? 0m)
+            //    })
+            //    .OrderBy(x => x.Date)
+            //    .ToList();
+
             // Lấy dữ liệu thô về trước
             var tripList = await tripRepo.Entities
-                .Where(x => x.TripDate >= fromDate && x.TripDate <= today && !x.DeletedTime.HasValue)
+                .Where(x => !x.DeletedTime.HasValue)
                 .ToListAsync();
 
+            //Filter
+            var filteredTrip = tripList
+                .Where(x =>
+                    (DateOnly.FromDateTime(x.CreatedTime.Date) >= chartFromDate) &&
+                    (DateOnly.FromDateTime(x.CreatedTime.Date) <= chartToDate))
+                .ToList();
+
             // Group và tính toán trên bộ nhớ
-            var tripChart = tripList
+            var tripChart = filteredTrip
                 .GroupBy(x => x.TripDate)
                 .Select(g => new TripChartData
                 {
@@ -87,6 +128,7 @@ namespace ShuttleMate.Services.Services
 
             return new TripStatisticModel
             {
+                TotalFilter = totalTripFilter,
                 TotalTripToday = totalTripToday,
                 TotalTripThisWeek = totalTripThisWeek,
                 TotalTripThisMonth = totalTripThisMonth,
