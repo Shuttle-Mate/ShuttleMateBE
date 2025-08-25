@@ -320,9 +320,9 @@ namespace ShuttleMate.Repositories.Context
             modelBuilder.Entity<Trip>(entity =>
             {
                 entity.ToTable("Trips");
-                entity.HasOne(t => t.Feedback)
+                entity.HasMany(t => t.Feedbacks)
                     .WithOne(f => f.Trip)
-                    .HasForeignKey<Feedback>(f => f.TripId)
+                    .HasForeignKey(f => f.TripId)
                     .OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(t => t.Schedule)
                     .WithMany(r => r.Trips)

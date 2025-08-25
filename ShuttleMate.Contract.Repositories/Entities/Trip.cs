@@ -14,6 +14,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public virtual Schedule Schedule { get; set; }
         public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
         public virtual ICollection<ShuttleLocationRecord> ShuttleLocationRecords { get; set; } = new List<ShuttleLocationRecord>();
-        public virtual Feedback? Feedback { get; set; }
+        public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
     }
 }

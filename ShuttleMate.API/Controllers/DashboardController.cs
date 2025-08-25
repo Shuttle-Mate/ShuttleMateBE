@@ -31,9 +31,9 @@
             }
 
             [HttpGet("trip-statistics")]
-            public async Task<IActionResult> GetTripStatistics()
+            public async Task<IActionResult> GetTripStatistics(DateOnly? fromDate, DateOnly? toDate)
             {
-                var data = await _dashboardService.GetTripStatisticsAsync();
+                var data = await _dashboardService.GetTripStatisticsAsync(fromDate, toDate);
                 return Ok(new BaseResponseModel<TripStatisticModel>(
                     statusCode: StatusCodes.Status200OK,
                     code: ResponseCodeConstants.SUCCESS,
