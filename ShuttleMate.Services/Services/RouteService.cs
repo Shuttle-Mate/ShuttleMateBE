@@ -120,10 +120,10 @@ namespace ShuttleMate.Services.Services
                 .Take(req.pageSize)
                 .ToListAsync();
 
-            if (!routes.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có tuyến nào tồn tại!");
-            }
+            //if (!routes.Any())
+            //{
+            //    throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có tuyến nào tồn tại!");
+            //}
 
             var result = _mapper.Map<List<ResponseRouteModel>>(routes);
 

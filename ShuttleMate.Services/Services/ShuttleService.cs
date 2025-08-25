@@ -55,10 +55,10 @@ namespace ShuttleMate.Services.Services
         public async Task<List<ResponseShuttleModel>> GetAll()
         {
             var shuttles = await _unitOfWork.GetRepository<Shuttle>().Entities.Where(x => !x.DeletedTime.HasValue).OrderBy(x => x.LicensePlate).ToListAsync();
-            if (!shuttles.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có xe nào tồn tại!");
-            }
+            //if (!shuttles.Any())
+            //{
+            //    throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có xe nào tồn tại!");
+            //}
             return _mapper.Map<List<ResponseShuttleModel>>(shuttles);
         }
 
@@ -128,10 +128,10 @@ namespace ShuttleMate.Services.Services
                 .Take(req.pageSize)
                 .ToListAsync();
 
-            if (!shuttles.Any())
-            {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có xe nào tồn tại!");
-            }
+            //if (!shuttles.Any())
+            //{
+            //    throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không có xe nào tồn tại!");
+            //}
 
             var result = _mapper.Map<List<ResponseShuttleModel>>(shuttles);
 
