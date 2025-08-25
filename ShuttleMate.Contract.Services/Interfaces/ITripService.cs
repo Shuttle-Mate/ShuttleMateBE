@@ -10,5 +10,6 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<BasePaginatedList<ResponseTripModel>> GetAllPaging(GetTripQuery req);
         Task<ResponseTripModel> GetByIdAsync(Guid tripId);
         Task UpdateAsync(Guid tripId, UpdateTripModel model);
+        Task<BasePaginatedList<RouteShiftModels>> GetRouteShiftAsync(Guid userId);
     }
 }

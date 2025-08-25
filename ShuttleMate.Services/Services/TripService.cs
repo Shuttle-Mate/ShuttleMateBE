@@ -622,5 +622,41 @@ namespace ShuttleMate.Services.Services
                 });
             }
         }
+
+        public async Task<BasePaginatedList<RouteShiftModels>> GetRouteShiftAsync(Guid userId)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Now);
+
+            // Lấy tất cả vé còn hiệu lực của user (đã thanh toán, trong thời hạn, chưa xóa)
+            var tickets = await _unitOfWork.GetRepository<HistoryTicket>().Entities
+                .Where(ht =>
+                    ht.UserId == userId &&
+                    ht.Status == HistoryTicketStatus.PAID &&
+                    ht.ValidFrom <= today &&
+                    ht.ValidUntil >= today &&
+                    !ht.DeletedTime.HasValue)
+                .Include(ht => ht.Ticket)
+                .ThenInclude(t => t.Route)
+                .Where(r => !r.Ticket.Route.DeletedTime.HasValue)
+                .Include(ht => ht.HistoryTicketSchoolShifts)
+                .ToListAsync();
+
+            // Gom nhóm theo RouteID, mỗi nhóm là 1 RouteShiftModels
+            var groupedResult = tickets
+                .GroupBy(ht => ht.Ticket.RouteId)
+                .Select(g => new RouteShiftModels
+                {
+                    RouteID = g.Key,
+                    SchoolShiftId = [.. g
+                        .SelectMany(ht => ht.HistoryTicketSchoolShifts.Select(s => s.SchoolShiftId))
+                        .Distinct()]
+                })
+                .ToList();
+
+            // Wrap the result in a BasePaginatedList
+            var result = new BasePaginatedList<RouteShiftModels>(groupedResult, groupedResult.Count, 0, groupedResult.Count);
+
+            return result;
+        }
     }
 }
