@@ -121,6 +121,13 @@ namespace ShuttleMate.Services.Services
                 bool atLeastOneSuccess = false;
                 bool allFailed = true;
 
+                var userNoti = await _unitOfWork.GetRepository<NotificationRecipient>()
+                    .Entities
+                    .Where(n => n.RecipientId == userId && n.Status.Equals(NotificationStatusEnum.SENT) && !n.DeletedTime.HasValue)
+                    .ToListAsync();
+
+                var userNotiCount = userNoti.Count() + 1;
+
                 foreach (var device in userDevices)
                 {
                     if (!string.IsNullOrEmpty(device.PushToken))
@@ -137,6 +144,7 @@ namespace ShuttleMate.Services.Services
                                 notificationCategory = notification.NotificationCategory.ToString(),
                                 recipientId = device.UserId.ToString(),
                                 createdTime = DateTime.UtcNow,
+                                unreadCount = userNotiCount,
                             });
                             atLeastOneSuccess = true;
                             allFailed = false;
@@ -280,6 +288,13 @@ namespace ShuttleMate.Services.Services
                         continue;
                     }
 
+                    var userNoti = await _unitOfWork.GetRepository<NotificationRecipient>()
+                        .Entities
+                        .Where(n => n.RecipientId == recipientId && n.Status.Equals(NotificationStatusEnum.SENT) && !n.DeletedTime.HasValue)
+                        .ToListAsync();
+
+                    var userNotiCount = userNoti.Count() + 1;
+
                     bool atLeastOneSuccess = false;
                     bool allFailed = true;
 
@@ -299,6 +314,7 @@ namespace ShuttleMate.Services.Services
                                     notificationCategory = notification.NotificationCategory.ToString(),
                                     recipientId = device.UserId.ToString(),
                                     createdTime = DateTime.UtcNow,
+                                    unreadCount = userNotiCount,
                                 });
                                 atLeastOneSuccess = true;
                                 allFailed = false;
@@ -486,6 +502,20 @@ namespace ShuttleMate.Services.Services
             noti.Status = status;
             await _unitOfWork.GetRepository<NotificationRecipient>().UpdateAsync(noti);
             await _unitOfWork.SaveAsync();
+
+            // Đếm lại số thông báo chưa đọc
+            int unreadCount = await _unitOfWork.GetRepository<NotificationRecipient>()
+                .Entities
+                .CountAsync(x => x.RecipientId == Guid.Parse(userId)
+                              && x.Status == NotificationStatusEnum.SENT
+                              && !x.DeletedTime.HasValue);
+
+            // Update lên Firestore
+            var docRef = _firestoreService.GetCollection("notifications").Document(userId);
+            await docRef.UpdateAsync(new Dictionary<string, object>
+            {
+                { "unreadCount", unreadCount }
+            });
         }
     }
 }
