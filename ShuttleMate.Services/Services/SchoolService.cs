@@ -514,6 +514,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<School>().UpdateAsync(school);
             await _unitOfWork.SaveAsync();
         }
+
         public async Task DeleteSchool(Guid schoolId)
         {
             var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == schoolId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
@@ -524,6 +525,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<School>().UpdateAsync(school);
             await _unitOfWork.SaveAsync();
         }
+
         public async Task SendEmailToSchool(SendEmailToSchoolModel model)
         {
             var school = await _unitOfWork.GetRepository<School>().Entities.FirstOrDefaultAsync(x => x.Id == model.SchoolId) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy trường!");
@@ -539,6 +541,7 @@ namespace ShuttleMate.Services.Services
                     throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Vui lòng chọn đúng loại!");
             }
         }
+
         private async Task SendSchoolTermUpdateEmail(string schoolEmail)
         {
             await _emailService.SendEmailAsync(

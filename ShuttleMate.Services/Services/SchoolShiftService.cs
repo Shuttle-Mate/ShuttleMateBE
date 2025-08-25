@@ -1,22 +1,13 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using ShuttleMate.Contract.Repositories.Entities;
 using ShuttleMate.Contract.Repositories.IUOW;
 using ShuttleMate.Contract.Services.Interfaces;
 using ShuttleMate.Core.Bases;
 using ShuttleMate.Core.Constants;
-using ShuttleMate.ModelViews.RoleModelViews;
-using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.SchoolShiftModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -24,21 +15,18 @@ namespace ShuttleMate.Services.Services
     public class SchoolShiftService : ISchoolShiftService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IMapper _mapper;
-        private readonly IConfiguration _configuration;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IEmailService _emailService;
         private readonly ILogger<SchoolShiftService> _logger;
 
-        public SchoolShiftService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IHttpContextAccessor contextAccessor, IEmailService emailService, ILogger<SchoolShiftService> logger)
+        public SchoolShiftService(IUnitOfWork unitOfWork, IHttpContextAccessor contextAccessor, IEmailService emailService, ILogger<SchoolShiftService> logger)
         {
             _unitOfWork = unitOfWork;
-            _mapper = mapper;
-            _configuration = configuration;
             _contextAccessor = contextAccessor;
             _emailService = emailService;
             _logger = logger;
         }
+
         public async Task<BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>> GetAllSchoolShift(int page = 0, int pageSize = 10, string? sessionType = null, string? shiftType = null, bool sortAsc = false)
         {
             // Lấy userId từ HttpContext
@@ -95,6 +83,7 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
             return new BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>(pagedItems, totalCount, page, pageSize);
         }
+
         public async Task<BasePaginatedList<ResponseSchoolShiftListByTicketIdMode>> GetAllSchoolShiftForAdmin(int page = 0, int pageSize = 10, string? sessionType = null, string? shiftType = null, bool sortAsc = false, Guid? schoolId = null)
         {
 
@@ -219,6 +208,7 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.SaveAsync();
 
         }
+
         public async Task UpdateSchoolShift(Guid id, UpdateSchoolShiftModel model)
         {
             
@@ -280,6 +270,7 @@ namespace ShuttleMate.Services.Services
                 await _unitOfWork.SaveAsync();
             }
         }
+
         public async Task DeleteSchoolShift(Guid id)
         {
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");

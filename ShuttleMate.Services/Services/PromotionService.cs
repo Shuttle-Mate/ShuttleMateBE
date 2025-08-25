@@ -20,6 +20,7 @@ namespace ShuttleMate.Services.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IGenericRepository<Promotion> _promotionRepo;
         private readonly IGenericRepository<Ticket> _ticketRepo;
+        private readonly IGenericRepository<HistoryTicket> _historyTicketRepo;
 
         public PromotionService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
         {
@@ -28,6 +29,7 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _promotionRepo = _unitOfWork.GetRepository<Promotion>();
             _ticketRepo = _unitOfWork.GetRepository<Ticket>();
+            _historyTicketRepo = _unitOfWork.GetRepository<HistoryTicket>();
         }
 
         public async Task<BasePaginatedList<ResponsePromotionModel>> GetAllAsync(
@@ -75,6 +77,29 @@ namespace ShuttleMate.Services.Services
 
             var result = _mapper.Map<List<ResponsePromotionModel>>(pagedItems);
 
+            if (userId.HasValue)
+            {
+                var usedPromotionIds = await _historyTicketRepo.GetQueryable()
+                    .Where(ht => ht.UserId == userId.Value &&
+                                 ht.PromotionId.HasValue &&
+                                 !ht.DeletedTime.HasValue)
+                    .Select(ht => ht.PromotionId.Value)
+                    .Distinct()
+                    .ToListAsync();
+
+                foreach (var promotion in result)
+                {
+                    promotion.IsUsed = usedPromotionIds.Contains(promotion.Id);
+                }
+            }
+            else
+            {
+                foreach (var promotion in result)
+                {
+                    promotion.IsUsed = false;
+                }
+            }
+
             return new BasePaginatedList<ResponsePromotionModel>(result, totalCount, page, pageSize);
         }
 
@@ -91,6 +116,14 @@ namespace ShuttleMate.Services.Services
 
             var currentTime = CoreHelper.SystemTimeNow;
 
+            var usedPromotionIds = await _historyTicketRepo.GetQueryable()
+                .Where(ht => ht.UserId == userId &&
+                             ht.PromotionId.HasValue &&
+                             !ht.DeletedTime.HasValue)
+                .Select(ht => ht.PromotionId.Value)
+                .Distinct()
+                .ToListAsync();
+
             var applicablePromotions = await _promotionRepo.GetQueryable()
                 .Where(p => !p.DeletedTime.HasValue &&
                             p.EndDate >= currentTime &&
@@ -104,6 +137,11 @@ namespace ShuttleMate.Services.Services
                 .ToListAsync();
 
             var result = _mapper.Map<List<ResponsePromotionModel>>(applicablePromotions);
+
+            foreach (var promotion in result)
+            {
+                promotion.IsUsed = usedPromotionIds.Contains(promotion.Id);
+            }
 
             return result;
         }
