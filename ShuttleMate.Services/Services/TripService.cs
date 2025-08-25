@@ -636,24 +636,28 @@ namespace ShuttleMate.Services.Services
                     ht.ValidUntil >= today &&
                     !ht.DeletedTime.HasValue)
                 .Include(ht => ht.Ticket)
-                .ThenInclude(t => t.Route)
-                .Where(r => !r.Ticket.Route.DeletedTime.HasValue)
+                    .ThenInclude(t => t.Route)
                 .Include(ht => ht.HistoryTicketSchoolShifts)
                 .ToListAsync();
 
-            // Gom nhóm theo RouteID, mỗi nhóm là 1 RouteShiftModels
-            var groupedResult = tickets
-                .GroupBy(ht => ht.Ticket.RouteId)
+            // Lấy các vé có ít nhất 1 ca học
+            var routeShiftPairs = tickets
+                .Where(ht => ht.HistoryTicketSchoolShifts != null && ht.HistoryTicketSchoolShifts.Any())
+                .SelectMany(ht => ht.HistoryTicketSchoolShifts
+                    .Select(hs => new { RouteId = ht.Ticket.RouteId, SchoolShiftId = hs.SchoolShiftId }))
+                .Distinct()
+                .ToList();
+
+            // Gom nhóm theo RouteId, mỗi nhóm là 1 RouteShiftModels
+            var groupedResult = routeShiftPairs
+                .GroupBy(x => x.RouteId)
                 .Select(g => new RouteShiftModels
                 {
-                    RouteID = g.Key,
-                    SchoolShiftId = [.. g
-                        .SelectMany(ht => ht.HistoryTicketSchoolShifts.Select(s => s.SchoolShiftId))
-                        .Distinct()]
+                    RouteId = g.Key,
+                    SchoolShiftId = g.Select(x => x.SchoolShiftId).Distinct().ToList()
                 })
                 .ToList();
 
-            // Wrap the result in a BasePaginatedList
             var result = new BasePaginatedList<RouteShiftModels>(groupedResult, groupedResult.Count, 0, groupedResult.Count);
 
             return result;
