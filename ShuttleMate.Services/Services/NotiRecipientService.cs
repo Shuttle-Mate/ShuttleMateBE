@@ -136,7 +136,7 @@ namespace ShuttleMate.Services.Services
             var notiRecipient = await _unitOfWork.GetRepository<NotificationRecipient>().Entities.FirstOrDefaultAsync(x => x.Id == notiRecipientId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy thông báo người dùng!");
 
             return _mapper.Map<ResponseNotiRecipientModel>(notiRecipient);
-        }
+        }   
 
         public async Task UpdateStatusNotiRecipient(UpdateNotiRecipientModel model)
         {
