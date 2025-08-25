@@ -112,6 +112,21 @@ namespace ShuttleMate.Services.Services
             }
 
             var result = _mapper.Map<List<ResponseNotiRecipientModel>>(notiRecipients);
+            // Gán thêm NotiModel cho từng item
+            
+            for (int i = 0; i < result.Count; i++)
+            {
+                var notification = notiRecipients[i].Notification;
+                if (notification != null)
+                {
+                    result[i].NotiModel = new NotiModel
+                    {
+                        Title = notification.Title,
+                        Content = notification.Content,
+                        NotificationCategory = notification.NotificationCategory.ToString()
+                    };
+                }
+            }
 
             return new BasePaginatedList<ResponseNotiRecipientModel>(result, totalCount, page, pageSize);
         }

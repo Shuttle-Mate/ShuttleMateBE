@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ShuttleMate.ModelViews.NotificationModelViews;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,6 +13,7 @@ namespace ShuttleMate.ModelViews.NotiRecipientModelView
         public Guid Id { get; set; }
         public Guid RecipientId { get; set; }
         public Guid NotificationId { get; set; }
+        public NotiModel NotiModel { get; set; }
         public string RecipientType { get; set; }
         public NotificationStatusEnum Status { get; set; }
         public NotificationCategoryEnum NotificationCategory { get; set; }
