@@ -44,52 +44,50 @@ namespace ShuttleMate.Services.Services
                 if (route == null)
                     throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
 
-                // Kiểm tra stops tồn tại
-                var stops = await _unitOfWork.GetRepository<Stop>().Entities
-                    .Where(s => model.StopIds.Contains(s.Id) && !s.DeletedTime.HasValue)
-                    .ToListAsync();
-
-                if (stops.Count != model.StopIds.Count)
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Một số trạm dừng không tồn tại!");
-
-                // Kiểm tra xem stops đã thuộc về route khác chưa
                 var routeStopRepo = _unitOfWork.GetRepository<RouteStop>();
-                var existingRouteStops = await routeStopRepo.Entities
-                    .Where(rs => model.StopIds.Contains(rs.StopId) &&
-                                rs.RouteId != model.RouteId &&
-                                !rs.DeletedTime.HasValue)
-                    .ToListAsync();
 
-                if (existingRouteStops.Any())
-                {
-                    var stopIdsInOtherRoutes = existingRouteStops.Select(rs => rs.StopId).Distinct();
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest,
-                        $"Các trạm dừng {string.Join(", ", stopIdsInOtherRoutes)} đã thuộc về tuyến khác!");
-                }
-
-                // Xoá các Stop cũ chỉ của route hiện tại
-                var oldStops = await routeStopRepo.Entities
+                // Lấy danh sách stops hiện tại của route
+                var currentRouteStops = await routeStopRepo.Entities
                     .Where(rs => rs.RouteId == model.RouteId && !rs.DeletedTime.HasValue)
                     .ToListAsync();
 
-                foreach (var old in oldStops)
-                {
-                    await routeStopRepo.DeleteAsync(old.RouteId, old.StopId);
-                }
+                // Lấy danh sách stops muốn thêm (kiểm tra tồn tại)
+                var stopsToAdd = await _unitOfWork.GetRepository<Stop>().Entities
+                    .Where(s => model.StopIds.Contains(s.Id) && !s.DeletedTime.HasValue)
+                    .ToListAsync();
 
-                // Thêm stops mới
-                var orderedStops = model.StopIds
-                    .Select((id, index) => new { Id = id, Order = index + 1, Stop = stops.First(s => s.Id == id) })
+                if (stopsToAdd.Count != model.StopIds.Count)
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Một số trạm dừng không tồn tại!");
+
+                // Xác định stops cần xóa (có trong current nhưng không có trong model.StopIds)
+                var stopsToRemove = currentRouteStops
+                    .Where(current => !model.StopIds.Contains(current.StopId))
                     .ToList();
 
-                foreach (var orderedStop in orderedStops)
+                // Xóa stops không còn thuộc route
+                foreach (var stopToRemove in stopsToRemove)
                 {
+                    await routeStopRepo.DeleteAsync(stopToRemove.RouteId, stopToRemove.StopId);
+                }
+
+                // Xác định stops cần thêm mới (có trong model.StopIds nhưng chưa có trong current)
+                var existingStopIds = currentRouteStops.Select(rs => rs.StopId).ToList();
+                var stopsToInsert = model.StopIds
+                    .Where(stopId => !existingStopIds.Contains(stopId))
+                    .ToList();
+
+                // Thêm stops mới vào route
+                foreach (var stopId in stopsToInsert)
+                {
+                    var stop = stopsToAdd.First(s => s.Id == stopId);
+                    var order = model.StopIds.IndexOf(stopId) + 1;
+
                     var newRouteStop = new RouteStop
                     {
                         Id = Guid.NewGuid(),
                         RouteId = model.RouteId,
-                        StopId = orderedStop.Stop.Id,
-                        StopOrder = orderedStop.Order,
+                        StopId = stopId,
+                        StopOrder = order,
                         Duration = 0,
                         CreatedBy = userId,
                         LastUpdatedBy = userId,
@@ -98,6 +96,19 @@ namespace ShuttleMate.Services.Services
                     };
 
                     await routeStopRepo.InsertAsync(newRouteStop);
+                }
+
+                // Cập nhật thứ tự cho các stops đã tồn tại
+                foreach (var existingStop in currentRouteStops.Where(rs => !stopsToRemove.Contains(rs)))
+                {
+                    var newOrder = model.StopIds.IndexOf(existingStop.StopId) + 1;
+                    if (existingStop.StopOrder != newOrder)
+                    {
+                        existingStop.StopOrder = newOrder;
+                        existingStop.LastUpdatedBy = userId;
+                        existingStop.LastUpdatedTime = DateTime.UtcNow;
+                        routeStopRepo.Update(existingStop);
+                    }
                 }
 
                 await _unitOfWork.SaveAsync();
