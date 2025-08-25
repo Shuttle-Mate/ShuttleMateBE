@@ -287,6 +287,7 @@ namespace ShuttleMate.API
             services.AddScoped<IScheduleOverrideService, ScheduleOverrideService>();
             services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
             services.AddScoped<IFirebaseStorageService, FirebaseStorageService>();
+            services.AddScoped<IDashboardService, DashboardService>();
             services.AddSingleton<FirestoreService>();
         }
 

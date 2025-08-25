@@ -52,6 +52,20 @@ namespace ShuttleMate.API.Controllers
         }
 
         /// <summary>
+        /// get route school shift của user
+        /// </summary>
+        [HttpGet("route-shift")]
+        public async Task<IActionResult> GetSchoolShiftUser([FromQuery] Guid userId)
+        {
+            var res = await _tripService.GetRouteShiftAsync(userId);
+            return Ok(new BaseResponseModel<BasePaginatedList<RouteShiftModels>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: res
+            ));
+        }
+
+        /// <summary>
         /// Lấy chi tiết chuyến đi.
         /// </summary>
         [HttpGet("{tripId}")]
