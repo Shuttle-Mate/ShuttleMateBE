@@ -104,6 +104,7 @@ namespace ShuttleMate.Services.Services
             var notiRecipients = await query
                 .Skip(req.page * req.pageSize)
                 .Take(req.pageSize)
+                .OrderByDescending(qu=> qu.CreatedTime)
                 .ToListAsync();
 
             if (!notiRecipients.Any())
