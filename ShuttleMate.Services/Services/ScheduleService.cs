@@ -12,6 +12,7 @@ using ShuttleMate.ModelViews.ScheduleModelViews;
 using ShuttleMate.ModelViews.ScheduleOverrideModelView;
 using ShuttleMate.Services.Services.Infrastructure;
 using System.Globalization;
+using System.Reflection;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -732,7 +733,9 @@ namespace ShuttleMate.Services.Services
                     x.DriverId == scheduleDetail.DriverId) &&
                     !x.DeletedTime.HasValue &&
                     model.From <= x.To &&
-                    model.To >= x.From
+                    model.To >= x.From &&
+                    x.SchoolShift.ShiftType == schoolShift.ShiftType && // So sánh loại ca
+                    x.SchoolShift.SessionType == schoolShift.SessionType // So sánh loại buổi
                 );
 
                 var timeStr = scheduleDetail.DepartureTime;
@@ -776,7 +779,8 @@ namespace ShuttleMate.Services.Services
                     foreach (var existing in existingSchedules)
                     {
                         if (existing.DriverId == scheduleDetail.DriverId &&
-                            existing.SchoolShiftId == schoolShift.Id &&
+                            existing.SchoolShift.ShiftType == schoolShift.ShiftType &&
+                            existing.SchoolShift.SessionType == schoolShift.SessionType &&
                             existing.Direction == direction &&
                             existing.DayOfWeek[dayIndex] == '1' &&
                             model.From <= existing.To &&
@@ -785,7 +789,8 @@ namespace ShuttleMate.Services.Services
                                 $"Tài xế {driver.FullName} đã được phân công ca {GetSchoolShiftDescription(schoolShift)} vào {ConvertDayOfWeekToVietnamese(day)} lúc {existing.DepartureTime} (từ {existing.From:dd/MM/yyyy} đến {existing.To:dd/MM/yyyy}).");
 
                         if (existing.ShuttleId == scheduleDetail.ShuttleId &&
-                            existing.SchoolShiftId == schoolShift.Id &&
+                            existing.SchoolShift.ShiftType == schoolShift.ShiftType &&
+                            existing.SchoolShift.SessionType == schoolShift.SessionType &&
                             existing.Direction == direction &&
                             existing.DayOfWeek[dayIndex] == '1' &&
                             model.From <= existing.To &&
@@ -797,14 +802,16 @@ namespace ShuttleMate.Services.Services
                     foreach (var newItem in newSchedules)
                     {
                         if (newItem.DriverId == scheduleDetail.DriverId &&
-                            newItem.SchoolShiftId == schoolShift.Id &&
+                            newItem.SchoolShift.ShiftType == schoolShift.ShiftType &&
+                            newItem.SchoolShift.SessionType == schoolShift.SessionType &&
                             newItem.Direction == direction &&
                             newItem.DayOfWeek[dayIndex] == '1')
                             throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
                                 $"Tài xế {driver.FullName} đang được tạo mới ca {GetSchoolShiftDescription(schoolShift)} vào {ConvertDayOfWeekToVietnamese(day)} bị trùng với một ca khác trong cùng đợt tạo.");
 
                         if (newItem.ShuttleId == scheduleDetail.ShuttleId &&
-                            newItem.SchoolShiftId == schoolShift.Id &&
+                            newItem.SchoolShift.ShiftType == schoolShift.ShiftType &&
+                            newItem.SchoolShift.SessionType == schoolShift.SessionType &&
                             newItem.Direction == direction &&
                             newItem.DayOfWeek[dayIndex] == '1')
                             throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
