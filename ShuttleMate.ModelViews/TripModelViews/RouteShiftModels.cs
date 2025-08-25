@@ -9,6 +9,7 @@ namespace ShuttleMate.ModelViews.TripModelViews
     public class RouteShiftModels
     {
         public Guid RouteId {  get; set; }
+        public string RouteName { get; set; } 
         public List<Guid> SchoolShiftId { get; set; }
     } 
 }
