@@ -177,7 +177,8 @@ namespace ShuttleMate.Services.Services
                 currentStopIndex = trip.CurrentStopIndex,
                 nextStop = nextStopObj,
                 status = trip.Status.ToString(),
-                updatedTime = DateTime.UtcNow
+                updatedTime = DateTime.UtcNow,
+                schoolShift = trip.Schedule.SchoolShift.Id.ToString()
             });
 
             return newTrip.Id;
