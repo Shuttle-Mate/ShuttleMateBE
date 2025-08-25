@@ -16,6 +16,7 @@ namespace ShuttleMate.ModelViews.NotiRecipientModelView
         public NotiModel NotiModel { get; set; }
         public string RecipientType { get; set; }
         public NotificationStatusEnum Status { get; set; }
-        public NotificationCategoryEnum NotificationCategory { get; set; }
+        //public NotificationCategoryEnum NotificationCategory { get; set; }
+        public DateTimeOffset CreatedTime { get; set; }
     }
 }
