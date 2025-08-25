@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -45,23 +44,7 @@ namespace ShuttleMate.Services.Services
                 if (route == null)
                     throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
 
-                // Xoá các Stop cũ đã gắn (nếu có)
-                var routeStopRepo = _unitOfWork.GetRepository<RouteStop>();
-                var oldStops = await routeStopRepo.Entities
-                    .Where(rs => rs.RouteId == model.RouteId && !rs.DeletedTime.HasValue)
-                    .ToListAsync();
-
-                foreach (var old in oldStops)
-                {
-                    await routeStopRepo.DeleteAsync(old.RouteId, old.StopId);
-                    await _unitOfWork.SaveAsync();
-                }
-
-                foreach (var old in oldStops)
-                {
-                    _unitOfWork.Detach(old);
-                }
-
+                // Kiểm tra stops tồn tại
                 var stops = await _unitOfWork.GetRepository<Stop>().Entities
                     .Where(s => model.StopIds.Contains(s.Id) && !s.DeletedTime.HasValue)
                     .ToListAsync();
@@ -69,11 +52,36 @@ namespace ShuttleMate.Services.Services
                 if (stops.Count != model.StopIds.Count)
                     throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Một số trạm dừng không tồn tại!");
 
+                // Kiểm tra xem stops đã thuộc về route khác chưa
+                var routeStopRepo = _unitOfWork.GetRepository<RouteStop>();
+                var existingRouteStops = await routeStopRepo.Entities
+                    .Where(rs => model.StopIds.Contains(rs.StopId) &&
+                                rs.RouteId != model.RouteId &&
+                                !rs.DeletedTime.HasValue)
+                    .ToListAsync();
+
+                if (existingRouteStops.Any())
+                {
+                    var stopIdsInOtherRoutes = existingRouteStops.Select(rs => rs.StopId).Distinct();
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest,
+                        $"Các trạm dừng {string.Join(", ", stopIdsInOtherRoutes)} đã thuộc về tuyến khác!");
+                }
+
+                // Xoá các Stop cũ chỉ của route hiện tại
+                var oldStops = await routeStopRepo.Entities
+                    .Where(rs => rs.RouteId == model.RouteId && !rs.DeletedTime.HasValue)
+                    .ToListAsync();
+
+                foreach (var old in oldStops)
+                {
+                    await routeStopRepo.DeleteAsync(old.RouteId, old.StopId);
+                }
+
+                // Thêm stops mới
                 var orderedStops = model.StopIds
                     .Select((id, index) => new { Id = id, Order = index + 1, Stop = stops.First(s => s.Id == id) })
                     .ToList();
 
-                // Thêm các RouteStop mới
                 foreach (var orderedStop in orderedStops)
                 {
                     var newRouteStop = new RouteStop
@@ -82,7 +90,7 @@ namespace ShuttleMate.Services.Services
                         RouteId = model.RouteId,
                         StopId = orderedStop.Stop.Id,
                         StopOrder = orderedStop.Order,
-                        Duration = 0, // Sẽ được cập nhật trong UpdateRouteInformationAsync
+                        Duration = 0,
                         CreatedBy = userId,
                         LastUpdatedBy = userId,
                         CreatedTime = DateTime.UtcNow,
@@ -93,9 +101,7 @@ namespace ShuttleMate.Services.Services
                 }
 
                 await _unitOfWork.SaveAsync();
-
                 await _routeService.UpdateRouteInformationAsync(model.RouteId);
-
                 await _unitOfWork.SaveAsync();
             }
             catch
@@ -189,7 +195,7 @@ namespace ShuttleMate.Services.Services
                 Distance = distanceList[i],
                 Duration = durationList[i]
             })
-            .Where(x => x.Duration <= 900 && x.Stop.RouteStops.Any(rs => !rs.Route.DeletedTime.HasValue && rs.Route.SchoolId == schoolId))
+            .Where(x => x.Stop.RouteStops.Any(rs => !rs.Route.DeletedTime.HasValue && rs.Route.SchoolId == schoolId))
             .OrderBy(x => x.Distance);
 
             var totalCount = stopsWithDistance.Count();

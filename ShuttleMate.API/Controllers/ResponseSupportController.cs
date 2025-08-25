@@ -36,7 +36,7 @@ namespace ShuttleMate.API.Controllers
         /// </summary>
         //[Authorize(Roles = "Admin, Operator")]
         [HttpDelete("{responseSupportId}")]
-        public async Task<IActionResult> DeleteFeedback(Guid responseSupportId)
+        public async Task<IActionResult> DeleteResponseSupport(Guid responseSupportId)
         {
             await _responseSupportService.DeleteAsync(responseSupportId);
             return Ok(new BaseResponseModel<string?>(
