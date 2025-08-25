@@ -67,8 +67,13 @@ namespace ShuttleMate.Services.Services
                 // Xóa stops không còn thuộc route
                 foreach (var stopToRemove in stopsToRemove)
                 {
-                    await routeStopRepo.DeleteAsync(stopToRemove.RouteId, stopToRemove.StopId);
+                    var del = await _unitOfWork.GetRepository<RouteStop>()
+                    .Entities.FirstOrDefaultAsync(x => x.StopId == stopToRemove.StopId && x.RouteId == stopToRemove.RouteId && !x.DeletedTime.HasValue);
+                    if (del == null)
+                        throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến dừng!");
+                    await routeStopRepo.DeleteAsync(del.Id);
                 }
+                await _unitOfWork.SaveAsync();
 
                 // Xác định stops cần thêm mới (có trong model.StopIds nhưng chưa có trong current)
                 var existingStopIds = currentRouteStops.Select(rs => rs.StopId).ToList();
