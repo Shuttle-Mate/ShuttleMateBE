@@ -51,6 +51,35 @@ namespace ShuttleMate.Services.Services
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
+            // Lấy thông tin HistoryTicket và Trip
+            var historyTicket = await _unitOfWork.GetRepository<HistoryTicket>()
+                .Entities
+                .Include(ht => ht.Ticket)
+                .FirstOrDefaultAsync(ht => ht.Id == model.HistoryTicketId && !ht.DeletedTime.HasValue)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy vé!");
+
+            var trip = await _unitOfWork.GetRepository<Trip>()
+                .Entities
+                .Include(t => t.Schedule)
+                .FirstOrDefaultAsync(t => t.Id == model.TripId && !t.DeletedTime.HasValue)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy chuyến đi!");
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var today = DateOnly.FromDateTime(vietnamNow);
+
+            // Validate vé còn hạn sử dụng và đã thanh toán
+            if (historyTicket.ValidFrom > today || historyTicket.ValidUntil < today || historyTicket.Status != HistoryTicketStatus.PAID)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vé không còn hạn sử dụng hoặc chưa thanh toán!");
+            }
+
+            // Validate vé thuộc đúng tuyến của trip
+            if (historyTicket.Ticket.RouteId != trip.Schedule.RouteId)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vé không thuộc tuyến của chuyến đi này!");
+            }
+
             Attendance attendance = await _unitOfWork.GetRepository<Attendance>()
                 .Entities
                 .FirstOrDefaultAsync(x => x.Status == AttendanceStatusEnum.CHECKED_IN && x.HistoryTicketId == model.HistoryTicketId);
@@ -59,9 +88,6 @@ namespace ShuttleMate.Services.Services
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vé này đã được Check In!");
             }
-
-            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
 
             var checkin = _mapper.Map<Attendance>(model);
             checkin.CheckInTime = vietnamNow;

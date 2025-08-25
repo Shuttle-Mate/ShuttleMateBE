@@ -47,8 +47,11 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status401Unauthorized, ResponseCodeConstants.UNAUTHORIZED, "Tài xế không hợp lệ");
             }
 
-            DateTime now = DateTime.Now;
-            var tripDate = DateOnly.FromDateTime(now);
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            //var todayVN = DateOnly.FromDateTime(vietnamNow);
+            //DateTime now = DateTime.Now;
+            var tripDate = DateOnly.FromDateTime(vietnamNow);
 
             var tripRepository = _unitOfWork.GetRepository<Trip>();
             var activeTrip = await tripRepository.FindAsync(
@@ -72,6 +75,27 @@ namespace ShuttleMate.Services.Services
                 .FirstOrDefaultAsync()
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND,
                     "Lịch trình không hợp lệ hoặc không tồn tại.");
+
+            // Validate cùng thứ trong tuần (DayOfWeek dạng "1111100", 0=Chủ nhật, 6=Thứ 7)
+            if (!string.IsNullOrEmpty(schedule.DayOfWeek))
+            {
+                int dayIndex = (int)vietnamNow.DayOfWeek; // Chủ nhật = 0, Thứ 2 = 1, ..., Thứ 7 = 6
+                if (schedule.DayOfWeek.Length != 7 || schedule.DayOfWeek[dayIndex] != '1')
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Chỉ được bắt đầu chuyến vào đúng ngày trong tuần của lịch trình.");
+                }
+            }
+
+            // Validate chỉ được start trước giờ khởi hành tối đa 10 phút
+            if (schedule.SchoolShift != null)
+            {
+                var startTime = schedule.DepartureTime; // kiểu TimeOnly
+                var scheduleDateTime = vietnamNow.Date + startTime.ToTimeSpan();
+                if (vietnamNow < scheduleDateTime.AddMinutes(-10) || vietnamNow > scheduleDateTime)
+                {
+                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Chỉ được bắt đầu chuyến trước giờ khởi hành tối đa 10 phút.");
+                }
+            }
 
             // Kiểm tra quyền tài xế
             var overrideRecord = await _unitOfWork.GetRepository<ScheduleOverride>().FindAsync(
@@ -97,8 +121,8 @@ namespace ShuttleMate.Services.Services
                 CreatedBy = currentUserIdString,
                 LastUpdatedBy = currentUserIdString,
                 CurrentStopIndex = currentStopIndex,
-                TripDate = DateOnly.FromDateTime(now),
-                StartTime = TimeOnly.FromDateTime(now),
+                TripDate = DateOnly.FromDateTime(vietnamNow),
+                StartTime = TimeOnly.FromDateTime(vietnamNow),
                 EndTime = null,
                 Status = TripStatusEnum.IN_PROGESS
             };
