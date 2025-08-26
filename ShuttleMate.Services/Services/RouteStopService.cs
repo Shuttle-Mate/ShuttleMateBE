@@ -71,7 +71,7 @@ namespace ShuttleMate.Services.Services
                     .Entities.FirstOrDefaultAsync(x => x.StopId == stopToRemove.StopId && x.RouteId == stopToRemove.RouteId && !x.DeletedTime.HasValue);
                     if (del == null)
                         throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến dừng!");
-                    await routeStopRepo.DeleteAsync(del.Id);
+                    await routeStopRepo.DeleteAsync(del);
                 }
                 await _unitOfWork.SaveAsync();
 
