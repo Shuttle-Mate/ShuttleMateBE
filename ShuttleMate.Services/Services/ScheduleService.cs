@@ -10,6 +10,8 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.ScheduleModelViews;
 using ShuttleMate.ModelViews.ScheduleOverrideModelView;
+using ShuttleMate.ModelViews.StopModelViews;
+using ShuttleMate.ModelViews.TripModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using System.Globalization;
 using System.Reflection;
@@ -421,11 +423,18 @@ namespace ShuttleMate.Services.Services
 
                 var shuttle = s.Shuttle;
 
+                var trip = await _unitOfWork.GetRepository<Trip>()
+                    .Entities
+                    .FirstOrDefaultAsync(t => t.ScheduleId == s.Id);
+
+                var tripMapped = _mapper.Map<ResponseTripModel>(trip);
+
                 responseList.Add(new ResponseTodayScheduleForDriverModel
                 {
                     Id = s.Id,
                     RouteId = s.RouteId,
                     SchoolShiftId = (Guid)s.SchoolShiftId,
+                    Trip = tripMapped,
                     RouteCode = s.Route?.RouteCode ?? "",
                     RouteName = s.Route?.RouteName ?? "",
                     StartTime = startTime.ToString("HH:mm"),
@@ -478,10 +487,17 @@ namespace ShuttleMate.Services.Services
 
                 var shuttle = o.OverrideShuttle;
 
+                var trip = await _unitOfWork.GetRepository<Trip>()
+                    .Entities
+                    .FirstOrDefaultAsync(t => t.ScheduleId == s.Id);
+
+                var tripMapped = _mapper.Map<ResponseTripModel>(trip);
+
                 responseList.Add(new ResponseTodayScheduleForDriverModel
                 {
                     Id = s.Id,
                     RouteId = s.RouteId,
+                    Trip = tripMapped,
                     SchoolShiftId = (Guid)s.SchoolShiftId,
                     RouteCode = s.Route?.RouteCode ?? "",
                     RouteName = s.Route?.RouteName ?? "",
