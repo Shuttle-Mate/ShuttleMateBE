@@ -56,7 +56,7 @@ namespace ShuttleMate.Services.Services
             var tripRepository = _unitOfWork.GetRepository<Trip>();
             var activeTrip = await tripRepository.FindAsync(
                 predicate: t => t.CreatedBy == currentUserIdString &&
-                                 t.Status == TripStatusEnum.IN_PROGESS &&
+                                 t.Status == TripStatusEnum.IN_PROGRESS &&
                                  t.EndTime == null &&
                                  t.DeletedTime == null
             );
@@ -87,15 +87,15 @@ namespace ShuttleMate.Services.Services
             }
 
             // Validate chỉ được start trước giờ khởi hành tối đa 10 phút
-            if (schedule.SchoolShift != null)
-            {
-                var startTime = schedule.DepartureTime; // kiểu TimeOnly
-                var scheduleDateTime = vietnamNow.Date + startTime.ToTimeSpan();
-                if (vietnamNow < scheduleDateTime.AddMinutes(-10) || vietnamNow > scheduleDateTime)
-                {
-                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Chỉ được bắt đầu chuyến trước giờ khởi hành tối đa 10 phút.");
-                }
-            }
+            //if (schedule.SchoolShift != null)
+            //{
+            //    var startTime = schedule.DepartureTime; // kiểu TimeOnly
+            //    var scheduleDateTime = vietnamNow.Date + startTime.ToTimeSpan();
+            //    if (vietnamNow < scheduleDateTime.AddMinutes(-10) || vietnamNow > scheduleDateTime)
+            //    {
+            //        throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Chỉ được bắt đầu chuyến trước giờ khởi hành tối đa 10 phút.");
+            //    }
+            //}
 
             // Kiểm tra quyền tài xế
             var overrideRecord = await _unitOfWork.GetRepository<ScheduleOverride>().FindAsync(
@@ -124,7 +124,7 @@ namespace ShuttleMate.Services.Services
                 TripDate = DateOnly.FromDateTime(vietnamNow),
                 StartTime = TimeOnly.FromDateTime(vietnamNow),
                 EndTime = null,
-                Status = TripStatusEnum.IN_PROGESS
+                Status = TripStatusEnum.IN_PROGRESS
             };
 
             await _unitOfWork.GetRepository<Trip>().InsertAsync(newTrip);
@@ -272,7 +272,7 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Chuyến đi không tồn tại.");
             }
 
-            if (tripToEnd.Status != TripStatusEnum.IN_PROGESS)
+            if (tripToEnd.Status != TripStatusEnum.IN_PROGRESS)
             {
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Chuyến đi không ở trạng thái 'Đang tiến hành' để có thể kết thúc.");
             }
@@ -644,16 +644,17 @@ namespace ShuttleMate.Services.Services
             var routeShiftPairs = tickets
                 .Where(ht => ht.HistoryTicketSchoolShifts != null && ht.HistoryTicketSchoolShifts.Any())
                 .SelectMany(ht => ht.HistoryTicketSchoolShifts
-                    .Select(hs => new { RouteId = ht.Ticket.RouteId, SchoolShiftId = hs.SchoolShiftId }))
+                    .Select(hs => new { RouteId = ht.Ticket.RouteId, SchoolShiftId = hs.SchoolShiftId, RouteName = ht.Ticket.Route.RouteName }))
                 .Distinct()
                 .ToList();
 
             // Gom nhóm theo RouteId, mỗi nhóm là 1 RouteShiftModels
             var groupedResult = routeShiftPairs
-                .GroupBy(x => x.RouteId)
+                .GroupBy(x => new { x.RouteId, x.RouteName})
                 .Select(g => new RouteShiftModels
                 {
-                    RouteId = g.Key,
+                    RouteId = g.Key.RouteId,
+                    RouteName = g.Key.RouteName,
                     SchoolShiftId = g.Select(x => x.SchoolShiftId).Distinct().ToList()
                 })
                 .ToList();

@@ -21,7 +21,7 @@ namespace ShuttleMate.ModelViews.TripModelViews
         /// </summary>
         public string? endDate { get; set; } = null!;
         /// <summary>
-        /// Filter theo Status (SCHEDULED, IN_PROGESS, COMPLETED, CANCELLED)
+        /// Filter theo Status (SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED)
         /// </summary>
         public string? status { get; set; } = null!;
     }

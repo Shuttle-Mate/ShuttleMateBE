@@ -11,7 +11,7 @@
         public enum TripStatusEnum
         {
             SCHEDULED, //Scheduled but not start yet
-            IN_PROGESS,
+            IN_PROGRESS,
             COMPLETED,
             CANCELLED
         }
