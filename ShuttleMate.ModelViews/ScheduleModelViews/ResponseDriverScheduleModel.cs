@@ -1,10 +1,13 @@
-﻿namespace ShuttleMate.ModelViews.ScheduleModelViews
+﻿using ShuttleMate.ModelViews.TripModelViews;
+
+namespace ShuttleMate.ModelViews.ScheduleModelViews
 {
     public class ResponseTodayScheduleForDriverModel
     {
         public Guid Id { get; set; }
         public Guid RouteId { get; set; }
         public Guid SchoolShiftId { get; set; }
+        public ResponseTripModel? Trip { get; set; } = null;
         public string RouteCode { get; set; }
         public string RouteName { get; set; }
         public string StartTime { get; set; }
