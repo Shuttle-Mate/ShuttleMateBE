@@ -134,7 +134,6 @@ namespace ShuttleMate.Services.Services
                     {
                         try
                         {
-                            await _firebaseService.SendNotificationAsync(notification.Title, notification.Content, device.PushToken);
                             var docRef = _firestoreService.GetCollection("notifications").Document(device.UserId.ToString());
                             await docRef.SetAsync(new
                             {
@@ -146,6 +145,7 @@ namespace ShuttleMate.Services.Services
                                 createdTime = DateTime.UtcNow,
                                 unreadCount = userNotiCount,
                             });
+                            await _firebaseService.SendNotificationAsync(notification.Title, notification.Content, device.PushToken);
                             atLeastOneSuccess = true;
                             allFailed = false;
                         }
@@ -304,7 +304,6 @@ namespace ShuttleMate.Services.Services
                         {
                             try
                             {
-                                await _firebaseService.SendNotificationAsync(notification.Title, notification.Content, device.PushToken);
                                 var docRef = _firestoreService.GetCollection("notifications").Document(device.UserId.ToString());
                                 await docRef.SetAsync(new
                                 {
@@ -316,6 +315,7 @@ namespace ShuttleMate.Services.Services
                                     createdTime = DateTime.UtcNow,
                                     unreadCount = userNotiCount,
                                 });
+                                await _firebaseService.SendNotificationAsync(notification.Title, notification.Content, device.PushToken);
                                 atLeastOneSuccess = true;
                                 allFailed = false;
                             }
@@ -441,11 +441,6 @@ namespace ShuttleMate.Services.Services
                         {
                             try
                             {
-                                await _firebaseService.SendNotificationAsync(
-                                    notification.Title,
-                                    notification.Content,
-                                    token: device.PushToken
-                                );
                                 var docRef = _firestoreService.GetCollection("notifications").Document(device.UserId.ToString());
                                 await docRef.SetAsync(new
                                 {
@@ -457,6 +452,11 @@ namespace ShuttleMate.Services.Services
                                     createdTime = DateTime.UtcNow,
                                     unreadCount = userNotiCount,
                                 });
+                                await _firebaseService.SendNotificationAsync(
+                                    notification.Title,
+                                    notification.Content,
+                                    token: device.PushToken
+                                );
                                 atLeastOneSuccess = true;
                                 allFailed = false;
                             }
