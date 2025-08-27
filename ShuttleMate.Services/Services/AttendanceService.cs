@@ -310,6 +310,7 @@ namespace ShuttleMate.Services.Services
             {
                 Id = a.Id,
                 HistoryTicketId = a.HistoryTicketId,
+                TripId = a.TripId,
                 CheckInTime = a.CheckInTime,
                 CheckInLocation = a.CheckInLocation,
                 CheckOutTime = a.CheckOutTime,
