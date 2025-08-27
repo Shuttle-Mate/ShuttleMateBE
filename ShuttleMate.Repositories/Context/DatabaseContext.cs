@@ -105,8 +105,8 @@ namespace ShuttleMate.Repositories.Context
                     .HasForeignKey(t => t.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(ht => ht.Promotion)
-                    .WithOne(p => p.HistoryTicket)
-                    .HasForeignKey<HistoryTicket>(ht => ht.PromotionId)
+                    .WithMany(p => p.HistoryTickets)
+                    .HasForeignKey(ht => ht.PromotionId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 

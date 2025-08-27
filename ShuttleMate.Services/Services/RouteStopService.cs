@@ -64,12 +64,12 @@ namespace ShuttleMate.Services.Services
                     .Where(current => !model.StopIds.Contains(current.StopId))
                     .ToList();
 
-                // Xóa stops không còn thuộc route
-                foreach (var stopToRemove in stopsToRemove)
+                // Xóa stops không còn thuộc route - SỬA Ở ĐÂY
+                if (stopsToRemove.Any())
                 {
-                    await routeStopRepo.DeleteAsync(stopToRemove.Id);
+                    await routeStopRepo.DeleteAsync(stopsToRemove.Id);
+
                 }
-                await _unitOfWork.SaveAsync();
 
                 // Xác định stops cần thêm mới (có trong model.StopIds nhưng chưa có trong current)
                 var existingStopIds = currentRouteStops.Select(rs => rs.StopId).ToList();
@@ -78,9 +78,9 @@ namespace ShuttleMate.Services.Services
                     .ToList();
 
                 // Thêm stops mới vào route
+                var newRouteStops = new List<RouteStop>();
                 foreach (var stopId in stopsToInsert)
                 {
-                    var stop = stopsToAdd.First(s => s.Id == stopId);
                     var order = model.StopIds.IndexOf(stopId) + 1;
 
                     var newRouteStop = new RouteStop
@@ -96,11 +96,20 @@ namespace ShuttleMate.Services.Services
                         LastUpdatedTime = DateTime.UtcNow
                     };
 
-                    await routeStopRepo.InsertAsync(newRouteStop);
+                    newRouteStops.Add(newRouteStop);
+                }
+
+                if (newRouteStops.Any())
+                {
+                    await routeStopRepo.InsertRangeAsync(newRouteStops);
                 }
 
                 // Cập nhật thứ tự cho các stops đã tồn tại
-                foreach (var existingStop in currentRouteStops.Where(rs => !stopsToRemove.Contains(rs)))
+                var stopsToUpdate = currentRouteStops
+                    .Where(rs => !stopsToRemove.Contains(rs) && model.StopIds.Contains(rs.StopId))
+                    .ToList();
+
+                foreach (var existingStop in stopsToUpdate)
                 {
                     var newOrder = model.StopIds.IndexOf(existingStop.StopId) + 1;
                     if (existingStop.StopOrder != newOrder)
@@ -112,6 +121,7 @@ namespace ShuttleMate.Services.Services
                     }
                 }
 
+                // Chỉ save một lần cuối cùng - SỬA Ở ĐÂY
                 await _unitOfWork.SaveAsync();
                 await _routeService.UpdateRouteInformationAsync(model.RouteId);
                 await _unitOfWork.SaveAsync();

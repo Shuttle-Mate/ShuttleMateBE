@@ -19,6 +19,6 @@ namespace ShuttleMate.Contract.Repositories.Entities
         public TicketTypeEnum? ApplicableTicketType { get; set; }
         public Guid? TicketId { get; set; }
         public virtual Ticket Ticket { get; set; }
-        public virtual HistoryTicket HistoryTicket { get; set; }
+        public virtual ICollection<HistoryTicket> HistoryTickets { get; set; } = new List<HistoryTicket>();
     }
 }
