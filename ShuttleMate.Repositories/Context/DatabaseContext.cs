@@ -51,7 +51,7 @@ namespace ShuttleMate.Repositories.Context
                 entity.HasOne(u => u.User)
                     .WithMany(d => d.UserDevices)
                     .HasForeignKey(u => u.UserId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Attendance>(entity =>
@@ -173,11 +173,11 @@ namespace ShuttleMate.Repositories.Context
                 entity.HasOne(t => t.Route)
                     .WithMany(r => r.RouteStops)
                     .HasForeignKey(t => t.RouteId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(t => t.Stop)
                     .WithMany(r => r.RouteStops)
                     .HasForeignKey(t => t.StopId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Schedule>(entity =>
