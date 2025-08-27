@@ -1035,6 +1035,16 @@ namespace ShuttleMate.Services.Services
             return "Mở khóa người dùng thành công!";
         }
 
+        public async Task DeleteUser(Guid userId)
+        {
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == userId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng!");
+            user.DeletedTime = vietnamNow;
+            await _unitOfWork.GetRepository<User>().UpdateAsync(user);
+            await _unitOfWork.SaveAsync();
+        }
+
         private async Task SendBlockUserEmail(User guide)
         {
             await _emailService.SendEmailAsync(
