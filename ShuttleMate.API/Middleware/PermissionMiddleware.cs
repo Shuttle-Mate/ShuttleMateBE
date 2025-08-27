@@ -27,7 +27,7 @@ namespace ShuttleMate.API.Middleware
                 "/api/auth/confirmation/resend",
                 "/api/auth/refresh-token",
                 "/api/auth/forgot-password",
-                "/api/auth/confirmation/forgot-passwordp",
+                "/api/auth/confirmation/forgot-password",
                 "/api/auth/change-password",
                 "/api/auth/logout",
                 "/api/history-ticket/payos-callback",
