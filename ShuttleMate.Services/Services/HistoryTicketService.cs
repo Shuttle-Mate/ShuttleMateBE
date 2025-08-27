@@ -573,6 +573,10 @@ namespace ShuttleMate.Services.Services
             await _unitOfWork.GetRepository<Transaction>().InsertAsync(transaction);
 
             await _unitOfWork.SaveAsync();
+            _backgroundJobClient.Schedule<HistoryTicketService>(
+                service => service.ResponseHistoryTicketStatus(historyTicket.Id),
+                TimeSpan.FromMinutes(10) // Delay 10 phút
+                );
             // 4. Gọi API PayOS
             if (historyTicket.Price == 0 && historyTicket.Status == HistoryTicketStatus.PAID)
             {
@@ -601,10 +605,7 @@ namespace ShuttleMate.Services.Services
                     qrCode = checkoutUrl.qrCode,
                     status = historyTicket.Status.ToString().ToUpper(),
                 };
-                _backgroundJobClient.Schedule<HistoryTicketService>(
-                service => service.ResponseHistoryTicketStatus(historyTicket.Id),
-                TimeSpan.FromMinutes(10) // Delay 10 phút
-                );
+
                 return response;
             }         
         }
