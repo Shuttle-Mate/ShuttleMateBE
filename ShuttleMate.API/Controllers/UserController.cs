@@ -279,5 +279,19 @@ namespace ShuttleMate.API.Controllers
                 message: "Đăng ký thiết bị thành công!"
             ));
         }
+        /// <summary>
+        /// Xóa tài khoản
+        /// </summary>
+        [HttpDelete]
+        public async Task<IActionResult> DeleteUser(Guid userId)
+        {
+            await _userService.DeleteUser(userId);
+
+            return Ok(new BaseResponseModel<string>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                message: "Xóa tài khoản thành công!!"
+            ));
+        }
     }
 }
