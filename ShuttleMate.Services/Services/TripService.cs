@@ -438,10 +438,10 @@ namespace ShuttleMate.Services.Services
                 }
             }
 
-            var docRef = _firestoreService.GetCollection("notifications").Document(tripId.ToString());
+            var docRef = _firestoreService.GetCollection("active_trips").Document(tripId.ToString());
             await docRef.UpdateAsync(new Dictionary<string, object>
             {
-                { "status", TripStatusEnum.COMPLETED }
+                { "status", tripToEnd.Status.ToString() }
             });
         }
 
