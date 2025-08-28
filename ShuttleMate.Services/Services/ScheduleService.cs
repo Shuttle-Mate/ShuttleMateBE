@@ -10,11 +10,9 @@ using ShuttleMate.Core.Constants;
 using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.ScheduleModelViews;
 using ShuttleMate.ModelViews.ScheduleOverrideModelView;
-using ShuttleMate.ModelViews.StopModelViews;
 using ShuttleMate.ModelViews.TripModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
 using System.Globalization;
-using System.Reflection;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 
 namespace ShuttleMate.Services.Services
@@ -196,7 +194,15 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ResponseScheduleModel>(grouped, totalCount, page, pageSize);
         }
 
-        public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByDriverIdAsync(Guid driverId, string from, string to, string? dayOfWeek, string? direction, bool sortAsc, int page = 0, int pageSize = 10)
+        public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByDriverIdAsync(
+            Guid driverId,
+            string from,
+            string to,
+            string? dayOfWeek,
+            string? direction,
+            bool sortAsc,
+            int page = 0,
+            int pageSize = 10)
         {
             if (!DateOnly.TryParseExact(from, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var fromDate))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày {from} không hợp lệ.");
@@ -522,7 +528,8 @@ namespace ShuttleMate.Services.Services
         }
 
         public async Task<BasePaginatedList<ResponseOldScheduleModel>> GetAllAsync(
-            Guid routeId,
+            Guid? routeId,
+            Guid? driverId,
             string from,
             string to,
             string? direction,
@@ -536,11 +543,22 @@ namespace ShuttleMate.Services.Services
             if (!DateOnly.TryParseExact(to, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var toDate))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày {to} không hợp lệ.");
 
-            var route = await _unitOfWork.GetRepository<Route>().GetByIdAsync(routeId)
-                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến không tồn tại.");
+            if (!routeId.HasValue && !driverId.HasValue)
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Phải cung cấp ít nhất một trong hai: routeId hoặc driverId.");
 
-            if (route.DeletedTime.HasValue)
-                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đã bị xóa.");
+            if (routeId.HasValue)
+            {
+                var route = await _unitOfWork.GetRepository<Route>().GetByIdAsync(routeId.Value);
+                if (route == null || route.DeletedTime.HasValue)
+                    throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến không tồn tại hoặc đã bị xóa.");
+            }
+
+            if (driverId.HasValue)
+            {
+                var driver = await _unitOfWork.GetRepository<User>().GetByIdAsync(driverId.Value);
+                if (driver == null || driver.DeletedTime.HasValue)
+                    throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tài xế không tồn tại hoặc đã bị xóa.");
+            }
 
             var query = _unitOfWork.GetRepository<Schedule>()
                 .GetQueryable()
