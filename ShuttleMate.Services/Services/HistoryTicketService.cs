@@ -270,7 +270,7 @@ namespace ShuttleMate.Services.Services
                     Status = u.Status.ToString().ToUpper(),
                     Price = u.Price == 0 ? u.Ticket.Price : u.Price,
                     RouteName = u.Ticket.Route.RouteName,
-                    Ticket = u.Ticket.Type.ToString().ToUpper(),
+                    TicketType = u.Ticket.Type.ToString().ToUpper(),
                     FullNameOfUser = u.User.FullName,
                     OrderCode = u.Transaction.OrderCode,
                 })
