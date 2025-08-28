@@ -412,7 +412,7 @@ namespace ShuttleMate.Services.Services
 
                 var trip = await _unitOfWork.GetRepository<Trip>()
                     .Entities
-                    .FirstOrDefaultAsync(t => t.ScheduleId == s.Id);
+                    .FirstOrDefaultAsync(t => t.ScheduleId == s.Id && t.TripDate == todayVN);
 
                 var tripMapped = _mapper.Map<ResponseTripModel>(trip);
 
