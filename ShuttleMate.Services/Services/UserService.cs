@@ -374,6 +374,7 @@ namespace ShuttleMate.Services.Services
                     PhoneNumber = u.PhoneNumber,
                     SchoolName = u.School.Name,
                     HistoryTicketId = u.HistoryTickets
+                        .OrderByDescending(u => u.CreatedTime)
                         .Where(ht =>
                             ht.ValidUntil >= todayVN &&
                             ht.ValidFrom <= todayVN &&
