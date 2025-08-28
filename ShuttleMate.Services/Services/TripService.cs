@@ -167,6 +167,11 @@ namespace ShuttleMate.Services.Services
                 ? new { stopId = nextStop.Stop.Id.ToString(), stopName = nextStop.Stop.Name }
                 : null;
 
+            var routeStop = await _unitOfWork.GetRepository<RouteStop>()
+                    .Entities
+                    .Include(rs => rs.Stop)
+                    .FirstOrDefaultAsync(rs => rs.RouteId == trip.Schedule.RouteId && rs.StopOrder == trip.CurrentStopIndex);
+
             var docRef = _firestoreService.GetCollection("active_trips").Document(trip.Id.ToString());
             await docRef.SetAsync(new
             {
@@ -174,7 +179,7 @@ namespace ShuttleMate.Services.Services
                 routeId = trip.Schedule.RouteId.ToString(),
                 shuttleName = trip.Schedule.Shuttle.Name,
                 driverName = trip.Schedule.Driver.FullName,
-                currentStopIndex = trip.CurrentStopIndex,
+                currentStop = new { stopIndex = trip.CurrentStopIndex, stopName = routeStop.Stop.Name },
                 nextStop = nextStopObj,
                 status = trip.Status.ToString(),
                 updatedTime = DateTime.UtcNow,
@@ -431,8 +436,13 @@ namespace ShuttleMate.Services.Services
                         notiCategory: "ATTENDANCE"
                     );
                 }
-
             }
+
+            var docRef = _firestoreService.GetCollection("active_trips").Document(tripId.ToString());
+            await docRef.UpdateAsync(new Dictionary<string, object>
+            {
+                { "status", tripToEnd.Status.ToString() }
+            });
         }
 
         public async Task UpdateAsync(Guid tripId, UpdateTripModel model)
@@ -608,6 +618,11 @@ namespace ShuttleMate.Services.Services
                 await _unitOfWork.GetRepository<Trip>().UpdateAsync(trip);
                 await _unitOfWork.SaveAsync();
 
+                var routeStop = await _unitOfWork.GetRepository<RouteStop>()
+                    .Entities
+                    .Include(rs => rs.Stop)
+                    .FirstOrDefaultAsync(rs => rs.RouteId == trip.Schedule.RouteId && rs.StopOrder == trip.CurrentStopIndex);
+
                 var docRef = _firestoreService.GetCollection("active_trips").Document(trip.Id.ToString());
                 await docRef.SetAsync(new
                 {
@@ -615,7 +630,7 @@ namespace ShuttleMate.Services.Services
                     routeId = trip.Schedule.RouteId.ToString(),
                     shuttleName = trip.Schedule.Shuttle.Name,
                     driverName = trip.Schedule.Driver.FullName,
-                    currentStopIndex = trip.CurrentStopIndex,
+                    currentStop = new { stopIndex = trip.CurrentStopIndex, stopName = routeStop.Stop.Name},
                     nextStop = new { stopId = nextStop.Stop.Id.ToString(), stopName = nextStop.Stop.Name, duration = model.Duration, distance = model.Distance},
                     status = trip.Status.ToString(),
                     updatedTime = DateTime.UtcNow
