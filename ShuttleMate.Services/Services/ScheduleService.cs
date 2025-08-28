@@ -25,23 +25,18 @@ namespace ShuttleMate.Services.Services
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IStopEstimateService _stopEstimateService;
-        private readonly IFirebaseService _firebaseService;
-        private readonly FirestoreService _firestoreService;
         private readonly INotificationService _notificationService;
         private readonly IGenericRepository<Schedule> _scheduleRepo;
         private readonly IGenericRepository<ScheduleOverride> _scheduleOverrideRepo;
         private readonly IGenericRepository<StopEstimate> _stopEstimateRepo;
         private readonly IGenericRepository<Route> _routeRepo;
 
-        public ScheduleService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IStopEstimateService stopEstimateService,
-            IFirebaseService firebaseService, FirestoreService firestoreService, INotificationService notificationService)
+        public ScheduleService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor, IStopEstimateService stopEstimateService, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _contextAccessor = contextAccessor;
             _stopEstimateService = stopEstimateService;
-            _firebaseService = firebaseService;
-            _firestoreService = firestoreService;
             _notificationService = notificationService;
             _scheduleRepo = _unitOfWork.GetRepository<Schedule>();
             _scheduleOverrideRepo = _unitOfWork.GetRepository<ScheduleOverride>();
@@ -349,8 +344,8 @@ namespace ShuttleMate.Services.Services
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             var todayVN = DateOnly.FromDateTime(vietnamNow);
-            var dayOfWeek = (int)DateTime.Today.DayOfWeek;
-            dayOfWeek = dayOfWeek == 0 ? 6 : dayOfWeek - 1;
+            var dayOfWeek = (int)vietnamNow.DayOfWeek;
+            dayOfWeek = dayOfWeek == 0 ? 7 : dayOfWeek;
 
             var schedules = await _scheduleRepo.Entities
                 .Where(s => s.DriverId == driverIdGuid
