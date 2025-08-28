@@ -22,14 +22,16 @@ namespace ShuttleMate.Services.Services
         private readonly VietMapSettings _vietMapSettings;
         private readonly HttpClient _httpClient;
         private readonly IRouteService _routeService;
+        private readonly IEmailService _emailService;
 
-        public RouteStopService(IUnitOfWork unitOfWork, IHttpContextAccessor contextAccessor, IOptions<VietMapSettings> vietMapSettings, HttpClient httpClient, IRouteService routeService)
+        public RouteStopService(IUnitOfWork unitOfWork, IHttpContextAccessor contextAccessor, IOptions<VietMapSettings> vietMapSettings, HttpClient httpClient, IRouteService routeService, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _contextAccessor = contextAccessor;
             _vietMapSettings = vietMapSettings.Value;
             _httpClient = httpClient;
             _routeService = routeService;
+            _emailService = emailService;
         }
 
         public async Task AssignStopsToRouteAsync(AssignStopsToRouteModel model)
