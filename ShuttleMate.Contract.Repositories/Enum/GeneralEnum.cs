@@ -38,7 +38,7 @@
 
         public enum NotificationStatusEnum
         {
-            PENDING,         //Đã tạo nhưng chưa gửi
+            //PENDING,         //Đã tạo nhưng chưa gửi
             SENT,            //Đã gửi thành công (đẩy qua push, email, v.v.)
             READ,            //Người dùng đã mở và đọc thông báo
             ARCHIEVED,        //Đã lưu trữ, không hiển thị trên UI
