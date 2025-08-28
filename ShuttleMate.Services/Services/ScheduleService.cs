@@ -195,14 +195,14 @@ namespace ShuttleMate.Services.Services
         }
 
         public async Task<BasePaginatedList<ResponseOldScheduleModel>> GetAllAsync(
-            Guid? routeId,
-            Guid? driverId,
-            string from,
-            string to,
-            string? direction,
-            bool sortAsc = true,
-            int page = 0,
-            int pageSize = 10)
+    Guid? routeId,
+    Guid? driverId,
+    string from,
+    string to,
+    string? direction,
+    bool sortAsc = true,
+    int page = 0,
+    int pageSize = 10)
         {
             if (!DateOnly.TryParseExact(from, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var fromDate))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày {from} không hợp lệ.");
@@ -227,33 +227,108 @@ namespace ShuttleMate.Services.Services
                     throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tài xế không tồn tại hoặc đã bị xóa.");
             }
 
-            var query = _unitOfWork.GetRepository<Schedule>()
+            // LẤY TẤT CẢ SCHEDULES TRONG KHOẢNG THỜI GIAN
+            var allSchedules = await _unitOfWork.GetRepository<Schedule>()
                 .GetQueryable()
                 .Include(x => x.Shuttle)
                 .Include(x => x.Driver)
                 .Include(x => x.SchoolShift)
-                .Where(x => x.RouteId == routeId && !x.DeletedTime.HasValue && x.From <= toDate &&
-                    x.To >= fromDate);
+                .Include(x => x.ScheduleOverrides) // QUAN TRỌNG: INCLUDE OVERRIDES
+                .Where(x => !x.DeletedTime.HasValue &&
+                           x.From <= toDate &&
+                           x.To >= fromDate)
+                .ToListAsync();
+
+            // LỌC RA CÁC SCHEDULES CÓ HIỆU LỰC (KHÔNG BỊ OVERRIDE HOẶC LÀ OVERRIDE MỚI)
+            var effectiveSchedules = new List<Schedule>();
+
+            foreach (var schedule in allSchedules)
+            {
+                // TÌM OVERRIDE CHO SCHEDULE NÀY TRONG KHOẢNG THỜI GIAN
+                var activeOverrides = schedule.ScheduleOverrides
+                    .Where(o => !o.DeletedTime.HasValue &&
+                               o.Date >= fromDate &&
+                               o.Date <= toDate)
+                    .ToList();
+
+                if (!activeOverrides.Any())
+                {
+                    // NẾU KHÔNG CÓ OVERRIDE, THÊM SCHEDULE GỐC
+                    effectiveSchedules.Add(schedule);
+                }
+                else
+                {
+                    // NẾU CÓ OVERRIDE, TẠO SCHEDULE MỚI VỚI THÔNG TIN OVERRIDE
+                    foreach (var overrideItem in activeOverrides)
+                    {
+                        var overrideSchedule = new Schedule
+                        {
+                            Id = schedule.Id,
+                            From = overrideItem.Date, // CHỈ ÁP DỤNG CHO 1 NGÀY
+                            To = overrideItem.Date,
+                            Direction = schedule.Direction,
+                            DepartureTime = schedule.DepartureTime,
+                            DayOfWeek = GetBinaryDayForSingleDate(overrideItem.Date), // CHỈ NGÀY OVERRIDE
+                            RouteId = schedule.RouteId,
+                            Route = schedule.Route,
+                            ShuttleId = overrideItem.OverrideShuttleId ?? schedule.ShuttleId,
+                            Shuttle = overrideItem.OverrideShuttle ?? schedule.Shuttle,
+                            DriverId = overrideItem.OverrideUserId ?? schedule.DriverId,
+                            Driver = overrideItem.OverrideUser ?? schedule.Driver,
+                            SchoolShiftId = schedule.SchoolShiftId,
+                            SchoolShift = schedule.SchoolShift,
+                            CreatedTime = schedule.CreatedTime,
+                            CreatedBy = schedule.CreatedBy,
+                            LastUpdatedTime = overrideItem.CreatedTime, // DÙNG THỜI GIAN OVERRIDE
+                            LastUpdatedBy = overrideItem.CreatedBy
+                        };
+
+                        effectiveSchedules.Add(overrideSchedule);
+                    }
+                }
+            }
+
+            // ÁP DỤNG FILTER SAU KHI ĐÃ XỬ LÝ OVERRIDE
+            var query = effectiveSchedules.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(direction) && Enum.TryParse<RouteDirectionEnum>(direction, true, out var parsedDirection))
             {
                 query = query.Where(x => x.Direction == parsedDirection);
             }
 
+            if (routeId.HasValue)
+                query = query.Where(f => f.RouteId == routeId.Value);
+
+            if (driverId.HasValue)
+                query = query.Where(f => f.DriverId == driverId.Value);
+
             query = sortAsc
                 ? query.OrderBy(x => x.DepartureTime)
                 : query.OrderByDescending(x => x.DepartureTime);
 
-            var totalCount = await query.CountAsync();
+            var totalCount = query.Count();
 
-            var pagedItems = await query
+            var pagedItems = query
                 .Skip(page * pageSize)
                 .Take(pageSize)
-                .ToListAsync();
+                .ToList();
 
             var result = _mapper.Map<List<ResponseOldScheduleModel>>(pagedItems);
 
             return new BasePaginatedList<ResponseOldScheduleModel>(result, totalCount, page, pageSize);
+        }
+
+        private string GetBinaryDayForSingleDate(DateOnly date)
+        {
+            var dayOfWeekIndex = (int)date.DayOfWeek;
+            var binaryArray = new char[7];
+
+            for (int i = 0; i < 7; i++)
+            {
+                binaryArray[i] = i == dayOfWeekIndex ? '1' : '0';
+            }
+
+            return new string(binaryArray);
         }
 
 
@@ -268,11 +343,10 @@ namespace ShuttleMate.Services.Services
             dayOfWeek = dayOfWeek == 0 ? 7 : dayOfWeek;
 
             var overrides = await _scheduleOverrideRepo.Entities
-                .Where(o => o.Date == todayVN && !o.DeletedTime.HasValue && o.OverrideUserId != null)
+                .Where(o => o.Date == todayVN && !o.DeletedTime.HasValue && o.OverrideUserId == driverIdGuid)
                 .ToListAsync();
 
             var overriddenScheduleIds = overrides
-                .Where(o => o.OverrideUserId == driverIdGuid)
                 .Select(o => o.ScheduleId)
                 .ToList();
 
