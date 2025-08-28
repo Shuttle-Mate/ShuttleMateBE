@@ -1040,6 +1040,13 @@ namespace ShuttleMate.Services.Services
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == userId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng!");
+            var childs = await _unitOfWork.GetRepository<User>().Entities.Where(x=>x.ParentId == user.Id && !x.DeletedTime.HasValue).ToArrayAsync();
+            foreach ( var child in childs)
+            {
+                child.ParentId = null;
+                await _unitOfWork.GetRepository<User>().UpdateAsync(child);
+
+            }
             user.DeletedTime = vietnamNow;
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
