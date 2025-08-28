@@ -408,7 +408,7 @@ namespace ShuttleMate.Services.Services
                     NotificationCategory = categoryEnum,
                     CreatedBy = createdBy,
                     CreatedTime = DateTimeOffset.UtcNow,
-                    Status = NotificationStatusEnum.PENDING // sẽ cập nhật sau khi gửi FCM
+                    Status = NotificationStatusEnum.SENT // sẽ cập nhật sau khi gửi FCM
                 };
 
                 var userNoti = await _unitOfWork.GetRepository<NotificationRecipient>()

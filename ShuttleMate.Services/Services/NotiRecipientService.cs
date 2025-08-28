@@ -39,7 +39,7 @@ namespace ShuttleMate.Services.Services
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             var notiRecipient = _mapper.Map<NotificationRecipient>(model);
-            notiRecipient.Status = NotificationStatusEnum.PENDING;
+            notiRecipient.Status = NotificationStatusEnum.SENT;
             notiRecipient.CreatedBy = userId;
             notiRecipient.LastUpdatedBy = userId;
             await _unitOfWork.GetRepository<NotificationRecipient>().InsertAsync(notiRecipient);
