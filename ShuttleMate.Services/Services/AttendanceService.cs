@@ -170,6 +170,11 @@ namespace ShuttleMate.Services.Services
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vé này đã được CheckOut!");
             }
 
+            if (checkout.HistoryTicketId != model.HistoryTicketId)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Vé này không hợp lệ hoặc có thể bạn đã Check-in bằng một vé khác!");
+            }
+
             _mapper.Map(model, checkout);
 
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
