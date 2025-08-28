@@ -607,15 +607,16 @@ namespace ShuttleMate.Services.Services
                 if (scheduleDetail.DayOfWeeks == null || !scheduleDetail.DayOfWeeks.Any())
                     throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Danh sách ngày trong tuần không được để trống.");
 
-                var existingSchedules = await _scheduleRepo.FindAllAsync(x =>
-                    (x.ShuttleId == scheduleDetail.ShuttleId ||
-                    x.DriverId == scheduleDetail.DriverId) &&
-                    !x.DeletedTime.HasValue &&
-                    model.From <= x.To &&
-                    model.To >= x.From &&
-                    x.SchoolShift.ShiftType == schoolShift.ShiftType && // So sánh loại ca
-                    x.SchoolShift.SessionType == schoolShift.SessionType // So sánh loại buổi
-                );
+                var existingSchedules = await _scheduleRepo.Entities
+                    .Include(x => x.ScheduleOverrides)
+                    .Include(x => x.SchoolShift)
+                    .Where(x => (x.ShuttleId == scheduleDetail.ShuttleId || x.DriverId == scheduleDetail.DriverId) &&
+                                !x.DeletedTime.HasValue &&
+                                model.From <= x.To &&
+                                model.To >= x.From &&
+                                x.SchoolShift.ShiftType == schoolShift.ShiftType &&
+                                x.SchoolShift.SessionType == schoolShift.SessionType)
+                    .ToListAsync();
 
                 var timeStr = scheduleDetail.DepartureTime;
 
@@ -654,10 +655,17 @@ namespace ShuttleMate.Services.Services
                 foreach (var day in days)
                 {
                     var dayIndex = ConvertDayOfWeekToIndex(day);
+                    var currentDate = GetDateForDayOfWeek(model.From, day);
 
                     foreach (var existing in existingSchedules)
                     {
-                        if (existing.DriverId == scheduleDetail.DriverId &&
+                        var overrideForThisDate = existing.ScheduleOverrides?
+                            .FirstOrDefault(o => o.Date == currentDate && !o.DeletedTime.HasValue);
+
+                        Guid actualDriverId = overrideForThisDate?.OverrideUserId ?? existing.DriverId;
+                        Guid actualShuttleId = overrideForThisDate?.OverrideShuttleId ?? existing.ShuttleId;
+
+                        if (actualDriverId == scheduleDetail.DriverId &&
                             existing.SchoolShift.ShiftType == schoolShift.ShiftType &&
                             existing.SchoolShift.SessionType == schoolShift.SessionType &&
                             existing.Direction == direction &&
@@ -667,7 +675,7 @@ namespace ShuttleMate.Services.Services
                             throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
                                 $"Tài xế {driver.FullName} đã được phân công ca {GetSchoolShiftDescription(schoolShift)} vào {ConvertDayOfWeekToVietnamese(day)} lúc {existing.DepartureTime} (từ {existing.From:dd/MM/yyyy} đến {existing.To:dd/MM/yyyy}).");
 
-                        if (existing.ShuttleId == scheduleDetail.ShuttleId &&
+                        if (actualShuttleId == scheduleDetail.ShuttleId &&
                             existing.SchoolShift.ShiftType == schoolShift.ShiftType &&
                             existing.SchoolShift.SessionType == schoolShift.SessionType &&
                             existing.Direction == direction &&
@@ -675,7 +683,7 @@ namespace ShuttleMate.Services.Services
                             model.From <= existing.To &&
                             model.To >= existing.From)
                             throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
-                                $"Xe {existing.Shuttle.Name} đã được phân công ca {GetSchoolShiftDescription(schoolShift)} vào {ConvertDayOfWeekToVietnamese(day)} lúc {existing.DepartureTime} (từ {existing.From:dd/MM/yyyy} đến {existing.To:dd/MM/yyyy}).");
+                                $"Xe {shuttle.Name} đã được phân công ca {GetSchoolShiftDescription(schoolShift)} vào {ConvertDayOfWeekToVietnamese(day)} lúc {existing.DepartureTime} (từ {existing.From:dd/MM/yyyy} đến {existing.To:dd/MM/yyyy}).");
                     }
 
                     foreach (var newItem in newSchedules)
@@ -704,9 +712,18 @@ namespace ShuttleMate.Services.Services
                     {
                         if (binaryDayOfWeek[i] == '1' && existing.DayOfWeek[i] == '1')
                         {
-                            var timeDiff = Math.Abs((time.ToTimeSpan() - existing.DepartureTime.ToTimeSpan()).TotalMinutes);
-                            if (timeDiff < 10)
-                                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Giờ khởi hành {timeStr} đã tồn tại trong cùng một thứ với khoảng cách nhỏ hơn 10 phút.");
+                            var currentDate = model.From.AddDays(i);
+                            var overrideForThisDate = existing.ScheduleOverrides?
+                                .FirstOrDefault(o => o.Date == currentDate && !o.DeletedTime.HasValue);
+
+                            // Nếu có override, không kiểm tra trùng giờ vì đã được override
+                            if (overrideForThisDate == null)
+                            {
+                                var timeDiff = Math.Abs((time.ToTimeSpan() - existing.DepartureTime.ToTimeSpan()).TotalMinutes);
+                                if (timeDiff < 10)
+                                    throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST,
+                                        $"Giờ khởi hành {timeStr} đã tồn tại trong cùng một thứ với khoảng cách nhỏ hơn 10 phút.");
+                            }
                         }
                     }
                 }
@@ -741,12 +758,11 @@ namespace ShuttleMate.Services.Services
             }
 
             if (newSchedules.Any())
-                await _unitOfWork.GetRepository<Schedule>().InsertRangeAsync(newSchedules);
+                await _scheduleRepo.InsertRangeAsync(newSchedules);
 
             var userIds = newSchedules.Select(x => x.Driver.Id).ToList();
 
-            var users = await _unitOfWork.GetRepository<User>()
-                .Entities
+            var users = await _unitOfWork.GetRepository<User>().Entities
                 .Where(u => !u.DeletedTime.HasValue)
                 .Where(u => userIds.Contains(u.Id))
                 .Select(u => new { u.Id, u.FullName})
@@ -1051,6 +1067,11 @@ namespace ShuttleMate.Services.Services
         }
 
         #region Private Methods
+        private DateOnly GetDateForDayOfWeek(DateOnly startDate, string dayOfWeek)
+        {
+            var dayIndex = ConvertDayOfWeekToIndex(dayOfWeek);
+            return startDate.AddDays(dayIndex);
+        }
 
         private string ConvertToBinaryDayOfWeek(IEnumerable<string> days)
         {
