@@ -441,7 +441,7 @@ namespace ShuttleMate.Services.Services
             var docRef = _firestoreService.GetCollection("notifications").Document(tripId.ToString());
             await docRef.UpdateAsync(new Dictionary<string, object>
             {
-                { "status", TripStatusEnum.COMPLETED.ToString() }
+                { "status", TripStatusEnum.COMPLETED }
             });
         }
 
