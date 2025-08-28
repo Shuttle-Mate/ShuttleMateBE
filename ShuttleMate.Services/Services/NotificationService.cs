@@ -104,6 +104,23 @@ namespace ShuttleMate.Services.Services
                     CreatedTime = DateTimeOffset.UtcNow,
                     Status = NotificationStatusEnum.SENT
                 };
+                var userNoti = await _unitOfWork.GetRepository<NotificationRecipient>()
+                    .Entities
+                    .Where(n => n.RecipientId == userId && n.Status.Equals(NotificationStatusEnum.SENT) && !n.DeletedTime.HasValue)
+                    .ToListAsync();
+
+                var userNotiCount = userNoti.Count() + 1;
+                var docRef = _firestoreService.GetCollection("notifications").Document(userId.ToString());
+                await docRef.SetAsync(new
+                {
+                    title = notification.Title.ToString(),
+                    content = notification.Content.ToString(),
+                    status = notification.Status.ToString(),
+                    notificationCategory = notification.NotificationCategory.ToString(),
+                    recipientId = userId.ToString(),
+                    createdTime = DateTime.UtcNow,
+                    unreadCount = userNotiCount,
+                });
 
                 // Send push notification to all devices of the user
                 var userDevices = await _unitOfWork.GetRepository<UserDevice>()
@@ -121,30 +138,12 @@ namespace ShuttleMate.Services.Services
                 bool atLeastOneSuccess = false;
                 bool allFailed = true;
 
-                var userNoti = await _unitOfWork.GetRepository<NotificationRecipient>()
-                    .Entities
-                    .Where(n => n.RecipientId == userId && n.Status.Equals(NotificationStatusEnum.SENT) && !n.DeletedTime.HasValue)
-                    .ToListAsync();
-
-                var userNotiCount = userNoti.Count() + 1;
-
                 foreach (var device in userDevices)
                 {
                     if (!string.IsNullOrEmpty(device.PushToken))
                     {
                         try
                         {
-                            var docRef = _firestoreService.GetCollection("notifications").Document(device.UserId.ToString());
-                            await docRef.SetAsync(new
-                            {
-                                title = notification.Title.ToString(),
-                                content = notification.Content.ToString(),
-                                status = notification.Status.ToString(),
-                                notificationCategory = notification.NotificationCategory.ToString(),
-                                recipientId = device.UserId.ToString(),
-                                createdTime = DateTime.UtcNow,
-                                unreadCount = userNotiCount,
-                            });
                             await _firebaseService.SendNotificationAsync(notification.Title, notification.Content, device.PushToken);
                             atLeastOneSuccess = true;
                             allFailed = false;
@@ -273,6 +272,25 @@ namespace ShuttleMate.Services.Services
                     Status = NotificationStatusEnum.SENT // sẽ cập nhật sau khi gửi FCM
                 };
 
+                var userNoti = await _unitOfWork.GetRepository<NotificationRecipient>()
+                        .Entities
+                        .Where(n => n.RecipientId == recipientId && n.Status.Equals(NotificationStatusEnum.SENT) && !n.DeletedTime.HasValue)
+                        .ToListAsync();
+
+                var userNotiCount = userNoti.Count() + 1;
+
+                var docRef = _firestoreService.GetCollection("notifications").Document(recipientId.ToString());
+                await docRef.SetAsync(new
+                {
+                    title = notification.Title.ToString(),
+                    content = notification.Content.ToString(),
+                    status = notification.Status.ToString(),
+                    notificationCategory = notification.NotificationCategory.ToString(),
+                    recipientId = recipientId.ToString(),
+                    createdTime = DateTime.UtcNow,
+                    unreadCount = userNotiCount,
+                });
+
                 try
                 {
                     var userDevices = await _unitOfWork.GetRepository<UserDevice>()
@@ -288,13 +306,6 @@ namespace ShuttleMate.Services.Services
                         continue;
                     }
 
-                    var userNoti = await _unitOfWork.GetRepository<NotificationRecipient>()
-                        .Entities
-                        .Where(n => n.RecipientId == recipientId && n.Status.Equals(NotificationStatusEnum.SENT) && !n.DeletedTime.HasValue)
-                        .ToListAsync();
-
-                    var userNotiCount = userNoti.Count() + 1;
-
                     bool atLeastOneSuccess = false;
                     bool allFailed = true;
 
@@ -304,17 +315,6 @@ namespace ShuttleMate.Services.Services
                         {
                             try
                             {
-                                var docRef = _firestoreService.GetCollection("notifications").Document(device.UserId.ToString());
-                                await docRef.SetAsync(new
-                                {
-                                    title = notification.Title.ToString(),
-                                    content = notification.Content.ToString(),
-                                    status = notification.Status.ToString(),
-                                    notificationCategory = notification.NotificationCategory.ToString(),
-                                    recipientId = device.UserId.ToString(),
-                                    createdTime = DateTime.UtcNow,
-                                    unreadCount = userNotiCount,
-                                });
                                 await _firebaseService.SendNotificationAsync(notification.Title, notification.Content, device.PushToken);
                                 atLeastOneSuccess = true;
                                 allFailed = false;
@@ -418,6 +418,18 @@ namespace ShuttleMate.Services.Services
 
                 var userNotiCount = userNoti.Count() + 1;
 
+                var docRef = _firestoreService.GetCollection("notifications").Document(recipientId.ToString());
+                await docRef.SetAsync(new
+                {
+                    title = notification.Title.ToString(),
+                    content = notification.Content.ToString(),
+                    status = notification.Status.ToString(),
+                    notificationCategory = notification.NotificationCategory.ToString(),
+                    recipientId = recipientId.ToString(),
+                    createdTime = DateTime.UtcNow,
+                    unreadCount = userNotiCount,
+                });
+
                 try
                 {
                     var userDevices = await _unitOfWork.GetRepository<UserDevice>()
@@ -441,17 +453,6 @@ namespace ShuttleMate.Services.Services
                         {
                             try
                             {
-                                var docRef = _firestoreService.GetCollection("notifications").Document(device.UserId.ToString());
-                                await docRef.SetAsync(new
-                                {
-                                    title = notification.Title.ToString(),
-                                    content = notification.Content.ToString(),
-                                    status = notification.Status.ToString(),
-                                    notificationCategory = notification.NotificationCategory.ToString(),
-                                    recipientId = device.UserId.ToString(),
-                                    createdTime = DateTime.UtcNow,
-                                    unreadCount = userNotiCount,
-                                });
                                 await _firebaseService.SendNotificationAsync(
                                     notification.Title,
                                     notification.Content,
