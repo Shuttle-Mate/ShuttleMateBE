@@ -21,6 +21,7 @@ namespace ShuttleMate.Services.Services
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IGenericRepository<Feedback> _feedbackRepo;
         private readonly IGenericRepository<Trip> _tripRepo;
+        private readonly IGenericRepository<User> _userRepo;
 
         public FeedbackService(IUnitOfWork unitOfWork, IMapper mapper, IHttpContextAccessor contextAccessor)
         {
@@ -29,6 +30,7 @@ namespace ShuttleMate.Services.Services
             _contextAccessor = contextAccessor;
             _feedbackRepo = _unitOfWork.GetRepository<Feedback>();
             _tripRepo = _unitOfWork.GetRepository<Trip>();
+            _userRepo = _unitOfWork.GetRepository<User>();
         }
 
         public async Task<BasePaginatedList<ResponseFeedbackModel>> GetAllAsync(
@@ -108,6 +110,8 @@ namespace ShuttleMate.Services.Services
             model.TrimAllStrings();
 
             var trip = await _tripRepo.GetQueryable()
+                .Include(t => t.Attendances)
+                    .ThenInclude(a => a.HistoryTicket)
                 .Where(t => t.Id == model.TripId && !t.DeletedTime.HasValue)
                 .AsNoTracking()
                 .FirstOrDefaultAsync()
@@ -116,8 +120,37 @@ namespace ShuttleMate.Services.Services
             if (trip.Status != TripStatusEnum.COMPLETED)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Chuyến đi này chưa kết thúc.");
 
-            if (!trip.Attendances.Any(a => a.HistoryTicket.UserId == userIdGuid && a.Status == AttendanceStatusEnum.CHECKED_OUT))
-                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn chưa check-in cho chuyến đi này.");
+            var currentUser = await _userRepo.GetQueryable()
+                .Where(u => u.Id == userIdGuid && !u.DeletedTime.HasValue)
+                .FirstOrDefaultAsync()
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Người dùng không tồn tại.");
+
+            var isParent = currentUser.ParentId == null;
+
+            bool canGiveFeedback = false;
+
+            if (isParent)
+            {
+                // Phụ huynh: kiểm tra xem có con nào tham gia chuyến đi này không
+                var childrenIds = await _userRepo.GetQueryable()
+                    .Where(u => u.ParentId == userIdGuid && !u.DeletedTime.HasValue)
+                    .Select(u => u.Id)
+                    .ToListAsync();
+
+                canGiveFeedback = trip.Attendances.Any(a =>
+                    childrenIds.Contains(a.HistoryTicket.UserId) &&
+                    a.Status == AttendanceStatusEnum.CHECKED_OUT);
+            }
+            else
+            {
+                // Học sinh: kiểm tra đã check-in/check-out chuyến đi này chưa
+                canGiveFeedback = trip.Attendances.Any(a =>
+                    a.HistoryTicket.UserId == userIdGuid &&
+                    a.Status == AttendanceStatusEnum.CHECKED_OUT);
+            }
+
+            if (!canGiveFeedback)
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Bạn không có quyền đánh giá chuyến đi này.");
 
             var hasExistingFeedback = await _feedbackRepo.GetQueryable()
                 .AnyAsync(f => f.TripId == model.TripId &&
