@@ -194,7 +194,15 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ResponseScheduleModel>(grouped, totalCount, page, pageSize);
         }
 
-        public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByDriverIdAsync(Guid driverId, string from, string to, string? dayOfWeek, string? direction, bool sortAsc, int page = 0, int pageSize = 10)
+        public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByDriverIdAsync(
+    Guid driverId,
+    string from,
+    string to,
+    string? dayOfWeek,
+    string? direction,
+    bool sortAsc,
+    int page = 0,
+    int pageSize = 10)
         {
             if (!DateOnly.TryParseExact(from, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var fromDate))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày {from} không hợp lệ.");
@@ -216,14 +224,9 @@ namespace ShuttleMate.Services.Services
                             x.From <= toDate &&
                             x.To >= fromDate);
 
-            // Xử lý lọc theo driverId - loại trừ các lịch đã được override cho tài xế khác
-            query = query.Where(f =>
-                // Lấy các lịch trình có driverId khớp và không bị override cho người khác
-                (f.DriverId == driverId &&
-                 !f.ScheduleOverrides.Any(o => o.OriginalUserId == driverId && o.OverrideUserId != null && o.OverrideUserId != driverId)) ||
-                // Hoặc lấy các lịch trình override cho driver này
-                f.ScheduleOverrides.Any(o => o.OverrideUserId == driverId)
-            );
+            // Sửa logic: Không lọc schedule ở mức tổng thể nữa, mà sẽ xử lý theo từng ngày cụ thể
+            query = query.Where(f => f.DriverId == driverId ||
+                                    f.ScheduleOverrides.Any(o => o.OverrideUserId == driverId));
 
             if (!string.IsNullOrWhiteSpace(direction) &&
                 Enum.TryParse<RouteDirectionEnum>(direction, true, out var parsedDirection))
@@ -275,27 +278,55 @@ namespace ShuttleMate.Services.Services
 
                             return matchingDates.Select(date =>
                             {
-                                // Kiểm tra nếu schedule này có override cho ngày này
+                                // Kiểm tra override cho ngày cụ thể
                                 var overrideForDate = scheduleOverrides.FirstOrDefault(x => x.Date == date);
 
-                                // Nếu schedule gốc thuộc về driver khác nhưng được override cho driver hiện tại
-                                var isOverrideForCurrentDriver = schedule.DriverId != driverId &&
-                                                               overrideForDate != null &&
-                                                               overrideForDate.OverrideUserId == driverId;
+                                // Xác định xem schedule này có hiển thị cho driver hiện tại trong ngày này không
+                                bool shouldDisplay = false;
+                                ResponseScheduleDetailModel scheduleDetail = null;
 
-                                // Nếu schedule gốc thuộc về driver hiện tại nhưng bị override cho driver khác
-                                var isOverriddenForOtherDriver = schedule.DriverId == driverId &&
-                                                                overrideForDate != null &&
-                                                                overrideForDate.OverrideUserId != null &&
-                                                                overrideForDate.OverrideUserId != driverId;
-
-                                // Chỉ hiển thị nếu:
-                                // 1. Schedule gốc thuộc về driver hiện tại và không bị override cho driver khác
-                                // 2. Hoặc schedule được override cho driver hiện tại
-                                if ((schedule.DriverId == driverId && !isOverriddenForOtherDriver) || isOverrideForCurrentDriver)
+                                // Trường hợp 1: Schedule gốc thuộc về driver hiện tại
+                                if (schedule.DriverId == driverId)
                                 {
-                                    var scheduleDetail = _mapper.Map<ResponseScheduleDetailModel>(schedule);
+                                    // Nếu có override cho ngày này và override cho driver khác -> không hiển thị
+                                    if (overrideForDate != null && overrideForDate.OverrideUserId != null &&
+                                        overrideForDate.OverrideUserId != driverId)
+                                    {
+                                        shouldDisplay = false;
+                                    }
+                                    else
+                                    {
+                                        // Không có override hoặc override vẫn cho driver hiện tại -> hiển thị
+                                        shouldDisplay = true;
+                                        scheduleDetail = _mapper.Map<ResponseScheduleDetailModel>(schedule);
+                                    }
+                                }
+                                // Trường hợp 2: Schedule gốc thuộc driver khác nhưng được override cho driver hiện tại
+                                else if (overrideForDate != null && overrideForDate.OverrideUserId == driverId)
+                                {
+                                    shouldDisplay = true;
+                                    scheduleDetail = _mapper.Map<ResponseScheduleDetailModel>(schedule);
 
+                                    // Cập nhật thông tin override
+                                    scheduleDetail.Driver = new ResponseDriverScheduleModel
+                                    {
+                                        Id = driverId,
+                                        FullName = driver.FullName
+                                    };
+
+                                    if (overrideForDate.OverrideShuttleId.HasValue)
+                                    {
+                                        scheduleDetail.Shuttle = new ResponseShuttleScheduleModel
+                                        {
+                                            Id = overrideForDate.OverrideShuttleId.Value,
+                                            Name = overrideForDate.OverrideShuttle?.Name ?? string.Empty
+                                        };
+                                    }
+                                }
+
+                                if (shouldDisplay && scheduleDetail != null)
+                                {
+                                    // Thêm thông tin override nếu có
                                     if (overrideForDate != null)
                                     {
                                         scheduleDetail.OverrideSchedule = new ResponseScheduleOverrideModel
@@ -411,7 +442,6 @@ namespace ShuttleMate.Services.Services
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             var todayVN = DateOnly.FromDateTime(vietnamNow);
             var dayOfWeek = (int)vietnamNow.DayOfWeek;
-            dayOfWeek = dayOfWeek == 0 ? 7 : dayOfWeek;
 
             var overrides = await _scheduleOverrideRepo.Entities
                 .Where(o => o.Date == todayVN && !o.DeletedTime.HasValue && o.OverrideUserId == driverIdGuid)
