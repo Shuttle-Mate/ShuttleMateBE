@@ -11,5 +11,11 @@ namespace ShuttleMate.Contract.Services.Interfaces
         Task<ResponseTripModel> GetByIdAsync(Guid tripId);
         Task UpdateAsync(Guid tripId, UpdateTripModel model);
         Task<BasePaginatedList<RouteShiftModels>> GetRouteShiftAsync(Guid userId);
+        //Task<BasePaginatedList<TripHistoryModel>> GetDriverTripHistory(Guid driverId, DateOnly? from, DateOnly? to);
+        //Task<BasePaginatedList<TripHistoryModel>> GetStudentTripHistory(Guid studentId, DateOnly? from, DateOnly? to);
+        //Task<BasePaginatedList<TripHistoryModel>> GetParentTripHistory(Guid parentId, Guid studentId, DateOnly? from, DateOnly? to);
+        Task<BasePaginatedList<TripHistoryModel>> GetDriverTripHistory(Guid driverId, DateOnly? from, DateOnly? to, int page = 0, int pageSize = 10);
+        Task<BasePaginatedList<TripHistoryModel>> GetStudentTripHistory(Guid studentId, DateOnly? from, DateOnly? to, int page = 0, int pageSize = 10);
+        Task<BasePaginatedList<TripHistoryModel>> GetParentTripHistory(Guid parentId, Guid studentId, DateOnly? from, DateOnly? to, int page = 0, int pageSize = 10);
     }
 }

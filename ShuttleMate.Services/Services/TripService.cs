@@ -678,5 +678,147 @@ namespace ShuttleMate.Services.Services
 
             return result;
         }
+
+        public async Task<BasePaginatedList<TripHistoryModel>> GetDriverTripHistory(Guid driverId, DateOnly? from, DateOnly? to, int page = 0, int pageSize = 10)
+        {
+            var query = _unitOfWork.GetRepository<Trip>().Entities
+                 .Include(t => t.Schedule)
+                     .ThenInclude(s => s.Route)
+                 .Include(t => t.Schedule)
+                     .ThenInclude(s => s.SchoolShift)
+                 .Include(t => t.Schedule)
+                     .ThenInclude(s => s.Shuttle)
+                 .Include(t => t.Schedule)
+                     .ThenInclude(s => s.Driver)
+                 .Where(t => t.Schedule.DriverId == driverId && !t.DeletedTime.HasValue)
+                 .Where(t => !from.HasValue || t.TripDate >= from)
+                 .Where(t => !to.HasValue || t.TripDate <= to);
+
+            // Lọc các trip mà driverId thực sự là người được phép xem (tài xế gốc hoặc override)
+            query = query.Where(t =>
+                // Lấy override theo ngày trip
+                !t.Schedule.ScheduleOverrides.Any(so => so.Date == t.TripDate && so.DeletedTime == null)
+                    ? t.Schedule.DriverId == driverId // Không có override, chỉ tài xế gốc
+                    : t.Schedule.ScheduleOverrides.Any(so => so.Date == t.TripDate && so.DeletedTime == null && so.OverrideUserId == driverId) // Có override, chỉ tài xế thay thế
+            );
+
+            var totalCount = await query.CountAsync();
+
+            var trips = await query
+                .OrderByDescending(t => t.TripDate)
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = new List<TripHistoryModel>();
+            foreach (var trip in trips)
+            {
+                var attendances = await _unitOfWork.GetRepository<Attendance>().Entities
+                    .Include(a => a.HistoryTicket)
+                        .ThenInclude(ht => ht.User)
+                    .Where(a => a.TripId == trip.Id && !a.DeletedTime.HasValue)
+                    .ToListAsync();
+
+                result.Add(new TripHistoryModel
+                {
+                    TripId = trip.Id,
+                    TripDate = trip.TripDate,
+                    StartTime = trip.StartTime,
+                    EndTime = trip.EndTime,
+                    RouteName = trip.Schedule.Route?.RouteName,
+                    RouteCode = trip.Schedule.Route?.RouteCode,
+                    Shift = trip.Schedule.SchoolShift?.ShiftType.ToString(),
+                    Session = trip.Schedule.SchoolShift?.SessionType.ToString(),
+                    DriverName = trip.Schedule.Driver?.FullName,
+                    ShuttleName = trip.Schedule.Shuttle?.Name,
+                    Status = trip.Status.ToString(),
+                    StudentAttendances = attendances.Select(a => new StudentAttendanceInfo
+                    {
+                        StudentId = a.HistoryTicket.User.Id,
+                        StudentName = a.HistoryTicket.User.FullName,
+                        CheckInLocation = a.StopCheckInLocation?.Name,
+                        CheckInTime = a.CheckInTime,
+                        CheckOutLocation = a.StopCheckOutLocation?.Name,
+                        CheckOutTime = a.CheckOutTime,
+                        AttendanceStatus = a.Status.ToString()
+                    }).ToList()
+                });
+            }
+
+            return new BasePaginatedList<TripHistoryModel>(result, totalCount, page, pageSize);
+        }
+
+        public async Task<BasePaginatedList<TripHistoryModel>> GetStudentTripHistory(Guid studentId, DateOnly? from, DateOnly? to, int page = 0, int pageSize = 10)
+        {
+            var query = _unitOfWork.GetRepository<Attendance>().Entities
+                .Include(a => a.Trip)
+                    .ThenInclude(t => t.Schedule)
+                        .ThenInclude(s => s.Route)
+                .Include(a => a.Trip)
+                    .ThenInclude(t => t.Schedule)
+                        .ThenInclude(s => s.SchoolShift)
+                .Include(a => a.Trip)
+                    .ThenInclude(t => t.Schedule)
+                        .ThenInclude(s => s.Driver)
+                .Include(a => a.Trip)
+                    .ThenInclude(t => t.Schedule)
+                        .ThenInclude(s => s.Shuttle)
+                .Include(a => a.HistoryTicket)
+                    .ThenInclude(ht => ht.User)
+                .Where(a => a.HistoryTicket.UserId == studentId && !a.DeletedTime.HasValue)
+                .Where(a => !from.HasValue || a.Trip.TripDate >= from)
+                .Where(a => !to.HasValue || a.Trip.TripDate <= to)
+                .OrderByDescending(a => a.Trip.TripDate);
+
+            var totalCount = await query.CountAsync();
+
+            var attendances = await query
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var result = attendances.Select(a => new TripHistoryModel
+            {
+                TripId = a.Trip.Id,
+                TripDate = a.Trip.TripDate,
+                StartTime = a.Trip.StartTime,
+                EndTime = a.Trip.EndTime,
+                RouteName = a.Trip.Schedule.Route?.RouteName,
+                RouteCode = a.Trip.Schedule.Route?.RouteCode,
+                Shift = a.Trip.Schedule.SchoolShift?.ShiftType.ToString(),
+                Session = a.Trip.Schedule.SchoolShift?.SessionType.ToString(),
+                DriverName = a.Trip.Schedule.Driver?.FullName,
+                ShuttleName = a.Trip.Schedule.Shuttle?.Name,
+                Status = a.Trip.Status.ToString(),
+                MyAttendance = new StudentAttendanceInfo
+                {
+                    StudentId = a.HistoryTicket.User.Id,
+                    StudentName = a.HistoryTicket.User.FullName,
+                    CheckInLocation = a.StopCheckInLocation?.Name,
+                    CheckInTime = a.CheckInTime,
+                    CheckOutLocation = a.StopCheckOutLocation?.Name,
+                    CheckOutTime = a.CheckOutTime,
+                    AttendanceStatus = a.Status.ToString()
+                }
+            }).ToList();
+
+            return new BasePaginatedList<TripHistoryModel>(result, totalCount, page, pageSize);
+        }
+
+        public async Task<BasePaginatedList<TripHistoryModel>> GetParentTripHistory(Guid parentId, Guid studentId, DateOnly? from, DateOnly? to, int page = 0, int pageSize = 10)
+        {
+            // Kiểm tra parentId có phải là parent của studentId không
+            var student = await _unitOfWork.GetRepository<User>().Entities
+                .FirstOrDefaultAsync(u => u.Id == studentId && !u.DeletedTime.HasValue);
+
+            if (student == null)
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Học sinh không tồn tại.");
+
+            if (student.ParentId == null || student.ParentId != parentId)
+                throw new ErrorException(StatusCodes.Status403Forbidden, ResponseCodeConstants.FORBIDDEN, "Bạn không có quyền xem lịch sử chuyến đi của học sinh này.");
+
+            // Nếu đúng, trả về lịch sử chuyến đi của học sinh (có phân trang)
+            return await GetStudentTripHistory(studentId, from, to, page, pageSize);
+        }
     }
 }

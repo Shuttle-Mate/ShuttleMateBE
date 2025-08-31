@@ -104,5 +104,57 @@ namespace ShuttleMate.API.Controllers
                 message: "Cập nhật vị trí chuyến đi thành công"
             ));
         }
+
+        /// <summary>
+        /// Lịch sử chuyến đi cho tài xế
+        /// </summary>
+        [HttpGet("driver")]
+        public async Task<IActionResult> GetDriverTripHistory(
+            [FromQuery] Guid driverId,
+            [FromQuery] DateOnly? from = null,
+            [FromQuery] DateOnly? to = null)
+        {
+            var data = await _tripService.GetDriverTripHistory(driverId, from, to);
+            return Ok(new BaseResponseModel<BasePaginatedList<TripHistoryModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: data
+            ));
+        }
+
+        /// <summary>
+        /// Lịch sử chuyến đi cho học sinh
+        /// </summary>
+        [HttpGet("student")]
+        public async Task<IActionResult> GetStudentTripHistory(
+            [FromQuery] Guid studentId,
+            [FromQuery] DateOnly? from = null,
+            [FromQuery] DateOnly? to = null)
+        {
+            var data = await _tripService.GetStudentTripHistory(studentId, from, to);
+            return Ok(new BaseResponseModel<BasePaginatedList<TripHistoryModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: data
+            ));
+        }
+
+        /// <summary>
+        /// Lịch sử chuyến đi cho phụ huynh (xem lịch sử của con)
+        /// </summary>
+        [HttpGet("parent")]
+        public async Task<IActionResult> GetParentTripHistory(
+            [FromQuery] Guid parentId,
+            [FromQuery] Guid studentId,
+            [FromQuery] DateOnly? from = null,
+            [FromQuery] DateOnly? to = null)
+        {
+            var data = await _tripService.GetParentTripHistory(parentId, studentId, from, to);
+            return Ok(new BaseResponseModel<BasePaginatedList<TripHistoryModel>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: data
+            ));
+        }
     }
 }
