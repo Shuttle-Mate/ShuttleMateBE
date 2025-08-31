@@ -158,6 +158,17 @@ namespace ShuttleMate.Services.Services
             && x.IsActive == true
             && x.School.IsActive == true
             && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
+            // Kiểm tra xem đã tồn tại vé cùng loại cho tuyến đường này chưa
+            var existingTicket = await _unitOfWork.GetRepository<Ticket>().Entities
+                .FirstOrDefaultAsync(x => x.RouteId == model.RouteId
+                    && x.Type.ToString() == model.Type
+                    && !x.DeletedTime.HasValue);
+
+            if (existingTicket != null)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.INVALID_INPUT, "Đã tồn tại vé cùng loại cho tuyến đường này!");
+            }
+
             switch (model.Type)
             {
                 case "WEEKLY":

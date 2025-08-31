@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Castle.Components.DictionaryAdapter.Xml;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,10 @@ using ShuttleMate.ModelViews.SchoolModelView;
 using ShuttleMate.ModelViews.SchoolShiftModelViews;
 using ShuttleMate.ModelViews.UserModelViews;
 using ShuttleMate.Services.Services.Infrastructure;
+using System.Data;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using static Google.Api.ResourceDescriptor.Types;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static ShuttleMate.Contract.Repositories.Enum.GeneralEnum;
 using static System.Net.WebRequestMethods;
@@ -368,12 +372,13 @@ namespace ShuttleMate.Services.Services
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
-                    ProfileImageUrl = u.ProfileImageUrl ,
+                    ProfileImageUrl = u.ProfileImageUrl,
                     Email = u.Email,
                     ParentName = u.Parent.FullName,
                     PhoneNumber = u.PhoneNumber,
                     SchoolName = u.School.Name,
                     HistoryTicketId = u.HistoryTickets
+                        .OrderByDescending(u => u.CreatedTime)
                         .Where(ht =>
                             ht.ValidUntil >= todayVN &&
                             ht.ValidFrom <= todayVN &&
@@ -465,7 +470,7 @@ namespace ShuttleMate.Services.Services
                     FullName = u.FullName,
                     Gender = u.Gender,
                     DateOfBirth = u.DateOfBirth,
-                    ProfileImageUrl = u.ProfileImageUrl ,
+                    ProfileImageUrl = u.ProfileImageUrl,
                     Address = u.Address,
                     EmailVerified = u.EmailVerified,
                     Violate = u.Violate,
@@ -648,7 +653,7 @@ namespace ShuttleMate.Services.Services
                     Address = school.Address,
                     PhoneNumber = school.PhoneNumber,
                     Email = school.Email,
-                    schoolShiftResponses = school.SchoolShifts?.Where(x =>x.UserSchoolShifts.Any(us=>us.StudentId == cb) && !x.DeletedTime.HasValue).Select(x => new SchoolShiftResponse
+                    schoolShiftResponses = school.SchoolShifts?.Where(x => x.UserSchoolShifts.Any(us => us.StudentId == cb) && !x.DeletedTime.HasValue).Select(x => new SchoolShiftResponse
                     {
                         Id = x.Id,
                         Time = x.Time,
@@ -676,7 +681,7 @@ namespace ShuttleMate.Services.Services
                         Gender = parent.Gender,
                         AssignCode = parent.AssignCode,
                         PhoneNumber = parent.PhoneNumber,
-                        ProfileImageUrl = parent.ProfileImageUrl ,
+                        ProfileImageUrl = parent.ProfileImageUrl,
                     };
                 }
             }
@@ -1039,37 +1044,200 @@ namespace ShuttleMate.Services.Services
         {
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
-            var user = await _unitOfWork.GetRepository<User>().Entities.FirstOrDefaultAsync(x => x.Id == userId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng!");
+
+            // Lấy thông tin user đầy đủ TRƯỚC KHI xóa
+            var user = await _unitOfWork.GetRepository<User>().Entities
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(x => x.Id == userId && !x.DeletedTime.HasValue)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy người dùng!");
+
+            // Lưu lại parentId và role trước khi xóa
+            var parentId = user.ParentId;
+            var userRole = user.UserRoles.FirstOrDefault()?.Role.Name;
+            var userName = user.FullName;
+
+            var childs = await _unitOfWork.GetRepository<User>().Entities
+                .Where(x => x.ParentId == user.Id && !x.DeletedTime.HasValue)
+                .ToArrayAsync();
+
+            foreach (var child in childs)
+            {
+                child.ParentId = null;
+                await _unitOfWork.GetRepository<User>().UpdateAsync(child);
+            }
+
             user.DeletedTime = vietnamNow;
             await _unitOfWork.GetRepository<User>().UpdateAsync(user);
             await _unitOfWork.SaveAsync();
+
+            // Gửi email thông báo xóa tài khoản với thông tin đã lưu
+            await SendDeleteUserEmail(user, userRole, parentId, userName);
         }
 
+        private async Task SendDeleteUserEmail(User user, string userRole, Guid? parentId, string userName)
+        {
+            // Luôn gửi email cho chính người dùng bị xóa
+            await SendDeleteNotificationEmail(user, false);
+
+            // Chỉ gửi thêm email cho parent nếu đây là STUDENT
+            if (userRole == "STUDENT" && parentId.HasValue)
+            {
+                var parent = await _unitOfWork.GetRepository<User>().Entities
+                    .FirstOrDefaultAsync(x => x.Id == parentId.Value && !x.DeletedTime.HasValue);
+
+                if (parent != null)
+                {
+                    await SendDeleteNotificationEmail(parent, true, userName);
+                }
+            }
+            // Nếu là PARENT thì chỉ gửi cho chính họ (đã gửi ở trên)
+        }
+
+        private async Task SendDeleteNotificationEmail(User recipient, bool isParentNotification, string studentName = null)
+        {
+            var subject = isParentNotification
+                ? $"Thông Báo Ngừng Sử Dụng Dịch Vụ - Tài Khoản Của {studentName}"
+                : "Thông Báo Ngừng Sử Dụng Dịch Vụ";
+
+            var content = isParentNotification
+                ? GenerateParentEmailContent(recipient, studentName)
+                : GenerateUserEmailContent(recipient);
+
+            await _emailService.SendEmailAsync(recipient.Email, subject, content);
+        }
+
+        private string GenerateUserEmailContent(User user)
+        {
+            // Sửa lỗi chính tả "STUDEN" -> "STUDENT"
+            var roleText = user.UserRoles.FirstOrDefault()?.Role.Name == "STUDENT" ? "học sinh" : "phụ huynh";
+
+            return $@"
+    <html>
+    <head>
+        <meta charset='UTF-8'>
+        <style>
+            body {{ font-family: Arial, sans-serif; background-color: #FAF9F7; padding: 20px; margin: 0; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+            .header {{ color: #124DA3; margin-bottom: 20px; border-bottom: 2px solid #F37022; padding-bottom: 15px; }}
+            .cta-button {{ background-color: #F37022; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 15px 0; }}
+            .success-text {{ color: #4EB748; }}
+            .highlight {{ color: #124DA3; font-weight: bold; }}
+            .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px; }}
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='header'>
+                <h2 style='margin: 0; color: #124DA3;'>THÔNG BÁO NGỪNG SỬ DỤNG DỊCH VỤ</h2>
+            </div>
+            
+            <p>Kính gửi Quý {roleText} <span class='highlight'>{user.FullName}</span>,</p>
+            
+            <p>Chúng tôi xin trân trọng thông báo rằng tài khoản ShuttleMate của Quý {roleText} đã chính thức ngừng hoạt động theo yêu cầu hoặc do vi phạm điều khoản sử dụng.</p>
+            
+            <p><strong style='color: #124DA3;'>Thông tin tài khoản:</strong></p>
+            <ul>
+                <li><strong>Họ tên:</strong> {user.FullName}</li>
+                <li><strong>Email:</strong> {user.Email}</li>
+                <li><strong>Trạng thái:</strong> <span style='color: #F37022; font-weight: bold;'>Đã ngừng hoạt động</span></li>
+            </ul>
+            
+            <p>Chúng tôi chân thành cảm ơn Quý {roleText} đã tin tưởng và sử dụng dịch vụ của ShuttleMate trong thời gian qua.</p>
+            
+            <p style='color: #124DA3; font-style: italic;'>Tôi rất mong bạn quay lại với dịch vụ của chúng tôi trong tương lai. ShuttleMate luôn sẵn sàng chào đón bạn trở lại bất cứ lúc nào.</p>
+    
+            <p>Nếu đây là sự nhầm lẫn hoặc Quý {roleText} có bất kỳ thắc mắc nào, vui lòng liên hệ với bộ phận hỗ trợ khách hàng của chúng tôi.</p>
+            
+            <div style='text-align: center; margin: 25px 0;'>
+                <a href='mailto:shuttlemate.service@gmail.com' class='cta-button'>LIÊN HỆ HỖ TRỢ</a>
+            </div>
+            
+            <div class='footer'>
+                <p>Trân trọng,<br><strong>Đội ngũ ShuttleMate</strong></p>
+                <p>Email: shuttlemate.service@gmail.com<br>Hotline: 1900 1234</p>
+            </div>
+        </div>
+    </body>
+    </html>";
+        }
+
+        private string GenerateParentEmailContent(User parent, string studentName)
+        {
+            return $@"
+    <html>
+    <head>
+        <meta charset='UTF-8'>
+        <style>
+            body {{ font-family: Arial, sans-serif; background-color: #FAF9F7; padding: 20px; margin: 0; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+            .header {{ color: #124DA3; margin-bottom: 20px; border-bottom: 2px solid #F37022; padding-bottom: 15px; }}
+            .cta-button {{ background-color: #F37022; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 15px 0; }}
+            .success-text {{ color: #4EB748; }}
+            .highlight {{ color: #124DA3; font-weight: bold; }}
+            .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px; }}
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='header'>
+                <h2 style='margin: 0; color: #124DA3;'>THÔNG BÁO NGỪNG SỬ DỤNG Dịch Vụ</h2>
+            </div>
+            
+            <p>Kính gửi Quý phụ huynh <span class='highlight'>{parent.FullName}</span>,</p>
+            
+            <p>Chúng tôi xin trân trọng thông báo rằng tài khoản ShuttleMate của học sinh <span class='highlight'>{studentName}</span> (con của Quý phụ huynh) đã chính thức ngừng hoạt động.</p>
+            
+            <p><strong style='color: #124DA3;'>Thông tin tài khoản:</strong></p>
+            <ul>
+                <li><strong>Học sinh:</strong> {studentName}</li>
+                <li><strong>Phụ huynh:</strong> {parent.FullName}</li>
+                <li><strong>Trạng thái:</strong> <span style='color: #F37022; font-weight: bold;'>Đã ngừng hoạt động</span></li>
+            </ul>
+            
+            <p>Chúng tôi chân thành cảm ơn Quý phụ huynh và học sinh đã tin tưởng và sử dụng dịch vụ của ShuttleMate trong thời gian qua.</p>
+            
+            <p style='color: #124DA3; font-style: italic;'>Tôi rất mong bạn quay lại với dịch vụ của chúng tôi trong tương lai. ShuttleMate luôn sẵn sàng chào đón bạn trở lại bất cứ lúc nào.</p>
+    
+            <p>Nếu Quý phụ huynh có bất kỳ thắc mắc nào hoặc muốn tìm hiểu thêm về dịch vụ, vui lòng liên hệ với bộ phận hỗ trợ khách hàng của chúng tôi.</p>
+            
+            <div style='text-align: center; margin: 25px 0;'>
+                <a href='mailto:shuttlemate.service@gmail.com' class='cta-button'>LIÊN HỆ HỖ TRỢ</a>
+            </div>
+            
+            <div class='footer'>
+                <p>Trân trọng,<br><strong>Đội ngũ ShuttleMate</strong></p>
+                <p>Email: shuttlemate.service@gmail.com<br>Hotline: 1900 1234</p>
+            </div>
+        </div>
+    </body>
+    </html>";
+        }
         private async Task SendBlockUserEmail(User guide)
         {
             await _emailService.SendEmailAsync(
                 guide.Email,
                 "Thông Báo khóa tài khoản",
                 $@"
-        <html>
-        <body style='font-family: Arial, sans-serif; background-color: #FAF9F7; padding: 20px;'>
-            <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
-                <h2 style='color: #124DA3; margin-top: 0;'>THÔNG BÁO KHÓA TÀI KHOẢN</h2>
-                
-                <p>Xin chào {guide.FullName},</p>
-                
-                <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã bị khóa do vi phạm điều khoản sử dụng của ShuttleMate.</p>
-                
-                <p><strong style='color: #F37022;'>Trạng thái tài khoản:</strong> <span style='color: #F37022; font-weight: bold;'>Đã khóa</span></p>
-                
-                <p style='color: #F37022; font-weight: bold;'>Nếu bạn cho rằng đây là sự nhầm lẫn, vui lòng liên hệ với bộ phận hỗ trợ của chúng tôi.</p>
-                
-                <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;'>
-                    <p>Trân trọng,<br>Đội ngũ ShuttleMate</p>
-                </div>
-            </div>
-        </body>
-        </html>"
+                <html>
+                <body style='font-family: Arial, sans-serif; background-color: #FAF9F7; padding: 20px;'>
+                    <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+                        <h2 style='color: #124DA3; margin-top: 0;'>THÔNG BÁO KHÓA TÀI KHOẢN</h2>
+                        
+                        <p>Xin chào {guide.FullName},</p>
+                        
+                        <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã bị khóa do vi phạm điều khoản sử dụng của ShuttleMate.</p>
+                        
+                        <p><strong style='color: #F37022;'>Trạng thái tài khoản:</strong> <span style='color: #F37022; font-weight: bold;'>Đã khóa</span></p>
+                        
+                        <p style='color: #F37022; font-weight: bold;'>Nếu bạn cho rằng đây là sự nhầm lẫn, vui lòng liên hệ với bộ phận hỗ trợ của chúng tôi.</p>
+                        
+                        <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;'>
+                            <p>Trân trọng,<br>Đội ngũ ShuttleMate</p>
+                        </div>
+                    </div>
+                </body>
+                </html>"
             );
         }
 
@@ -1079,25 +1247,25 @@ namespace ShuttleMate.Services.Services
                 guide.Email,
                 "Thông Báo mở khóa tài khoản",
                 $@"
-        <html>
-        <body style='font-family: Arial, sans-serif; background-color: #FAF9F7; padding: 20px;'>
-            <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
-                <h2 style='color: #4EB748; margin-top: 0;'>THÔNG BÁO MỞ KHÓA TÀI KHOẢN</h2>
-                
-                <p>Xin chào {guide.FullName},</p>
-                
-                <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã được mở khóa và có thể sử dụng lại bình thường.</p>
-                
-                <p><strong style='color: #4EB748;'>Trạng thái tài khoản:</strong> <span style='color: #4EB748; font-weight: bold;'>Đã mở khóa</span></p>
-                
-                <p style='color: #124DA3;'>Cảm ơn bạn đã hợp tác với chúng tôi!</p>
-                
-                <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;'>
-                    <p>Trân trọng,<br>Đội ngũ ShuttleMate</p>
+            <html>
+            <body style='font-family: Arial, sans-serif; background-color: #FAF9F7; padding: 20px;'>
+                <div style='max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+                    <h2 style='color: #4EB748; margin-top: 0;'>THÔNG BÁO MỞ KHÓA TÀI KHOẢN</h2>
+                    
+                    <p>Xin chào {guide.FullName},</p>
+                    
+                    <p>Chúng tôi xin thông báo rằng tài khoản của bạn đã được mở khóa và có thể sử dụng lại bình thường.</p>
+                    
+                    <p><strong style='color: #4EB748;'>Trạng thái tài khoản:</strong> <span style='color: #4EB748; font-weight: bold;'>Đã mở khóa</span></p>
+                    
+                    <p style='color: #124DA3;'>Cảm ơn bạn đã hợp tác với chúng tôi!</p>
+                    
+                    <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;'>
+                        <p>Trân trọng,<br>Đội ngũ ShuttleMate</p>
+                    </div>
                 </div>
-            </div>
-        </body>
-        </html>"
+            </body>
+            </html>"
             );
         }
     }

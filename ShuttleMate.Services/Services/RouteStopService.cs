@@ -78,7 +78,6 @@ namespace ShuttleMate.Services.Services
                     }
                 }
 
-
                 // Xác định stops cần thêm mới (có trong model.StopIds nhưng chưa có trong current)
                 var existingStopIds = currentRouteStops.Select(rs => rs.StopId).ToList();
                 var stopsToInsert = model.StopIds
