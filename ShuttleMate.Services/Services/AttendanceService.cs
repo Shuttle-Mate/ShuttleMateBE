@@ -114,12 +114,13 @@ namespace ShuttleMate.Services.Services
             var docRef = _firestoreService.GetCollection("attendance").Document(checkin.HistoryTicketId.ToString());
             await docRef.SetAsync(new
             {
-                HistoryTicketId = checkin.HistoryTicketId.ToString(),
-                StudentName = checkinWithNav.HistoryTicket.User.FullName,
-                ShuttleName = checkinWithNav.Trip.Schedule.Shuttle.Name,
-                CheckInLocation = checkinWithNav.StopCheckInLocation.Name,
-                CheckInTime = DateTime.UtcNow,
-                Status = "CHECKED_IN"
+                userId = checkin.HistoryTicket.UserId.ToString(),
+                historyTicketId = checkin.HistoryTicketId.ToString(),
+                studentName = checkinWithNav.HistoryTicket.User.FullName,
+                shuttleName = checkinWithNav.Trip.Schedule.Shuttle.Name,
+                checkInLocation = checkinWithNav.StopCheckInLocation.Name,
+                checkInTime = DateTime.UtcNow,
+                status = "CHECKED_IN"
             });
 
             DateTime dateTime = vietnamNow;
@@ -203,12 +204,13 @@ namespace ShuttleMate.Services.Services
             var docRef = _firestoreService.GetCollection("attendance").Document(checkout.HistoryTicketId.ToString());
             await docRef.SetAsync(new
             {
-                HistoryTicketId = checkout.HistoryTicketId.ToString(),
-                StudentName = checkoutWithNav.HistoryTicket.User.FullName,
-                ShuttleName = checkoutWithNav.Trip.Schedule.Shuttle.Name,
-                CheckOutLocation = checkoutWithNav.StopCheckOutLocation.Name,
-                CheckOutTime = DateTime.UtcNow,
-                Status = "CHECKED_OUT"
+                userId = checkout.HistoryTicket.UserId.ToString(),
+                historyTicketId = checkout.HistoryTicketId.ToString(),
+                studentName = checkoutWithNav.HistoryTicket.User.FullName,
+                shuttleName = checkoutWithNav.Trip.Schedule.Shuttle.Name,
+                checkOutLocation = checkoutWithNav.StopCheckOutLocation.Name,
+                checkOutTime = DateTime.UtcNow,
+                status = "CHECKED_OUT"
             });
 
             DateTime dateTime = vietnamNow;
