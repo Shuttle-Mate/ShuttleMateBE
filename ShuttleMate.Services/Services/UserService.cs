@@ -418,6 +418,164 @@ namespace ShuttleMate.Services.Services
             return new BasePaginatedList<ResponseStudentInRouteAndShiftModel>(pagedItems, totalCount, page, pageSize);
         }
 
+        public async Task<BasePaginatedList<ResponseNumberOfStudentInRoute>> GetNumberOfStudentInRoute(int page = 0, int pageSize = 10, Guid? routeId = null, DateOnly? date = null, string? search = null)
+        {
+            if (routeId == null)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy tuyến!");
+            }
+
+            var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
+
+            // Xác định tuần hiện tại nếu không có date
+            DateOnly startDate;
+            DateOnly endDate;
+
+            if (date == null)
+            {
+                // Lấy ngày đầu tuần (thứ 2) và cuối tuần (chủ nhật) của tuần hiện tại
+                var currentDayOfWeek = (int)vietnamNow.DayOfWeek;
+                var daysToSubtract = currentDayOfWeek == 0 ? 6 : currentDayOfWeek - 1;
+                startDate = DateOnly.FromDateTime(vietnamNow.AddDays(-daysToSubtract));
+                endDate = startDate.AddDays(6);
+            }
+            else
+            {
+                // Xác định tuần từ ngày được chọn
+                var selectedDate = date.Value;
+                var dayOfWeek = (int)selectedDate.DayOfWeek;
+                var daysToSubtract = dayOfWeek == 0 ? 6 : dayOfWeek - 1;
+                startDate = selectedDate.AddDays(-daysToSubtract);
+                endDate = startDate.AddDays(6);
+            }
+
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var routeRepo = _unitOfWork.GetRepository<Route>();
+
+            // Lấy thông tin tuyến đường để xác định schoolId
+            var route = await routeRepo.Entities
+                .Include(r => r.School)
+                .FirstOrDefaultAsync(r => r.Id == routeId && !r.DeletedTime.HasValue);
+
+            if (route == null)
+            {
+                throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Không tìm thấy tuyến!");
+            }
+
+            var schoolId = route.SchoolId;
+
+            // Lấy tất cả các ca học của trường
+            var schoolShifts = await _unitOfWork.GetRepository<SchoolShift>()
+                .Entities
+                .Where(ss => ss.SchoolId == schoolId && !ss.DeletedTime.HasValue)
+                .ToListAsync();
+
+            // Tạo danh sách các ngày trong tuần
+            var daysInWeek = new List<DateOnly>();
+            for (var i = 0; i < 7; i++)
+            {
+                daysInWeek.Add(startDate.AddDays(i));
+            }
+
+            // Tạo kết quả cơ bản với tất cả ca học và ngày
+            var result = new List<ResponseNumberOfStudentInRoute>();
+            var daysOfWeek = new[] { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+
+            for (int i = 0; i < daysInWeek.Count; i++)
+            {
+                var currentDate = daysInWeek[i];
+                var dayOfWeekName = daysOfWeek[i];
+
+                var dayResult = new ResponseNumberOfStudentInRoute
+                {
+                    DayOfWeek = GetVietnameseDayOfWeek(dayOfWeekName),
+                    SchoolShift = new List<NumberOfStudentInRoute>()
+                };
+
+                foreach (var schoolShift in schoolShifts)
+                {
+                    // Đếm số học sinh có vé hợp lệ cho ngày này và ca học này
+                    var numberOfStudents = await userRepo.Entities
+                        .Include(u => u.HistoryTickets)
+                            .ThenInclude(ht => ht.HistoryTicketSchoolShifts)
+                        .Include(u => u.HistoryTickets)
+                            .ThenInclude(ht => ht.Ticket)
+                        .Where(u => !u.DeletedTime.HasValue &&
+                                    u.SchoolId == schoolId &&
+                                    u.HistoryTickets.Any(ht =>
+                                        ht.Ticket.RouteId == routeId &&
+                                        ht.Ticket.Route.IsActive == true &&
+                                        ht.ValidFrom <= currentDate &&
+                                        ht.ValidUntil >= currentDate &&
+                                        ht.Status == HistoryTicketStatus.PAID &&
+                                        !ht.DeletedTime.HasValue &&
+                                        ht.HistoryTicketSchoolShifts.Any(htss =>
+                                            htss.SchoolShiftId == schoolShift.Id)))
+                        .CountAsync();
+
+                    // Lọc theo tên nếu có
+                    if (!string.IsNullOrWhiteSpace(search))
+                    {
+                        numberOfStudents = await userRepo.Entities
+                            .Include(u => u.HistoryTickets)
+                                .ThenInclude(ht => ht.HistoryTicketSchoolShifts)
+                            .Include(u => u.HistoryTickets)
+                                .ThenInclude(ht => ht.Ticket)
+                            .Where(u => !u.DeletedTime.HasValue &&
+                                        u.SchoolId == schoolId &&
+                                        u.FullName.Contains(search) &&
+                                        u.HistoryTickets.Any(ht =>
+                                            ht.Ticket.RouteId == routeId &&
+                                            ht.Ticket.Route.IsActive == true &&
+                                            ht.ValidFrom <= currentDate &&
+                                            ht.ValidUntil >= currentDate &&
+                                            ht.Status == HistoryTicketStatus.PAID &&
+                                            !ht.DeletedTime.HasValue &&
+                                            ht.HistoryTicketSchoolShifts.Any(htss =>
+                                                htss.SchoolShiftId == schoolShift.Id)))
+                            .CountAsync();
+                    }
+
+                    dayResult.SchoolShift.Add(new NumberOfStudentInRoute
+                    {
+                        SchoolShiftId = schoolShift.Id,
+                        Time = schoolShift.Time,
+                        ShiftType = schoolShift.ShiftType,
+                        SessionType = schoolShift.SessionType,
+                        NumberOfStudent = numberOfStudents
+                    });
+                }
+
+                result.Add(dayResult);
+            }
+
+            // Phân trang
+            var totalCount = result.Count;
+            var pagedItems = result
+                .Skip(page * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new BasePaginatedList<ResponseNumberOfStudentInRoute>(pagedItems, totalCount, page, pageSize);
+        }
+
+        // Hàm chuyển đổi tên ngày sang tiếng Việt
+        private string GetVietnameseDayOfWeek(string englishDay)
+        {
+            return englishDay.ToLower() switch
+            {
+                "monday" => "Thứ Hai",
+                "tuesday" => "Thứ Ba",
+                "wednesday" => "Thứ Tư",
+                "thursday" => "Thứ Năm",
+                "friday" => "Thứ Sáu",
+                "saturday" => "Thứ Bảy",
+                "sunday" => "Chủ Nhật",
+                _ => englishDay
+            };
+        }
+
         public async Task<BasePaginatedList<AdminResponseUserModel>> GetAllAsync(int page = 0, int pageSize = 10, string? name = null, bool? gender = null, string? roleName = null, bool? Violate = null, string? email = null, string? phone = null, Guid? schoolId = null, Guid? parentId = null)
         {
             var userRepo = _unitOfWork.GetRepository<User>();
