@@ -42,7 +42,7 @@ namespace ShuttleMate.Services.Services
         {
             var ticketRepo = _unitOfWork.GetRepository<Ticket>();
 
-            var query = ticketRepo.Entities
+            var query = ticketRepo.Entities.OrderByDescending(x=>x.CreatedTime)
             .Where(x => !x.Route.School.DeletedTime.HasValue
             && x.Route.IsActive == true
             && !x.Route.DeletedTime.HasValue
