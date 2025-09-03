@@ -77,6 +77,25 @@ namespace ShuttleMate.API.Controllers
                 data: users
             ));
         }
+        /// <summary>
+        /// Lấy số lượng hs trong cùng 1 tuyến của các ca học
+        /// </summary>
+        /// <param name="page">Trang (mặc định 0).</param>
+        /// <param name="pageSize">Số bản ghi mỗi trang (mặc định 10).</param>
+        /// <param name="routeId">Lấy id tuyền(bắt buộc).</param>
+        /// <param name="date">Nhập ngày bất kì trong 1 tuần, khi không nhập gì sẽ lấy tuần hiện tại(tùy chọn).</param>
+        /// <param name="search">Tìm kiếm theo tên(tùy chọn).</param>
+        [HttpGet("{routeId}/number-student")]
+        public async Task<IActionResult> GetNumberOfStudentInRoute(int page = 0, int pageSize = 10, Guid? routeId = null, DateOnly? date = null, string? search = null)
+        {
+            var users = await _userService.GetNumberOfStudentInRoute(page, pageSize, routeId, date, search);
+
+            return Ok(new BaseResponseModel<BasePaginatedList<ResponseNumberOfStudentInRoute>>(
+                statusCode: StatusCodes.Status200OK,
+                code: ResponseCodeConstants.SUCCESS,
+                data: users
+            ));
+        }
 
         /// <summary>
         /// Lấy tất cả con của phụ huynh(Parent)

@@ -195,14 +195,14 @@ namespace ShuttleMate.Services.Services
         }
 
         public async Task<BasePaginatedList<ResponseScheduleModel>> GetAllByDriverIdAsync(
-    Guid driverId,
-    string from,
-    string to,
-    string? dayOfWeek,
-    string? direction,
-    bool sortAsc,
-    int page = 0,
-    int pageSize = 10)
+            Guid driverId,
+            string from,
+            string to,
+            string? dayOfWeek,
+            string? direction,
+            bool sortAsc,
+            int page = 0,
+            int pageSize = 10)
         {
             if (!DateOnly.TryParseExact(from, "dd-MM-yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var fromDate))
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, $"Ngày {from} không hợp lệ.");
@@ -213,7 +213,6 @@ namespace ShuttleMate.Services.Services
             var driver = await _unitOfWork.GetRepository<User>().GetByIdAsync(driverId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tài xế không tồn tại.");
 
-            // Query lấy schedules với include ScheduleOverrides
             var query = _unitOfWork.GetRepository<Schedule>()
                 .GetQueryable()
                 .Include(x => x.Shuttle)
@@ -224,15 +223,11 @@ namespace ShuttleMate.Services.Services
                             x.From <= toDate &&
                             x.To >= fromDate);
 
-            // Sửa logic: Không lọc schedule ở mức tổng thể nữa, mà sẽ xử lý theo từng ngày cụ thể
-            query = query.Where(f => f.DriverId == driverId ||
-                                    f.ScheduleOverrides.Any(o => o.OverrideUserId == driverId));
+            // Lấy lịch trình gốc và lịch trình được thay thế cho tài xế
+            query = query.Where(f => f.DriverId == driverId || f.ScheduleOverrides.Any(o => o.OverrideUserId == driverId));
 
-            if (!string.IsNullOrWhiteSpace(direction) &&
-                Enum.TryParse<RouteDirectionEnum>(direction, true, out var parsedDirection))
-            {
+            if (!string.IsNullOrWhiteSpace(direction) && Enum.TryParse<RouteDirectionEnum>(direction, true, out var parsedDirection))
                 query = query.Where(x => x.Direction == parsedDirection);
-            }
 
             query = sortAsc
                 ? query.OrderBy(x => x.DepartureTime)
@@ -247,7 +242,7 @@ namespace ShuttleMate.Services.Services
 
             var scheduleIds = pagedItems.Select(x => x.Id).ToList();
 
-            // Lấy tất cả override schedules trong khoảng thời gian
+            // Lấy tất cả lịch trình thay thế trong khoảng thời gian
             var overrideSchedules = await _unitOfWork.GetRepository<ScheduleOverride>()
                 .GetQueryable()
                 .Include(x => x.OverrideShuttle)
@@ -711,7 +706,7 @@ namespace ShuttleMate.Services.Services
             var nextWeekStart = todayVN.AddDays(daysUntilNextMonday == 0 ? 7 : daysUntilNextMonday);
             var nextWeekEnd = nextWeekStart.AddDays(6);
 
-            // Nếu tạo cho tuần tiếp theo, kiểm tra và xóa lịch trình cũ nếu tồn tại
+            //Nếu tạo cho tuần tiếp theo, kiểm tra và xóa lịch trình cũ nếu tồn tại
             if (model.From == nextWeekStart && model.To == nextWeekEnd)
             {
                 var existingSchedules = await _scheduleRepo.FindAllAsync(x =>

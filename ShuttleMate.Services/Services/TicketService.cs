@@ -42,9 +42,10 @@ namespace ShuttleMate.Services.Services
         {
             var ticketRepo = _unitOfWork.GetRepository<Ticket>();
 
-            var query = ticketRepo.Entities
-            .Where(x => x.Route.School.IsActive == true
+            var query = ticketRepo.Entities.OrderByDescending(x=>x.CreatedTime)
+            .Where(x => !x.Route.School.DeletedTime.HasValue
             && x.Route.IsActive == true
+            && !x.Route.DeletedTime.HasValue
             && !x.DeletedTime.HasValue)
             .Include(u => u.Route)
             .ThenInclude(x => x.School)
@@ -157,11 +158,13 @@ namespace ShuttleMate.Services.Services
             var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == model.RouteId
             && x.IsActive == true
             && x.School.IsActive == true
+            && !x.School.DeletedTime.HasValue
             && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến đường không tồn tại!");
+            Enum.TryParse<TicketTypeEnum>(model.Type, true, out var parsedType);
             // Kiểm tra xem đã tồn tại vé cùng loại cho tuyến đường này chưa
             var existingTicket = await _unitOfWork.GetRepository<Ticket>().Entities
                 .FirstOrDefaultAsync(x => x.RouteId == model.RouteId
-                    && x.Type.ToString() == model.Type
+                    && x.Type == parsedType
                     && !x.DeletedTime.HasValue);
 
             if (existingTicket != null)
