@@ -66,7 +66,26 @@ namespace ShuttleMate.Services.Services
         {
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
-            var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == routeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
+            var route = await _unitOfWork.GetRepository<Route>().Entities
+                .FirstOrDefaultAsync(x => x.Id == routeId && !x.DeletedTime.HasValue)
+                ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
+
+            var hasActiveSchedules = await _unitOfWork.GetRepository<Schedule>().Entities
+                .AnyAsync(s => s.RouteId == routeId && !s.DeletedTime.HasValue);
+
+            if (hasActiveSchedules)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không thể xóa tuyến vì có lịch trình đang hoạt động!");
+            }
+
+            var hasActiveTickets = await _unitOfWork.GetRepository<Ticket>().Entities
+                .AnyAsync(t => t.RouteId == routeId && !t.DeletedTime.HasValue);
+
+            if (hasActiveTickets)
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không thể xóa tuyến vì có vé đang hoạt động!");
+            }
+
             route.DeletedTime = DateTime.Now;
             route.DeletedBy = userId;
             await _unitOfWork.GetRepository<Route>().UpdateAsync(route);
