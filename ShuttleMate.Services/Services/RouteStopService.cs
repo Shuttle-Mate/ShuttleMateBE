@@ -149,28 +149,54 @@ namespace ShuttleMate.Services.Services
             if (lat == 0 || lng == 0)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Phải truyền tọa độ lat, lng");
 
+            //var rawStops = await _unitOfWork.GetRepository<Stop>()
+            //    .GetQueryable()
+            //    .Where(s => !s.DeletedTime.HasValue)
+            //    .Include(s => s.RouteStops)
+            //        .ThenInclude(rs => rs.Route)
+            //    .ToListAsync();
+            // Query stops + filter luôn RouteStops trong Include để tránh gán lại collection
             var rawStops = await _unitOfWork.GetRepository<Stop>()
                 .GetQueryable()
                 .Where(s => !s.DeletedTime.HasValue)
-                .Include(s => s.RouteStops)
+                .Include(s => s.RouteStops
+                    .Where(rs => !rs.Route.DeletedTime.HasValue && rs.Route.SchoolId == schoolId))
                     .ThenInclude(rs => rs.Route)
                 .ToListAsync();
 
-            foreach (var stop in rawStops)
-            {
-                stop.RouteStops = stop.RouteStops
-                    .Where(rs => !rs.Route.DeletedTime.HasValue && rs.Route.SchoolId == schoolId)
-                    .ToList();
-            }
+            //foreach (var stop in rawStops)
+            //{
+            //    stop.RouteStops = stop.RouteStops
+            //        .Where(rs => !rs.Route.DeletedTime.HasValue && rs.Route.SchoolId == schoolId)
+            //        .ToList();
+            //}
 
+            //var filteredStops = rawStops
+            //    .Where(s =>
+            //        s.RouteStops.All(rs =>
+            //        {
+            //            var routeStops = rs.Route.RouteStops
+            //                .Where(x => !x.Stop.DeletedTime.HasValue)
+            //                .OrderBy(x => x.StopOrder)
+            //                .ToList();
+            //            if (routeStops.Count <= 2) return false;
+
+            //            var first = routeStops.First();
+            //            var last = routeStops.Last();
+            //            return rs.StopId != first.StopId && rs.StopId != last.StopId;
+            //        }))
+            //    .ToList();
+
+            // Chỉ giữ lại Stop có RouteStops hợp lệ (bỏ đầu/cuối tuyến)
             var filteredStops = rawStops
-                .Where(s =>
+                .Where(s => s.RouteStops.Any() &&
                     s.RouteStops.All(rs =>
                     {
                         var routeStops = rs.Route.RouteStops
                             .Where(x => !x.Stop.DeletedTime.HasValue)
                             .OrderBy(x => x.StopOrder)
                             .ToList();
+
                         if (routeStops.Count <= 2) return false;
 
                         var first = routeStops.First();
