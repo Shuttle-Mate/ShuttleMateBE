@@ -79,7 +79,7 @@ namespace ShuttleMate.Services.Services
             // Configure HTTP client
             _httpClient.BaseAddress = new Uri(_configuration["OpenAI:BaseUrl"] ?? "https://api.openai.com/v1/");
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _configuration["OpenAI:ApiKey"]);
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _configuration["OPENAI_API_KEY"]);
             _httpClient.Timeout = TimeSpan.FromSeconds(30);
 
             // Configure policies
