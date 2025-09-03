@@ -706,27 +706,27 @@ namespace ShuttleMate.Services.Services
             var nextWeekStart = todayVN.AddDays(daysUntilNextMonday == 0 ? 7 : daysUntilNextMonday);
             var nextWeekEnd = nextWeekStart.AddDays(6);
 
-            // Nếu tạo cho tuần tiếp theo, kiểm tra và xóa lịch trình cũ nếu tồn tại
-            //if (model.From == nextWeekStart && model.To == nextWeekEnd)
-            //{
-            //    var existingSchedules = await _scheduleRepo.FindAllAsync(x =>
-            //        x.RouteId == model.RouteId &&
-            //        !x.DeletedTime.HasValue &&
-            //        x.From == model.From &&
-            //        x.To == model.To);
+            //Nếu tạo cho tuần tiếp theo, kiểm tra và xóa lịch trình cũ nếu tồn tại
+            if (model.From == nextWeekStart && model.To == nextWeekEnd)
+            {
+                var existingSchedules = await _scheduleRepo.FindAllAsync(x =>
+                    x.RouteId == model.RouteId &&
+                    !x.DeletedTime.HasValue &&
+                    x.From == model.From &&
+                    x.To == model.To);
 
-            //    if (existingSchedules.Any())
-            //    {
-            //        var scheduleIds = existingSchedules.Select(x => x.Id).ToList();
-            //        var existingStopEstimates = await _stopEstimateRepo.FindAllAsync(x => scheduleIds.Contains(x.ScheduleId));
+                if (existingSchedules.Any())
+                {
+                    var scheduleIds = existingSchedules.Select(x => x.Id).ToList();
+                    var existingStopEstimates = await _stopEstimateRepo.FindAllAsync(x => scheduleIds.Contains(x.ScheduleId));
 
-            //        if (existingStopEstimates.Any())
-            //            await _stopEstimateRepo.DeleteRangeAsync(existingStopEstimates);
+                    if (existingStopEstimates.Any())
+                        await _stopEstimateRepo.DeleteRangeAsync(existingStopEstimates);
 
-            //        await _scheduleRepo.DeleteRangeAsync(existingSchedules);
-            //        await _unitOfWork.SaveAsync();
-            //    }
-            //}
+                    await _scheduleRepo.DeleteRangeAsync(existingSchedules);
+                    await _unitOfWork.SaveAsync();
+                }
+            }
 
             var route = await _routeRepo.GetByIdAsync(model.RouteId)
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND, "Tuyến không tồn tại.");
