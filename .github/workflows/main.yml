@@ -12,12 +12,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Write Firebase key
+      - name: Write Firebase key and OpenAI Key
         run: |
           mkdir -p ./Keys
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > ./Keys/serviceAccountKey.json
           sed -i 's/\\\\n/\n/g' ./Keys/serviceAccountKey.json
           chmod 644 ./Keys/serviceAccountKey.json
+
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
+          echo "CLIENT_DOMAIN=http://localhost:4000" >> .env
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/app/Keys/serviceAccountKey.json" >> .env
 
       - name: Dump first 20 lines of key
         run: |

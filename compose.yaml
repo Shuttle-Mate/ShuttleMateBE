@@ -10,3 +10,4 @@ services:
     environment:
       - CLIENT_DOMAIN=http://localhost:4000
       - GOOGLE_APPLICATION_CREDENTIALS=/app/Keys/serviceAccountKey.json
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
