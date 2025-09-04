@@ -580,10 +580,10 @@ namespace ShuttleMate.Services.Services
         {
             var userRepo = _unitOfWork.GetRepository<User>();
 
-            var query = userRepo.Entities
-        .Include(u => u.UserRoles)
-        .ThenInclude(ur => ur.Role)
-        .AsQueryable();
+            var query = userRepo.Entities.OrderByDescending(x => x.CreatedTime)
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(roleName))
             {

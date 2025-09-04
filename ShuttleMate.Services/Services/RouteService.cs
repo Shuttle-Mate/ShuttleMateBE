@@ -98,7 +98,7 @@ namespace ShuttleMate.Services.Services
             var page = req.page > 0 ? req.page : 0;
             var pageSize = req.pageSize > 0 ? req.pageSize : 10;
 
-            var query = _unitOfWork.GetRepository<Route>().Entities
+            var query = _unitOfWork.GetRepository<Route>().Entities.OrderByDescending(x => x.CreatedTime)
                 .Where(x => !x.DeletedTime.HasValue);
             //.OrderBy(x => x.RouteCode);
 
