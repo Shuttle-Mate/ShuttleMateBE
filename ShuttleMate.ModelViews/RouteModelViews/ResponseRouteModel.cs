@@ -22,5 +22,6 @@ namespace ShuttleMate.ModelViews.RouteModelViews
         public int TotalDuration { get; set; }
         public bool IsActive { get; set; }
         public Guid SchoolId { get; set; }
+        public string SchoolName { get; set; }
     }
 }
