@@ -217,6 +217,7 @@ namespace ShuttleMate.Services.Services
                 .GetQueryable()
                 .Include(x => x.Shuttle)
                 .Include(x => x.Driver)
+                .Include(x => x.Route)
                 .Include(x => x.SchoolShift)
                 .Include(x => x.ScheduleOverrides)
                 .Where(x => !x.DeletedTime.HasValue &&

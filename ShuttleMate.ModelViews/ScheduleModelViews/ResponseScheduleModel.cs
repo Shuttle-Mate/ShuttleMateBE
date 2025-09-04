@@ -14,10 +14,17 @@ namespace ShuttleMate.ModelViews.ScheduleModelViews
         public Guid Id { get; set; }
         public string DepartureTime { get; set; }
         public string Direction { get; set; }
+        public ResponseRouteScheduleModel Route { get; set; }
         public ResponseShuttleScheduleModel Shuttle { get; set; }
         public ResponseDriverScheduleModel Driver { get; set; }
         public ResponseSchoolShiftScheduleModel SchoolShift { get; set; }
         public ResponseScheduleOverrideModel? OverrideSchedule { get; set; }
+    }
+
+    public class ResponseRouteScheduleModel
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; }
     }
 
     public class ResponseShuttleScheduleModel

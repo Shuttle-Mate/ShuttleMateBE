@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using ShuttleMate.Contract.Repositories.Entities;
+using ShuttleMate.Core.Utils;
 using ShuttleMate.ModelViews.ScheduleModelViews;
 
 namespace ShuttleMate.Services.MapperProfile
@@ -23,6 +24,11 @@ namespace ShuttleMate.Services.MapperProfile
                 .ForMember(dest => dest.Shuttle, opt => opt.MapFrom(src => src.Shuttle))
                 .ForMember(dest => dest.Driver, opt => opt.MapFrom(src => src.Driver))
                 .ForMember(dest => dest.SchoolShift, opt => opt.MapFrom(src => src.SchoolShift))
+                .ReverseMap();
+
+            CreateMap<Route, ResponseRouteScheduleModel>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.RouteName))
                 .ReverseMap();
 
             CreateMap<Shuttle, ResponseShuttleScheduleModel>()
