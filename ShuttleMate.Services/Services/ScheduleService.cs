@@ -683,7 +683,7 @@ namespace ShuttleMate.Services.Services
                         await _stopEstimateRepo.DeleteRangeAsync(existingStopEstimates);
 
                     await _scheduleRepo.DeleteRangeAsync(existingSchedules);
-                    await _unitOfWork.SaveAsync();
+                    //await _unitOfWork.SaveAsync();
                 }
             }
 
