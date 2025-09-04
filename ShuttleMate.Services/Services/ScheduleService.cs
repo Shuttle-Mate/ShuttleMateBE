@@ -665,6 +665,10 @@ namespace ShuttleMate.Services.Services
             var daysUntilMonday = ((int)DayOfWeek.Monday - (int)todayVN.DayOfWeek + 7) % 7;
             var currentWeekStart = todayVN.AddDays(daysUntilMonday == 7 ? 0 : daysUntilMonday - 7);
 
+            // DANH SÁCH LỊCH TRÌNH CŨ CẦN XÓA (nếu validation pass)
+            List<Schedule> schedulesToDelete = new List<Schedule>();
+            List<StopEstimate> stopEstimatesToDelete = new List<StopEstimate>();
+
             // Kiểm tra nếu từ tuần sau trở đi (sau tuần hiện tại) 
             if (model.From > currentWeekStart.AddDays(6)) //Chủ nhật của tuần hiện tại
             {
@@ -679,11 +683,9 @@ namespace ShuttleMate.Services.Services
                     var scheduleIds = existingSchedules.Select(x => x.Id).ToList();
                     var existingStopEstimates = await _stopEstimateRepo.FindAllAsync(x => scheduleIds.Contains(x.ScheduleId));
 
-                    if (existingStopEstimates.Any())
-                        await _stopEstimateRepo.DeleteRangeAsync(existingStopEstimates);
-
-                    await _scheduleRepo.DeleteRangeAsync(existingSchedules);
-                    //await _unitOfWork.SaveAsync();
+                    // CHỈ LƯU VÀO DANH SÁCH ĐỂ XÓA SAU, KHÔNG XÓA NGAY
+                    schedulesToDelete.AddRange(existingSchedules);
+                    stopEstimatesToDelete.AddRange(existingStopEstimates);
                 }
             }
 
@@ -695,7 +697,7 @@ namespace ShuttleMate.Services.Services
 
             if (model.Schedules == null || !model.Schedules.Any())
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Danh sách lịch trình không được để trống.");
-            
+
             if (model.From > model.To)
                 throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Ngày bắt đầu không được lớn hơn ngày kết thúc.");
 
@@ -704,6 +706,7 @@ namespace ShuttleMate.Services.Services
 
             var newSchedules = new List<Schedule>();
 
+            // VALIDATION CHO LỊCH TRÌNH MỚI
             foreach (var scheduleDetail in model.Schedules)
             {
                 var shuttle = await _unitOfWork.GetRepository<Shuttle>().GetByIdAsync(scheduleDetail.ShuttleId)
@@ -755,7 +758,7 @@ namespace ShuttleMate.Services.Services
                 var routeStops = route.RouteStops?.Where(rs => !rs.DeletedTime.HasValue).ToList();
                 var stopCount = routeStops?.Count ?? 0;
                 int totalDuration = 0;
-                
+
                 if (stopCount > 1)
                 {
                     var durationSum = routeStops.Sum(rs => rs.Duration);
@@ -788,6 +791,10 @@ namespace ShuttleMate.Services.Services
 
                     foreach (var existing in existingSchedules)
                     {
+                        // BỎ QUA CÁC LỊCH TRÌNH ĐÃ ĐƯỢC ĐÁNH DẤU ĐỂ XÓA
+                        if (schedulesToDelete.Any(s => s.Id == existing.Id))
+                            continue;
+
                         var overrideForThisDate = existing.ScheduleOverrides?
                             .FirstOrDefault(o => o.Date == currentDate && !o.DeletedTime.HasValue);
 
@@ -837,6 +844,10 @@ namespace ShuttleMate.Services.Services
 
                 foreach (var existing in existingRouteSchedules)
                 {
+                    // BỎ QUA CÁC LỊCH TRÌNH ĐÃ ĐƯỢC ĐÁNH DẤU ĐỂ XÓA
+                    if (schedulesToDelete.Any(s => s.Id == existing.Id))
+                        continue;
+
                     for (int i = 0; i < 7; i++)
                     {
                         if (binaryDayOfWeek[i] == '1' && existing.DayOfWeek[i] == '1')
@@ -886,6 +897,15 @@ namespace ShuttleMate.Services.Services
                 });
             }
 
+            // CHỈ XÓA LỊCH TRÌNH CŨ SAU KHI TẤT CẢ VALIDATION ĐÃ PASS
+            if (schedulesToDelete.Any())
+            {
+                if (stopEstimatesToDelete.Any())
+                    await _stopEstimateRepo.DeleteRangeAsync(stopEstimatesToDelete);
+
+                await _scheduleRepo.DeleteRangeAsync(schedulesToDelete);
+            }
+
             if (newSchedules.Any())
                 await _scheduleRepo.InsertRangeAsync(newSchedules);
 
@@ -894,7 +914,7 @@ namespace ShuttleMate.Services.Services
             var users = await _unitOfWork.GetRepository<User>().Entities
                 .Where(u => !u.DeletedTime.HasValue)
                 .Where(u => userIds.Contains(u.Id))
-                .Select(u => new { u.Id, u.FullName})
+                .Select(u => new { u.Id, u.FullName })
                 .ToListAsync();
 
             var createdBy = "system";
@@ -904,9 +924,9 @@ namespace ShuttleMate.Services.Services
                 DateTime dateTime = vietnamNow;
 
                 var metadata = new Dictionary<string, string>
-                {
-                    { "DriverName", user.FullName }
-                };
+        {
+            { "DriverName", user.FullName }
+        };
 
                 // Đẩy thông báo
                 await _notificationService.SendNotificationFromTemplateAsync(
