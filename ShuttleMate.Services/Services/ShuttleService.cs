@@ -73,6 +73,7 @@ namespace ShuttleMate.Services.Services
             var pageSize = req.pageSize > 0 ? req.pageSize : 10;
 
             var query = _unitOfWork.GetRepository<Shuttle>().Entities
+                .OrderByDescending(x => x.CreatedTime)
                         .Where(x => !x.DeletedTime.HasValue);
 
             if (!string.IsNullOrWhiteSpace(searchKeyword))

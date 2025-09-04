@@ -147,6 +147,7 @@ namespace ShuttleMate.Services.Services
             var query = historyTicketRepo.Entities.Where(x => !x.DeletedTime.HasValue)
                 .Include(u => u.User)
                 .Include(u => u.Ticket)
+                .OrderByDescending(x => x.CreatedTime)
                 .Where(x => x.User.ParentId == cb)
                 .AsQueryable();
             if (ticketId.HasValue)
@@ -596,7 +597,8 @@ namespace ShuttleMate.Services.Services
 
                 return response;
             }
-            else {
+            else
+            {
                 PayOSResponseData checkoutUrl = await CallPayOSApi(payOSRequest);
                 CreateHistoryTicketResponse response = new CreateHistoryTicketResponse
                 {
@@ -607,7 +609,7 @@ namespace ShuttleMate.Services.Services
                 };
 
                 return response;
-            }         
+            }
         }
         public async Task UpdateSchoolShiftByHistoryId(Guid historyTicketId, UpdateSchoolShiftByHistoryIdModel model)
         {
