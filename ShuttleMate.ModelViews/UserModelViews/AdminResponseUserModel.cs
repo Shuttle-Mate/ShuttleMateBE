@@ -23,5 +23,7 @@ namespace ShuttleMate.ModelViews.UserModelViews
         public string? SchoolName { get; set; }
         public string? ParentName { get; set; }
         public DateTimeOffset? DeletedTime { get; set; }
+        public DateTimeOffset? CreatedTime { get; set; }
+
     }
 }
