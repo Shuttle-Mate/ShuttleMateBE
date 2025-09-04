@@ -705,7 +705,7 @@ namespace ShuttleMate.Services.Services
             var daysUntilMonday = ((int)DayOfWeek.Monday - (int)todayVN.DayOfWeek + 7) % 7;
             var currentWeekStart = todayVN.AddDays(daysUntilMonday == 7 ? 0 : daysUntilMonday - 7);
 
-            // Kiểm tra nếu từ tuần sau trở đi (sau tuần hiện tại)
+            // Kiểm tra nếu từ tuần sau trở đi (sau tuần hiện tại) 
             if (model.From > currentWeekStart.AddDays(6)) //Chủ nhật của tuần hiện tại
             {
                 var existingSchedules = await _scheduleRepo.FindAllAsync(x =>
