@@ -701,13 +701,12 @@ namespace ShuttleMate.Services.Services
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             var todayVN = DateOnly.FromDateTime(vietnamNow);
 
-            // Xác định ngày bắt đầu và kết thúc của tuần tiếp theo dựa vào ngày hiện tại
-            var daysUntilNextMonday = ((int)DayOfWeek.Monday - (int)todayVN.DayOfWeek + 7) % 7;
-            var nextWeekStart = todayVN.AddDays(daysUntilNextMonday == 0 ? 7 : daysUntilNextMonday);
-            var nextWeekEnd = nextWeekStart.AddDays(6);
+            // Xác định ngày bắt đầu của tuần hiện tại (Thứ 2)
+            var daysUntilMonday = ((int)DayOfWeek.Monday - (int)todayVN.DayOfWeek + 7) % 7;
+            var currentWeekStart = todayVN.AddDays(daysUntilMonday == 7 ? 0 : daysUntilMonday - 7);
 
-            //Nếu tạo cho tuần tiếp theo, kiểm tra và xóa lịch trình cũ nếu tồn tại
-            if (model.From == nextWeekStart && model.To == nextWeekEnd)
+            // Kiểm tra nếu từ tuần sau trở đi (sau tuần hiện tại)
+            if (model.From > currentWeekStart.AddDays(6)) //Chủ nhật của tuần hiện tại
             {
                 var existingSchedules = await _scheduleRepo.FindAllAsync(x =>
                     x.RouteId == model.RouteId &&
