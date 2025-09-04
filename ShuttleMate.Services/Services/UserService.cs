@@ -637,6 +637,9 @@ namespace ShuttleMate.Services.Services
                     ParentName = u.Parent.FullName,
                     SchoolName = u.School.Name,
                     PhoneNumber = u.PhoneNumber,
+                    CreatedTime = u.CreatedTime,
+                    AssignCode = u.AssignCode,
+                    
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)
