@@ -174,6 +174,7 @@ namespace ShuttleMate.Services.Services
             var route = await _unitOfWork.GetRepository<Route>().Entities.FirstOrDefaultAsync(x => x.Id == routeId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy tuyến!");
 
             var result = _mapper.Map<ResponseRouteModel>(route);
+            result.SchoolName = route.School?.Name;
 
             var activeStops = route.RouteStops?
                 .Where(rs => !rs.DeletedTime.HasValue)
