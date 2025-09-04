@@ -436,7 +436,7 @@ namespace ShuttleMate.Services.Services
             var vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
             var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
             var todayVN = DateOnly.FromDateTime(vietnamNow);
-            var dayOfWeek = (int)vietnamNow.DayOfWeek;
+            var dayOfWeek = ((int)vietnamNow.DayOfWeek + 6) % 7;
 
             var overrides = await _scheduleOverrideRepo.Entities
                 .Where(o => o.Date == todayVN && !o.DeletedTime.HasValue && o.OverrideUserId == driverIdGuid)
