@@ -46,6 +46,10 @@ namespace ShuttleMate.Services.Services
             string userId = Authentication.GetUserIdFromHttpContextAccessor(_contextAccessor);
 
             var shuttle = await _unitOfWork.GetRepository<Shuttle>().Entities.FirstOrDefaultAsync(x => x.Id == shuttleId && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy xe!");
+            if (shuttle.Schedules.Any())
+            {
+                throw new ErrorException(StatusCodes.Status400BadRequest, ErrorCode.BadRequest, "Không thể xóa xe vì có lịch hoạt động!");
+            }
             shuttle.DeletedTime = DateTime.Now;
             shuttle.DeletedBy = userId;
             await _unitOfWork.GetRepository<Shuttle>().UpdateAsync(shuttle);
@@ -80,7 +84,7 @@ namespace ShuttleMate.Services.Services
                     x.Brand.ToLower().Contains(searchKeyword.ToLower()));
             }
 
-            if (!string.IsNullOrWhiteSpace(req.sortBy) && Enum.TryParse<ShuttleSortByEnum>(req.sortBy,true, out var sortByEnum))
+            if (!string.IsNullOrWhiteSpace(req.sortBy) && Enum.TryParse<ShuttleSortByEnum>(req.sortBy, true, out var sortByEnum))
             {
                 query = sortByEnum switch
                 {
@@ -163,9 +167,9 @@ namespace ShuttleMate.Services.Services
             }
             var shutle = await _unitOfWork.GetRepository<Shuttle>().Entities.FirstOrDefaultAsync(x => x.Id == model.Id && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Không tìm thấy xe!");
 
-            if (model.LicensePlate == shutle.LicensePlate)
+            if (model.LicensePlate != shutle.LicensePlate)
             {
-                throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Biển số xe này đã được sử dụng!");
+                var check = await _unitOfWork.GetRepository<Shuttle>().Entities.FirstOrDefaultAsync(x => x.LicensePlate == model.LicensePlate && !x.DeletedTime.HasValue) ?? throw new ErrorException(StatusCodes.Status404NotFound, ErrorCode.NotFound, "Biển số xe này đã được sử dụng!");
             }
             //route = _mapper.Map<Route>(model);
             _mapper.Map(model, shutle);
