@@ -76,10 +76,10 @@ namespace ShuttleMate.Services.Services
                 ?? throw new ErrorException(StatusCodes.Status404NotFound, ResponseCodeConstants.NOT_FOUND,
                     "Lịch trình không hợp lệ hoặc không tồn tại.");
 
-            // Validate cùng thứ trong tuần (DayOfWeek dạng "1111100", 0=Chủ nhật, 6=Thứ 7)
+            // Validate cùng thứ trong tuần (DayOfWeek dạng "1111100", 0=Thứ 2, 6=Chủ Nhật)
             if (!string.IsNullOrEmpty(schedule.DayOfWeek))
             {
-                int dayIndex = (int)vietnamNow.DayOfWeek; // Chủ nhật = 0, Thứ 2 = 1, ..., Thứ 7 = 6
+                int dayIndex = ((int)vietnamNow.DayOfWeek + 6) % 7; //Thứ 2 = 0, ..., Chủ Nhật = 6
                 if (schedule.DayOfWeek.Length != 7 || schedule.DayOfWeek[dayIndex] != '1')
                 {
                     throw new ErrorException(StatusCodes.Status400BadRequest, ResponseCodeConstants.BADREQUEST, "Chỉ được bắt đầu chuyến vào đúng ngày trong tuần của lịch trình.");
