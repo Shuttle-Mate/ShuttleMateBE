@@ -438,20 +438,37 @@ namespace ShuttleMate.Services.Services
             var todayVN = DateOnly.FromDateTime(vietnamNow);
             var dayOfWeek = ((int)vietnamNow.DayOfWeek + 6) % 7;
 
+            // Lấy tất cả override schedules cho ngày hôm nay
             var overrides = await _scheduleOverrideRepo.Entities
-                .Where(o => o.Date == todayVN && !o.DeletedTime.HasValue && o.OverrideUserId == driverIdGuid)
+                .Where(o => o.Date == todayVN && !o.DeletedTime.HasValue)
+                .Include(o => o.OriginalShuttle)
+                .Include(o => o.OverrideShuttle)
+                .Include(o => o.OriginalUser)
+                .Include(o => o.OverrideUser)
                 .ToListAsync();
 
-            var overriddenScheduleIds = overrides
+            // Lấy các schedule IDs đã bị override CHO DRIVER KHÁC (không phải driver hiện tại)
+            var overriddenForOtherDriverIds = overrides
+                .Where(o => o.OriginalUserId == driverIdGuid && o.OverrideUserId != null && o.OverrideUserId != driverIdGuid)
+                .Select(o => o.ScheduleId)
+                .ToList();
+
+            // Lấy các schedule IDs được override CHO DRIVER HIỆN TẠI
+            var overriddenForCurrentDriverIds = overrides
+                .Where(o => o.OverrideUserId == driverIdGuid)
                 .Select(o => o.ScheduleId)
                 .ToList();
 
             var schedules = await _scheduleRepo.Entities
-                .Where(s => s.DriverId == driverIdGuid
-                    && !s.DeletedTime.HasValue
+                .Where(s =>
+                    // Lấy schedules của driver hiện tại KHÔNG bị override cho driver khác
+                    (s.DriverId == driverIdGuid && !overriddenForOtherDriverIds.Contains(s.Id)) ||
+                    // HOẶC lấy schedules được override cho driver hiện tại
+                    overriddenForCurrentDriverIds.Contains(s.Id)
+                )
+                .Where(s => !s.DeletedTime.HasValue
                     && s.From <= todayVN
-                    && s.To >= todayVN
-                    && !overriddenScheduleIds.Contains(s.Id))
+                    && s.To >= todayVN)
                 .Include(s => s.Shuttle)
                 .Include(s => s.Driver)
                 .Include(s => s.SchoolShift)
@@ -464,7 +481,12 @@ namespace ShuttleMate.Services.Services
 
             foreach (var s in schedules)
             {
-                if (!IsBitSet(s.DayOfWeek, dayOfWeek)) continue;
+                // Kiểm tra nếu schedule này được override cho driver hiện tại
+                var isOverrideForCurrentDriver = overriddenForCurrentDriverIds.Contains(s.Id);
+
+                // Kiểm tra dayOfWeek chỉ áp dụng cho schedule gốc, không áp dụng cho override
+                if (!isOverrideForCurrentDriver && !IsBitSet(s.DayOfWeek, dayOfWeek))
+                    continue;
 
                 var stopEstimates = await _unitOfWork.GetRepository<StopEstimate>().Entities
                     .Where(se => se.ScheduleId == s.Id)
@@ -504,7 +526,9 @@ namespace ShuttleMate.Services.Services
                     .Distinct()
                     .CountAsync();
 
-                var shuttle = s.Shuttle;
+                // Xác định shuttle nào sử dụng: shuttle gốc hay shuttle override
+                var overrideForToday = overrides.FirstOrDefault(o => o.ScheduleId == s.Id && o.Date == todayVN);
+                var shuttle = overrideForToday?.OverrideShuttle ?? s.Shuttle;
 
                 var trip = await _unitOfWork.GetRepository<Trip>()
                     .Entities
@@ -518,70 +542,6 @@ namespace ShuttleMate.Services.Services
                     RouteId = s.RouteId,
                     SchoolShiftId = (Guid)s.SchoolShiftId,
                     Trip = tripMapped,
-                    RouteCode = s.Route?.RouteCode ?? "",
-                    RouteName = s.Route?.RouteName ?? "",
-                    StartTime = startTime.ToString("HH:mm"),
-                    EndTime = endTime.ToString("HH:mm"),
-                    ShuttleName = shuttle?.Name ?? "",
-                    LicensePlate = shuttle?.LicensePlate ?? "",
-                    VehicleType = shuttle?.VehicleType ?? "",
-                    Color = shuttle?.Color ?? "",
-                    SeatCount = shuttle?.SeatCount ?? 0,
-                    Brand = shuttle?.Brand ?? "",
-                    Model = shuttle?.Model ?? "",
-                    RegistrationDate = shuttle?.RegistrationDate ?? DateTime.MinValue,
-                    InspectionDate = shuttle?.InspectionDate ?? DateTime.MinValue,
-                    NextInspectionDate = shuttle?.NextInspectionDate ?? DateTime.MinValue,
-                    InsuranceExpiryDate = shuttle?.InsuranceExpiryDate ?? DateTime.MinValue,
-                    AttendedStudentCount = attendedCount,
-                    ExpectedStudentCount = expectedStudentIds.Count,
-                    EstimatedDuration = $"{(int)duration.TotalHours}h{duration.Minutes}m",
-                    Direction = s.Direction.ToString(),
-                    Route = routeInfo,
-                    TripStatus = s.Trips.FirstOrDefault(t => t.TripDate == todayVN && !t.DeletedTime.HasValue && t.ScheduleId == s.Id)?.Status.ToString() ?? $"{TripStatusEnum.SCHEDULED.ToString()}"
-                });
-            }
-
-            foreach (var o in overrides)
-            {
-                var s = o.Schedule;
-                var startTime = s.DepartureTime;
-                var endTime = startTime.AddHours(1);
-                var duration = endTime - startTime;
-
-                var routeStops = s.Route?.RouteStops?.Where(x => !x.DeletedTime.HasValue).ToList() ?? new();
-                var routeInfo = BuildRouteInfo(routeStops, s.Direction);
-
-                var expectedStudentIds = await _unitOfWork.GetRepository<UserSchoolShift>().Entities
-                    .Where(us => us.SchoolShiftId == s.SchoolShiftId)
-                    .Select(us => us.StudentId)
-                    .ToListAsync();
-
-                var attendedCount = await _unitOfWork.GetRepository<Attendance>().Entities
-                    .Where(a =>
-                        expectedStudentIds.Contains(a.HistoryTicket.UserId) &&
-                        a.Trip.TripDate == todayVN &&
-                        a.Trip.Schedule.RouteId == s.RouteId &&
-                        a.Trip.Schedule.SchoolShiftId == s.SchoolShiftId &&
-                        (a.Status == AttendanceStatusEnum.CHECKED_IN || a.Status == AttendanceStatusEnum.CHECKED_OUT))
-                    .Select(a => a.HistoryTicket.UserId)
-                    .Distinct()
-                    .CountAsync();
-
-                var shuttle = o.OverrideShuttle;
-
-                var trip = await _unitOfWork.GetRepository<Trip>()
-                    .Entities
-                    .FirstOrDefaultAsync(t => t.ScheduleId == s.Id);
-
-                var tripMapped = _mapper.Map<ResponseTripModel>(trip);
-
-                responseList.Add(new ResponseTodayScheduleForDriverModel
-                {
-                    Id = s.Id,
-                    RouteId = s.RouteId,
-                    Trip = tripMapped,
-                    SchoolShiftId = (Guid)s.SchoolShiftId,
                     RouteCode = s.Route?.RouteCode ?? "",
                     RouteName = s.Route?.RouteName ?? "",
                     StartTime = startTime.ToString("HH:mm"),
