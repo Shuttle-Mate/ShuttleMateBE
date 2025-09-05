@@ -159,7 +159,8 @@ namespace ShuttleMate.Services.Services
                     Email = u.Email,
                     FullName = u.FullName,
                     Gender = u.Gender,
-                    ParentName = u.Parent.FullName
+                    ParentName = u.Parent.FullName,
+                    CreatedTime = u.CreatedTime,
                 })
                 .Skip(page * pageSize)
                 .Take(pageSize)
