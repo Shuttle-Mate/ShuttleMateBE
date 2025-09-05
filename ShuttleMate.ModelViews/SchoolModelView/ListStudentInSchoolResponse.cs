@@ -17,5 +17,7 @@ namespace ShuttleMate.ModelViews.SchoolModelView
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
         public string? ParentName { get; set; }
+        public DateTimeOffset? CreatedTime { get; set; }
+
     }
 }
